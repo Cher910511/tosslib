@@ -87,7 +87,7 @@ export const licenseDistribution = [
   { name: 'GPL-3.0', value: 12 },
   { name: 'BSD-3-Clause', value: 10 },
   { name: 'LGPL-2.1', value: 6 },
-  { name: '其他', value: 12 },
+  { name: '其他', value: 10 },
 ]
 
 // 覆盖行业领域（柱状）
