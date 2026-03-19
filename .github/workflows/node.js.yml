@@ -29,11 +29,9 @@ jobs:
           path: ./dist
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: https://cher910511.github.io/tosslib/
+
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/deploy-pages@v4
 
