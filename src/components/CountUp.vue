@@ -43,12 +43,24 @@ function animate() {
   raf = requestAnimationFrame(step)
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 onMounted(() => {
+  if (prefersReducedMotion()) {
+    displayValue.value = props.end
+    return
+  }
   displayValue.value = 0
   animate()
 })
 watch(() => props.end, () => {
   if (raf) cancelAnimationFrame(raf)
+  if (prefersReducedMotion()) {
+    displayValue.value = props.end
+    return
+  }
   animate()
 })
 </script>

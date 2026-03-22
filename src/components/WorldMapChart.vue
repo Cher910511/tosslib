@@ -5,9 +5,10 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import worldGeo from '@surbowl/world-geo-json-zh'
+import { toMapRegionName } from '../utils/countryNameZh.js'
 
-const WORLD_MAP_URL =
-  'https://cdn.jsdelivr.net/npm/echarts@5.5.0/map/json/world.json'
+echarts.registerMap('world', worldGeo)
 
 const props = defineProps({
   developerData: { type: Array, default: () => [] },
@@ -15,28 +16,9 @@ const props = defineProps({
 })
 const chartRef = ref(null)
 let chart = null
-let mapReady = false
 
-onMounted(async () => {
+onMounted(() => {
   if (!chartRef.value) return
-  try {
-    const res = await fetch(WORLD_MAP_URL)
-    if (!res.ok) throw new Error('map http')
-    const worldJson = await res.json()
-    echarts.registerMap('world', worldJson)
-    mapReady = true
-  } catch (e) {
-    try {
-      const local = await fetch('/world.json')
-      if (local.ok) {
-        echarts.registerMap('world', await local.json())
-        mapReady = true
-      }
-    } catch (_) {
-      mapReady = false
-    }
-    if (!mapReady) console.warn('世界地图加载失败，请联网或将 world.json 放入 public/', e)
-  }
   chart = echarts.init(chartRef.value)
   updateOption()
   window.addEventListener('resize', () => chart?.resize())
@@ -52,32 +34,8 @@ function updateOption() {
   if (!chart) return
   const dev = props.developerData || []
   const repo = props.repoData || []
-
-  if (!mapReady) {
-    chart.setOption(
-      {
-        backgroundColor: 'transparent',
-        graphic: [
-          {
-            type: 'text',
-            left: 'center',
-            top: '42%',
-            style: {
-              text: '世界地图未加载\n请联网或放置 public/world.json',
-              fill: 'rgba(0, 180, 255, 0.65)',
-              fontSize: 13,
-              textAlign: 'center',
-            },
-          },
-        ],
-        series: [],
-      },
-      true
-    )
-    return
-  }
-
   const devMax = Math.max(...dev.map((d) => d.value), 1)
+
   chart.setOption(
     {
       backgroundColor: 'transparent',
@@ -127,7 +85,10 @@ function updateOption() {
           type: 'map',
           map: 'world',
           geoIndex: 0,
-          data: dev.map((d) => ({ name: d.name, value: d.value })),
+          data: dev.map((d) => ({
+            name: toMapRegionName(d.name),
+            value: d.value,
+          })),
           itemStyle: { borderColor: 'rgba(0, 120, 200, 0.3)', borderWidth: 0.5 },
           emphasis: { label: { show: true, color: '#fff', fontSize: 10 } },
           animationDuration: 800,
@@ -137,7 +98,7 @@ function updateOption() {
           type: 'scatter',
           coordinateSystem: 'geo',
           data: dev.map((d) => ({
-            name: d.name,
+            name: toMapRegionName(d.name),
             value: [...geoCoord(d.name), d.value],
           })),
           symbolSize: (val) => Math.max(8, Math.min(28, val[2] / 4000)),
@@ -155,7 +116,7 @@ function updateOption() {
           type: 'scatter',
           coordinateSystem: 'geo',
           data: repo.map((d) => ({
-            name: d.name,
+            name: toMapRegionName(d.name),
             value: [...geoCoord(d.name), d.value],
           })),
           symbolSize: (val) => Math.max(6, Math.min(22, val[2] / 25000)),
@@ -205,6 +166,6 @@ function geoCoord(name) {
 .chart {
   width: 100%;
   height: 100%;
-  min-height: 260px;
+  min-height: 300px;
 }
 </style>

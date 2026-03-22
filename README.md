@@ -34,7 +34,14 @@ npm run preview
 
 | 路径 | 说明 |
 |------|------|
-| `src/App.vue` | 大屏布局与数据注入 |
-| `src/components/*.vue` | 各图表与区块组件 |
+| `src/App.vue` | 根组件 |
+| `src/layouts/AppShell.vue` | 侧栏 + 路由出口 + **科技底图与粒子背景（已内联）** |
+| `src/views/HomeView.vue` | 态势总览页 |
+| `src/views/analytics/DataScreenView.vue` | 数据大屏（KPI、活跃度/雷达/依赖图、高危列表等已内联） |
+| `src/views/analytics/report/ReportTablesView.vue` | 标准表格报表页 |
+| `src/views/analytics/report/SortableReportTable.vue` | 可排序/筛选/导出表格（与报表页同目录，便于整页搬运） |
+| `src/components/*.vue` | 首页与多页共用的图表、表格等 |
 | `src/components/CountUp.vue` | 数字滚动 |
-| `src/components/ParticleBackground.vue` | 粒子连线背景 |
+| `src/data/mockData.js` | Mock 数据 |
+
+**整页搬到别的项目**：可优先复制 `layouts/AppShell.vue`、`views/` 下对应页面、`components/` 里该页 `import` 到的文件、`data/mockData.js`、`styles/global.css`、`utils/`，并保留 `echarts`、`@surbowl/world-geo-json-zh` 等依赖。详见 `docs/PORTABLE.md`。

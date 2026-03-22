@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@surbowl/world-geo-json-zh": "^2.1.5",
+    "echarts": "^5.5.0",
     "vue": "^3.4.0",
-    "echarts": "^5.5.0"
+    "vue-router": "^4.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.0",

@@ -4,17 +4,86 @@
   box-sizing: border-box;
 }
 
+/* ========== 全站统一色板与背景（改这里即可换肤）========== */
 :root {
+  /* 基底 */
   --bg-dark: #030510;
-  --bg-card: rgba(8, 22, 52, 0.72);
-  --border-glow: rgba(0, 180, 255, 0.5);
+  --bg-app: var(--bg-dark);
+  --bg-page: var(--bg-dark);
+
+  /* 主文字与强调 */
   --text-primary: #e0f4ff;
   --text-secondary: #7eb8e0;
+  --text-muted: rgba(126, 184, 224, 0.55);
+  --text-faint: rgba(126, 184, 224, 0.45);
+  --text-code: #9fd8ff;
+  --text-on-accent: #030510;
+
   --accent-cyan: #00d4ff;
   --accent-blue: #0066ff;
+  --accent-mint: #00ff88;
+
   --danger: #ff4757;
   --warning: #ffa502;
   --success: #2ed573;
+  --success-bright: #7dffb3;
+
+  /* 侧栏 */
+  --sidebar-gradient: linear-gradient(180deg, rgba(6, 28, 62, 0.95) 0%, rgba(3, 12, 28, 0.98) 100%);
+  --sidebar-border: rgba(0, 212, 255, 0.22);
+  --sidebar-shadow: 4px 0 32px rgba(0, 0, 0, 0.35);
+  --sidebar-brand-divider: rgba(0, 180, 255, 0.15);
+  --nav-dash: rgba(0, 120, 200, 0.2);
+  --nav-hover-bg: rgba(0, 100, 200, 0.12);
+  --nav-active-bg: rgba(0, 120, 220, 0.22);
+  --nav-active-border: rgba(0, 212, 255, 0.35);
+  --nav-active-glow: 0 0 18px rgba(0, 212, 255, 0.12);
+  --gradient-brand: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  --brand-mark-shadow: 0 0 20px rgba(0, 212, 255, 0.45);
+
+  /* 卡片 / 面板 */
+  --bg-card: rgba(8, 22, 52, 0.72);
+  --border-glow: rgba(0, 180, 255, 0.5);
+  --border-card: rgba(0, 180, 255, 0.28);
+  --border-subtle: rgba(0, 120, 200, 0.2);
+  --shadow-card:
+    0 0 24px rgba(0, 120, 220, 0.12),
+    0 0 1px rgba(0, 212, 255, 0.4),
+    inset 0 0 50px rgba(0, 40, 100, 0.18);
+  --surface-panel: rgba(0, 40, 90, 0.45);
+  --gradient-surface-kpi: linear-gradient(145deg, rgba(0, 55, 110, 0.4) 0%, rgba(0, 25, 55, 0.55) 100%);
+
+  /* 风险强调边线（与 danger/warning/success 配套） */
+  --risk-high-border: rgba(255, 71, 87, 0.55);
+  --risk-high-glow: 0 0 20px rgba(255, 71, 87, 0.12);
+  --risk-medium-border: rgba(255, 165, 2, 0.45);
+  --risk-medium-glow: 0 0 18px rgba(255, 165, 2, 0.08);
+  --risk-low-border: rgba(46, 213, 115, 0.35);
+
+  /* 表格 / 输入 */
+  --table-header-bg: rgba(0, 55, 110, 0.92);
+  --gradient-table-head-cyan: linear-gradient(90deg, rgba(0, 90, 180, 0.45) 0%, rgba(0, 50, 120, 0.35) 100%);
+  --inset-panel-soft: inset 0 0 20px rgba(0, 60, 120, 0.15);
+  --table-row-alt: rgba(0, 40, 90, 0.2);
+  --table-row-hover: rgba(0, 120, 200, 0.15);
+  --table-cell-border: rgba(0, 80, 140, 0.18);
+  --input-bg: rgba(0, 20, 50, 0.6);
+  --input-border: rgba(0, 180, 255, 0.35);
+  --btn-bg: rgba(0, 100, 200, 0.35);
+  --btn-bg-hover: rgba(0, 140, 220, 0.45);
+  --btn-border: rgba(0, 212, 255, 0.45);
+  --table-header-border: rgba(0, 212, 255, 0.25);
+  --scrollbar-track: rgba(0, 25, 55, 0.45);
+  --scrollbar-thumb: rgba(0, 212, 255, 0.35);
+
+  /* 高危列表等特殊块 */
+  --vuln-panel-border: rgba(255, 71, 87, 0.35);
+  --vuln-panel-shadow:
+    inset 0 0 24px rgba(80, 0, 20, 0.15),
+    0 0 20px rgba(255, 71, 87, 0.08);
+  --vuln-thead-gradient: linear-gradient(90deg, rgba(120, 0, 40, 0.35) 0%, rgba(0, 50, 120, 0.4) 100%);
+  --vuln-thead-text: #ffb3bc;
+  --text-status-soft: #b8e8ff;
 }
 
 html {
@@ -24,11 +93,12 @@ html {
 
 body {
   width: 100%;
+  height: 100%;
   min-height: 100%;
   min-height: 100dvh;
   overflow: hidden;
   font-family: 'Share Tech Mono', 'Orbitron', monospace, sans-serif;
-  background: var(--bg-dark);
+  background: var(--bg-app);
   color: var(--text-primary);
 }
 
@@ -39,17 +109,15 @@ body {
   min-height: 100dvh;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
 
 /* 发光卡片 */
 .glow-card {
   background: var(--bg-card);
-  border: 1px solid rgba(0, 180, 255, 0.28);
+  border: 1px solid var(--border-card);
   border-radius: 8px;
-  box-shadow:
-    0 0 24px rgba(0, 120, 220, 0.12),
-    0 0 1px rgba(0, 212, 255, 0.4),
-    inset 0 0 50px rgba(0, 40, 100, 0.18);
+  box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(6px);
@@ -95,6 +163,12 @@ body {
   text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
 }
 
-.level-high { color: var(--danger); }
-.level-medium { color: var(--warning); }
-.level-low { color: var(--success); }
+.level-high {
+  color: var(--danger);
+}
+.level-medium {
+  color: var(--warning);
+}
+.level-low {
+  color: var(--success);
+}

@@ -66,17 +66,17 @@ function levelClass(l) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid rgba(0, 212, 255, 0.28);
+  border: 1px solid var(--border-card);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(0, 60, 120, 0.15);
+  box-shadow: var(--inset-panel-soft);
 }
 .thead {
   display: grid;
   grid-template-columns: 1.15fr 1.05fr 0.65fr 0.85fr;
   gap: 10px;
   padding: 12px 16px;
-  background: linear-gradient(90deg, rgba(0, 90, 180, 0.45) 0%, rgba(0, 50, 120, 0.35) 100%);
+  background: var(--gradient-table-head-cyan);
   font-size: 13px;
   font-weight: 600;
   color: var(--accent-cyan);
@@ -103,7 +103,7 @@ function levelClass(l) {
   height: 36px;
   align-items: center;
   font-size: 13px;
-  border-bottom: 1px solid rgba(0, 100, 180, 0.14);
+  border-bottom: 1px solid var(--table-cell-border);
 }
 .table-scroll-wrap.large .tr {
   height: 40px;
@@ -111,14 +111,14 @@ function levelClass(l) {
   font-size: 14px;
 }
 .tr:nth-child(even) {
-  background: rgba(0, 45, 95, 0.28);
+  background: var(--table-row-alt);
 }
 .tr:hover {
-  background: rgba(0, 120, 200, 0.22);
+  background: var(--table-row-hover);
 }
 .mono {
   font-family: 'Share Tech Mono', monospace;
-  color: #9fd8ff;
+  color: var(--text-code);
   font-weight: 500;
 }
 .comp {
