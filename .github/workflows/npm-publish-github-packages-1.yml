@@ -8,15 +8,14 @@ on:
     types: [created]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://username.github.io/repo/
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm test
+      - uses: actions/deploy-pages@v4
 
   publish-gpr:
     needs: build
