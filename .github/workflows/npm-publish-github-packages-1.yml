@@ -22,7 +22,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - run: VITE_BASE=/tosslib/ npm run build && npm run preview -- --base /tosslib/
 
       - uses: actions/upload-pages-artifact@v3
         with:
