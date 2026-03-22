@@ -21,6 +21,24 @@ npm run build
 npm run preview
 ```
 
+### 部署到 GitHub Pages（项目站）
+
+站点地址为 `https://<用户>.github.io/<仓库名>/` 时，构建**必须**带资源前缀，否则 JS/CSS 会从 `github.io` 根路径加载 → **黑屏**。
+
+```bash
+VITE_BASE=/你的仓库名/ npm run build
+```
+
+本仓库已配置：
+
+- `vite.config.js` 读取环境变量 `VITE_BASE`（默认 `/`，本地开发不变）
+- `vue-router` 使用 `import.meta.env.BASE_URL` 与之一致
+- `npm run build` 结束后复制 `index.html` → `dist/404.html`，避免刷新子路由 404
+
+CI 示例见 `.github/workflows/deploy-pages.yml`（已写入 `VITE_BASE: /${{ github.event.repository.name }}/`）。
+
+**特例**：若仓库名为 `用户名.github.io` 且站点在域名根路径，请使用 `VITE_BASE=/` 构建。
+
 ## 世界地图
 
 默认从 jsDelivr 加载 ECharts 官方 `world.json`。**离线环境**可将同文件保存为 `public/world.json`，页面会自动回退加载本地文件。

@@ -19,6 +19,7 @@ const routes = [
 ]
 
 export const router = createRouter({
-  history: createWebHistory(),
+  // 与 vite.config base 一致（GitHub Pages 子路径部署必需）
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
