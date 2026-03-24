@@ -1,39 +1,55 @@
+# 部署到 GitHub Pages（项目站：https://<用户>.github.io/<仓库名>/）
+# 勿在 CI 中运行 vite preview（会常驻进程导致任务卡住）
 name: Deploy Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - run: npm ci
-      - run: VITE_BASE=/tosslib/ npm run build && npm run preview -- --base /tosslib/
+      - name: Install dependencies
+        run: npm ci
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Build
+        run: npm run build
+        env:
+          # 与站点路径一致，否则 /assets/*.js 会从 github.io 根路径请求 → 404 黑屏
+          # 仓库名若不是 tosslib，会自动用当前仓库名，无需改下面一行
+          VITE_BASE: /${{ github.event.repository.name }}/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
     environment:
       name: github-pages
-
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
