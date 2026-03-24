@@ -13,4 +13,8 @@ const base = process.env.VITE_BASE ?? '/'
 export default defineConfig({
   plugins: [vue()],
   base,
+  server: {
+    /** 本地开发启动后默认打开软件详情页 */
+    open: '/software/detail',
+  },
 })
