@@ -68,7 +68,11 @@
           <div class="readme-badges">
             <span class="badge">构建 passing</span>
             <span class="badge badge-accent">v{{ displayPkg.version }}</span>
-            <span class="badge">{{ displayPkg.license.name }}</span>
+            <span
+              v-for="(ln, li) in displayPkg.license.names"
+              :key="'lb-' + li"
+              class="badge"
+            >{{ ln }}</span>
             <span class="badge">Python 3</span>
           </div>
           <p class="readme-p">
@@ -117,19 +121,33 @@ def application(request):
           </div>
           <hr class="link-divider" />
           <div class="link-entry">
-            <div class="link-label">包下载地址</div>
-            <a
-              class="link-row"
-              :href="displayPkg.links.package"
-              target="_blank"
-              rel="noopener noreferrer"
-              :aria-label="'打开' + displayPkg.links.packageText"
-            >
-              <span class="link-ico" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-              </span>
-              <span class="link-url">{{ displayPkg.links.packageText }}</span>
-            </a>
+            <div class="link-label">源码包下载</div>
+            <div class="link-multi link-multi--inline">
+              <a
+                v-for="(dl, di) in displayPkg.links.packageDownloads"
+                :key="'pkg-' + di"
+                class="link-pkg"
+                :href="dl.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="'下载源码包：' + dl.label"
+              >
+                <span class="link-pkg-ico" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </span>
+                <span class="link-pkg-txt">{{ dl.label }}</span>
+              </a>
+            </div>
           </div>
           <hr class="link-divider" />
           <div class="link-entry">
@@ -166,9 +184,15 @@ def application(request):
               <dt>发布日期</dt>
               <dd>{{ displayPkg.released }}</dd>
             </div>
-            <div class="meta-row">
+            <div class="meta-row meta-row-license">
               <dt>开源License</dt>
-              <dd>{{ displayPkg.license.name }}</dd>
+              <dd class="meta-dd-license">
+                <span
+                  v-for="(ln, li) in displayPkg.license.names"
+                  :key="'lic-' + li"
+                  class="license-pill"
+                >{{ ln }}</span>
+              </dd>
             </div>
           </dl>
         </section>
@@ -195,40 +219,40 @@ def application(request):
       </aside>
     </div>
 
-    <div v-show="activeTab === 'versions'" class="tab-panel version-panel">
-      <button
-        v-for="row in versionHistory"
-        :key="row.version"
-        type="button"
-        class="version-card"
-        @click="goToVersionIntro(row)"
-      >
-        <span class="version-card__ver">{{ row.version }}</span>
-        <span class="version-card__meta">
-          <span class="version-card__ico" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </span>
-           {{ row.score }}
-        </span>
-        <span class="version-card__meta">
-          <span class="version-card__ico" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </span>
-           {{ row.released }}
-        </span>
-        <span class="version-card__meta">
-          <span class="version-card__ico" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </span>
-           {{ row.vulnCount }}
-        </span>
-        <span class="version-card__author">
-          <span class="version-card__ico" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
-          </span>
-          <span class="version-card__author-name"> {{ row.vendor }}</span>
-        </span>
-      </button>
+    <div v-show="activeTab === 'versions'" class="tab-panel version-sheet">
+      <!-- <p class="version-sheet__hint">按发布时间倒序，点击条目进入该版本的软件介绍。</p> -->
+      <div class="version-list">
+        <button
+          v-for="(row, index) in versionHistory"
+          :key="row.version"
+          type="button"
+          class="version-release"
+          :class="{ 'version-release--active': isVersionRowActive(row) }"
+          @click="goToVersionIntro(row)"
+        >
+          <div class="version-release__main">
+            <div class="version-release__left">
+              <span v-if="index === 0" class="version-release__pill">最新</span>
+              <span class="version-release__ver">{{ row.version }}</span>
+            </div>
+            <div class="version-release__mid">
+              <span class="version-release__chip">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {{ row.released }}
+              </span>
+              <span class="version-release__chip version-release__chip--warn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                漏洞 {{ row.vulnCount }}
+              </span>
+              <span class="version-release__vendor">{{ row.vendor }}</span>
+            </div>
+            <div class="version-release__score" :title="'综合评分 ' + row.score">
+              <span class="version-release__score-label">评分</span>
+              <span class="version-release__score-val">{{ row.score }}</span>
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
 
     <div v-show="activeTab !== 'intro' && activeTab !== 'versions'" class="tab-panel placeholder">
@@ -245,8 +269,32 @@ const route = useRoute()
 const router = useRouter()
 
 const versionHistory = [
-  { version: '2.3.7', score: '5.5', released: '2023-08-14', vulnCount: 3, vulnHigh: 1, vulnMid: 1, vulnLow: 1, vendor: 'Pallets' },
-  { version: '2.3.6', score: '5.4', released: '2023-07-01', vulnCount: 4, vulnHigh: 0, vulnMid: 2, vulnLow: 2, vendor: 'Pallets' },
+  {
+    version: '2.3.7',
+    score: '5.5',
+    released: '2023-08-14',
+    vulnCount: 3,
+    vulnHigh: 1,
+    vulnMid: 1,
+    vulnLow: 1,
+    vendor: 'Pallets',
+    packageDownloads: [
+      { href: 'https://github.com/pallets/werkzeug/archive/refs/tags/2.3.7.zip', label: '.zip' },
+      { href: 'https://github.com/pallets/werkzeug/archive/refs/tags/2.3.7.tar.gz', label: '.tar.gz' },
+      { href: 'https://pypi.org/project/Werkzeug/2.3.7/#files', label: '.whl' },
+    ],
+  },
+  {
+    version: '2.3.6',
+    score: '5.4',
+    released: '2023-07-01',
+    vulnCount: 4,
+    vulnHigh: 0,
+    vulnMid: 2,
+    vulnLow: 2,
+    vendor: 'Pallets',
+    licenseNames: ['BSD-3-Clause'],
+  },
   { version: '2.3.5', score: '5.3', released: '2023-05-15', vulnCount: 5, vulnHigh: 2, vulnMid: 1, vulnLow: 2, vendor: 'Pallets' },
   { version: '2.3.4', score: '5.2', released: '2023-04-01', vulnCount: 5, vulnHigh: 0, vulnMid: 0, vulnLow: 0, vendor: 'Pallets' },
   { version: '2.3.3', score: '5.2', released: '2023-02-10', vulnCount: 6, vulnHigh: 1, vulnMid: 2, vulnLow: 3, vendor: 'Pallets' },
@@ -288,6 +336,13 @@ function goToVersionIntro(row) {
   })
 }
 
+function isVersionRowActive(row) {
+  const qv = route.query.v
+  const vStr = Array.isArray(qv) ? qv[0] : qv
+  if (vStr && typeof vStr === 'string') return row.version === vStr
+  return row.version === versionHistory[0]?.version
+}
+
 const tabLabel = computed(() => tabs.value.find((t) => t.key === activeTab.value)?.label ?? '')
 
 const basePkg = {
@@ -306,14 +361,19 @@ const basePkg = {
   industry: '工业',
   links: {
     source: 'https://github.com/pallets/werkzeug',
-    package: 'https://pypi.org/project/Werkzeug/',
-    website: 'https://werkzeug.palletsprojects.com/',
     sourceText: '源码仓库',
-    packageText: '源码包下载地址',
+    /** 多个源码包 / 格式：ZIP、tar.gz、PyPI 等，按版本可在 versionHistory 中覆盖 */
+    packageDownloads: [
+      { href: 'https://github.com/pallets/werkzeug/archive/refs/heads/main.zip', label: '.zip' },
+      { href: 'https://github.com/pallets/werkzeug/archive/refs/heads/main.tar.gz', label: '.tar.gz' },
+      { href: 'https://pypi.org/project/Werkzeug/#files', label: '.whl' },
+    ],
+    website: 'https://werkzeug.palletsprojects.com/',
     websiteText: '版本官网地址',
   },
   license: {
-    name: 'MIT',
+    /** 多 SPDX / 展示名，按接口返回条数渲染 */
+    names: ['BSD-3-Clause', 'MIT', 'Apache-2.0', 'ISC'],
     type: 'bsd',
     status: '已批准',
   },
@@ -331,6 +391,9 @@ const currentVersionRow = computed(() => {
 
 const displayPkg = computed(() => {
   const row = currentVersionRow.value
+  const licenseNames = row.licenseNames ?? basePkg.license.names
+  const names = Array.isArray(licenseNames) ? licenseNames : [licenseNames].filter(Boolean)
+  const packageDownloads = row.packageDownloads ?? basePkg.links.packageDownloads
   return {
     ...basePkg,
     version: row.version,
@@ -341,6 +404,14 @@ const displayPkg = computed(() => {
     vulnHigh: row.vulnHigh,
     vulnMid: row.vulnMid,
     vulnLow: row.vulnLow,
+    license: {
+      ...basePkg.license,
+      names: names.length ? names : ['—'],
+    },
+    links: {
+      ...basePkg.links,
+      packageDownloads: Array.isArray(packageDownloads) ? packageDownloads : [],
+    },
   }
 })
 
@@ -851,6 +922,56 @@ function copyInstall() {
   min-width: 0;
 }
 
+.link-multi--inline {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.link-pkg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  text-decoration: none;
+  line-height: 1.4;
+  border-bottom: 1px solid transparent;
+}
+
+.link-pkg-ico {
+  display: flex;
+  flex-shrink: 0;
+  color: #6b7280;
+  transition: color 0.15s ease;
+}
+
+.link-pkg-txt {
+  border-bottom: 1px solid transparent;
+}
+
+.link-pkg:hover {
+  color: #da203e;
+}
+
+.link-pkg:hover .link-pkg-ico {
+  color: #da203e;
+}
+
+.link-pkg:hover .link-pkg-txt {
+  border-bottom-color: rgba(218, 32, 62, 0.45);
+}
+
+.link-pkg:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.35);
+}
+
 .link-divider {
   border: none;
   border-top: 1px solid #f3f4f6;
@@ -885,6 +1006,28 @@ function copyInstall() {
   padding: 10px 0;
   border-bottom: 1px solid #f3f4f6;
   font-size: 14px;
+}
+
+.meta-row-license dd {
+  min-width: 0;
+}
+
+.meta-dd-license {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.license-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #374151;
+  background: #f9fafb;
+  border: 1px solid #e8eaed;
+  border-radius: 6px;
 }
 
 .meta-row-full {
@@ -967,73 +1110,186 @@ th {
   font-size: 14px;
 }
 
-.version-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* —— 软件版本：列表卡片，主题色 #da203e —— */
+.version-sheet {
+  --v-accent: #da203e;
+  --v-accent-soft: rgba(218, 32, 62, 0.1);
+  --v-accent-ring: rgba(218, 32, 62, 0.28);
+  padding: 0;
 }
 
-.version-card {
+.version-sheet__hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.45;
+}
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.version-release {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 10px 14px 10px 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: #fafafa;
+  border: 1px solid #eceef2;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    border-left-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.version-release:hover {
+  background: #fff;
+  border-color: #e5e7eb;
+  border-left-color: rgba(218, 32, 62, 0.55);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+.version-release:focus-visible {
+  outline: none;
+  border-left-color: var(--v-accent);
+  box-shadow: 0 0 0 3px var(--v-accent-ring);
+}
+
+.version-release--active {
+  background: #fff;
+  border-color: #f5d0d6;
+  border-left-color: var(--v-accent);
+  box-shadow: 0 2px 8px rgba(218, 32, 62, 0.07);
+}
+
+.version-release__main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 14px;
-  width: 100%;
-  margin: 0;
-  padding: 16px 20px;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  gap: 10px 30px;
 }
 
-.version-card:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.version-card__ver {
-  font-weight: 700;
-  font-size: 15px;
-  color: #111827;
-  min-width: 5.5rem;
-}
-
-.version-card__meta {
-  display: inline-flex;
+.version-release__left {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #6b7280;
-}
-
-.version-card__ico {
-  display: inline-flex;
-  color: #0d9488;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.version-card__author {
+.version-release__mid {
+  display: flex;
+  flex: 1 1 240px;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 20px;
+  row-gap: 14px;
+  min-width: 0;
+}
+
+.version-release__pill {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--v-accent);
+  background: var(--v-accent-soft);
+  border-radius: 4px;
+}
+
+.version-release__ver {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.version-release__score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-left: auto;
+  padding: 5px 10px;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 6px;
+}
+
+.version-release__score-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.04em;
+}
+
+.version-release__score-val {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-accent);
+  line-height: 1;
+}
+
+.version-release__chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
-  font-size: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  color: #4b5563;
+}
+
+.version-release__chip svg {
+  flex-shrink: 0;
   color: #6b7280;
+  opacity: 0.9;
 }
 
-.version-card__author-name {
-  font-weight: 500;
+.version-release__chip--warn {
+  background: rgba(251, 191, 36, 0.14);
+  color: #a16207;
 }
 
-@media (max-width: 900px) {
-  .version-card__author {
+.version-release__chip--warn svg {
+  color: #ca8a04;
+}
+
+.version-release__vendor {
+  padding: 4px 4px 4px 12px;
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v-accent);
+  white-space: nowrap;
+  /* border-left: 1px solid #e8eaed; */
+}
+
+@media (max-width: 640px) {
+  .version-release__score {
     margin-left: 0;
     width: 100%;
+    justify-content: flex-start;
+  }
+
+  .version-release__vendor {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 4px;
+    border-left: none;
   }
 }
 </style>
