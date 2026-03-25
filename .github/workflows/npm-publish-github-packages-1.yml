@@ -1,5 +1,3 @@
-# 部署到 GitHub Pages（项目站：https://<用户>.github.io/<仓库名>/）
-# 勿在 CI 中运行 vite preview（会常驻进程导致任务卡住）
 name: Deploy Pages
 
 on:
@@ -34,8 +32,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # 与站点路径一致，否则 /assets/*.js 会从 github.io 根路径请求 → 404 黑屏
-          # 仓库名若不是 tosslib，会自动用当前仓库名，无需改下面一行
           VITE_BASE: /${{ github.event.repository.name }}/
 
       - name: Upload artifact
