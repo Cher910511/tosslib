@@ -5,7 +5,9 @@ import HomeView from '../views/HomeView.vue'
 import DataScreenView from '../views/analytics/DataScreenView.vue'
 import ReportTablesView from '../views/analytics/report/ReportTablesView.vue'
 import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
+import SoftwareLibraryView from '../views/software/SoftwareLibraryView.vue'
 import SoftwareDetailView from '../views/software/SoftwareDetailView.vue'
+import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 
 const routes = [
   /* 部署后默认进入浅色「软件详情」；原态势总览大屏改到 /dash */
@@ -33,6 +35,18 @@ const routes = [
         name: 'software-home',
         component: SoftwareHomeView,
         meta: { adminTitle: '首页' },
+      },
+      {
+        path: 'library',
+        name: 'software-library',
+        component: SoftwareLibraryView,
+        meta: { adminTitle: '软件库' },
+      },
+      {
+        path: 'components',
+        name: 'component-library',
+        component: ComponentLibraryView,
+        meta: { adminTitle: '组件库' },
       },
       {
         path: 'detail',

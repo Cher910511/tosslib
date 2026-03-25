@@ -2,7 +2,7 @@
   <div class="soft-home">
     <h1 class="h1">首页</h1>
     <p class="lead">可信开源代码库 · 管理后台（浅色主题）</p>
-    <RouterLink class="link" :to="{ name: 'software-detail' }">进入软件库示例：软件详情 →</RouterLink>
+    <RouterLink class="link" :to="{ name: 'software-library' }">进入软件库 →</RouterLink>
   </div>
 </template>
 

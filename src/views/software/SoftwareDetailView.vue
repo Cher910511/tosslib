@@ -1,15 +1,42 @@
 <template>
   <div class="detail">
     <section class="hero-card">
-      <div class="hero-left">
-        <div class="hero-icon" aria-hidden="true">W</div>
-        <div class="hero-info">
-          <h1 class="hero-title">{{ displayPkg.name }}</h1>
-          <p class="hero-meta">
-            <span>版本: {{ displayPkg.version }}</span>
-            <span class="dot"> </span>
-            <span>评分: {{ displayPkg.score }}</span>
-          </p>
+      <div class="hero-lead">
+        <h1 class="hero-title">{{ displayPkg.name }}</h1>
+        <div class="hero-meta-strip" aria-label="版本、评分与漏洞概览">
+          <div class="hero-meta-cell">
+            <span class="hero-meta-k">版本</span>
+            <span class="hero-meta-v hero-meta-v--ver">v{{ displayPkg.version }}</span>
+          </div>
+          <span class="hero-meta-divider" aria-hidden="true" />
+          <div class="hero-meta-cell">
+            <span class="hero-meta-k">评分</span>
+            <span class="hero-meta-v hero-meta-v--score">{{ displayPkg.score }}</span>
+          </div>
+          <span class="hero-meta-divider" aria-hidden="true" />
+          <div class="hero-meta-cell hero-meta-cell--grow">
+            <span class="hero-meta-k">漏洞</span>
+            <span class="hero-meta-v hero-meta-v--vuln-line">
+              <template v-if="vulnHeroParts.isEmpty">
+                <span class="hero-vuln-empty">无已知漏洞</span>
+              </template>
+              <template v-else>
+                <template v-for="(p, idx) in vulnHeroParts.parts" :key="p.key">
+                  <span class="hero-vuln-group">
+                    <span
+                      class="hero-vuln-label hero-vuln-label--mid-gap"
+                    >{{ p.label }}</span>
+                    <span class="hero-vuln-num" :class="p.numClass">{{ p.n }}</span>
+                  </span>
+                  <span
+                    v-if="idx < vulnHeroParts.parts.length - 1"
+                    class="hero-vuln-between"
+                    aria-hidden="true"
+                  > </span>
+                </template>
+              </template>
+            </span>
+          </div>
         </div>
       </div>
       <div class="hero-actions">
@@ -218,12 +245,12 @@ const route = useRoute()
 const router = useRouter()
 
 const versionHistory = [
-  { version: '2.3.7', score: '5.5', released: '2023-08-14', vulnCount: 3, vendor: 'Pallets' },
-  { version: '2.3.6', score: '5.4', released: '2023-07-01', vulnCount: 4, vendor: 'Pallets' },
-  { version: '2.3.5', score: '5.3', released: '2023-05-15', vulnCount: 5, vendor: 'Pallets' },
-  { version: '2.3.4', score: '5.2', released: '2023-04-01', vulnCount: 5, vendor: 'Pallets' },
-  { version: '2.3.3', score: '5.2', released: '2023-02-10', vulnCount: 6, vendor: 'Pallets' },
-  { version: '2.3.2', score: '5.1', released: '2023-01-05', vulnCount: 7, vendor: 'Pallets' },
+  { version: '2.3.7', score: '5.5', released: '2023-08-14', vulnCount: 3, vulnHigh: 1, vulnMid: 1, vulnLow: 1, vendor: 'Pallets' },
+  { version: '2.3.6', score: '5.4', released: '2023-07-01', vulnCount: 4, vulnHigh: 0, vulnMid: 2, vulnLow: 2, vendor: 'Pallets' },
+  { version: '2.3.5', score: '5.3', released: '2023-05-15', vulnCount: 5, vulnHigh: 2, vulnMid: 1, vulnLow: 2, vendor: 'Pallets' },
+  { version: '2.3.4', score: '5.2', released: '2023-04-01', vulnCount: 5, vulnHigh: 0, vulnMid: 0, vulnLow: 0, vendor: 'Pallets' },
+  { version: '2.3.3', score: '5.2', released: '2023-02-10', vulnCount: 6, vulnHigh: 1, vulnMid: 2, vulnLow: 3, vendor: 'Pallets' },
+  { version: '2.3.2', score: '5.1', released: '2023-01-05', vulnCount: 7, vulnHigh: 0, vulnMid: 3, vulnLow: 4, vendor: 'Pallets' },
 ]
 
 const tabs = computed(() => [
@@ -273,14 +300,17 @@ const basePkg = {
   versionId: 'sha256:4e0f4b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0',
   description: 'The comprehensive WSGI web application library.',
   vulnCount: 3,
+  vulnHigh: 1,
+  vulnMid: 1,
+  vulnLow: 1,
   industry: '工业',
   links: {
     source: 'https://github.com/pallets/werkzeug',
     package: 'https://pypi.org/project/Werkzeug/',
     website: 'https://werkzeug.palletsprojects.com/',
-    sourceText: 'GitHub 源码仓库',
-    packageText: 'PyPI 包页面',
-    websiteText: '官方文档站',
+    sourceText: '源码仓库',
+    packageText: '源码包下载地址',
+    websiteText: '版本官网地址',
   },
   license: {
     name: 'MIT',
@@ -308,6 +338,33 @@ const displayPkg = computed(() => {
     released: row.released,
     author: row.vendor,
     vulnCount: row.vulnCount,
+    vulnHigh: row.vulnHigh,
+    vulnMid: row.vulnMid,
+    vulnLow: row.vulnLow,
+  }
+})
+
+/** 头部漏洞：始终展示 高危n 中危n 低危n（有漏洞时）；仅数字用等级色，文字标签灰色 */
+const vulnHeroParts = computed(() => {
+  const hi = displayPkg.value.vulnHigh ?? 0
+  const mid = displayPkg.value.vulnMid ?? 0
+  const lo = displayPkg.value.vulnLow ?? 0
+  if (hi === 0 && mid === 0 && lo === 0) {
+    return { isEmpty: true, parts: [] }
+  }
+  const numClass = (n, level) => {
+    if (n <= 0) return 'hero-vuln-num--zero'
+    if (level === 'h') return 'hero-vuln-num--high'
+    if (level === 'm') return 'hero-vuln-num--mid'
+    return 'hero-vuln-num--low'
+  }
+  return {
+    isEmpty: false,
+    parts: [
+      { key: 'h', label: '高危', n: hi, numClass: numClass(hi, 'h') },
+      { key: 'm', label: '中危', n: mid, numClass: numClass(mid, 'm') },
+      { key: 'l', label: '低危', n: lo, numClass: numClass(lo, 'l') },
+    ],
   }
 })
 
@@ -328,55 +385,173 @@ function copyInstall() {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 24px;
+  gap: 12px 16px;
+  padding: 16px 18px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.hero-left {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.hero-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #7c3aed, #5b21b6);
-  color: #fff;
-  font-size: 28px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.hero-lead {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 .hero-title {
-  margin: 0 0 8px;
-  font-size: 22px;
+  margin: 0 0 5px;
+  font-size: clamp(24px, 2.4vw, 22px);
   font-weight: 700;
   color: #111827;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
-.hero-meta {
+/* 单条信息带：左色条 + 分栏，醒目但仍是「一块」不是三个独立卡片 */
+.hero-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
   margin: 0;
-  font-size: 14px;
-  color: #6b7280;
+  /* padding: 1px 16px; */
+  /* background: linear-gradient(105deg, rgba(218, 32, 62, 0.07) 0%, #f9fafb 28%); */
+  /* border: 1px solid #e8eaed; */
+  /* border-left: 4px solid #da203e;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); */
 }
-.dot {
-  margin: 0 6px;
+
+.hero-meta-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 18px;
+  min-width: 0;
+}
+
+.hero-meta-cell:first-of-type {
+  padding-left: 0;
+}
+
+.hero-meta-cell--grow {
+  flex: 1 1 180px;
+  min-width: min(100%, 200px);
+}
+
+.hero-meta-k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  line-height: 1.2;
+}
+
+.hero-meta-v {
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.hero-meta-v--ver {
+  font-variant-numeric: tabular-nums;
+  color: #4571cf;
+}
+
+.hero-meta-v--score {
+  font-variant-numeric: tabular-nums;
+  color: #5f47da;
+}
+
+.hero-meta-v--vuln-line {
+  font-weight: 600;
+  color: #374151;
+}
+
+.hero-vuln-empty {
+  color: #a8a8a8;
+  font-weight: 500;
+}
+
+.hero-vuln-group {
+  display: inline;
+  white-space: nowrap;
+}
+
+.hero-vuln-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.hero-vuln-label--mid-gap + .hero-vuln-num {
+  margin-left: 0.35em;
+}
+
+.hero-vuln-num {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-vuln-num--high {
+  color: #d03710;
+}
+
+.hero-vuln-num--mid {
+  color: #bb6503;
+}
+
+.hero-vuln-num--low {
+  color: #f19e39;
+}
+
+.hero-vuln-num--zero {
+  color: #9ca3af;
+  font-weight: 700;
+}
+
+.hero-vuln-between {
+  display: inline;
+  margin: 0 0.35em;
+}
+
+.hero-meta-divider {
+  width: 1px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 2.75rem;
+  margin: 2px 0;
+  background: linear-gradient(180deg, transparent, #d1d5db 12%, #d1d5db 88%, transparent);
+}
+
+@media (max-width: 560px) {
+  .hero-meta-strip {
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+  .hero-meta-divider {
+    width: 100%;
+    height: 1px;
+    min-height: 0;
+    margin: 10px 0;
+    background: #e5e7eb;
+  }
+  .hero-meta-cell {
+    padding: 0;
+  }
+  .hero-meta-cell--grow {
+    min-width: 0;
+  }
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .btn {
@@ -401,23 +576,43 @@ function copyInstall() {
   filter: brightness(0.95);
 }
 
+@media (max-width: 720px) {
+  .hero-card {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-top: 20px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-top: 16px;
   border-bottom: 1px solid #e5e7eb;
-  padding: 0 4px;
+  padding: 0 2px 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab {
   position: relative;
-  padding: 12px 16px 14px;
+  flex-shrink: 0;
+  padding: 10px 14px 12px;
   border: none;
   background: none;
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
   cursor: pointer;
   margin-bottom: -1px;
+  white-space: nowrap;
 }
 .tab:hover {
   color: #111827;
@@ -452,6 +647,10 @@ function copyInstall() {
 @media (max-width: 960px) {
   .intro-split {
     grid-template-columns: 1fr;
+  }
+  .block {
+    padding: 16px 0;
+    border-right: none;
   }
 }
 
@@ -778,7 +977,7 @@ th {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 66px;
+  gap: 10px 14px;
   width: 100%;
   margin: 0;
   padding: 16px 20px;

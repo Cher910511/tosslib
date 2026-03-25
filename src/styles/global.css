@@ -110,6 +110,15 @@ body {
   position: relative;
   z-index: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 路由根布局（AdminShell / AppShell）占满 #app，min-height:0 让内部 overflow:auto 能滚动 */
+#app > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* 发光卡片 */

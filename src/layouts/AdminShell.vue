@@ -10,14 +10,14 @@
           <span class="nav-ico" aria-hidden="true">▦</span>
           首页
         </RouterLink>
-        <RouterLink class="admin-nav-item" to="/software/detail" active-class="is-active">
+        <RouterLink class="admin-nav-item" to="/software/library" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">⟨⟩</span>
           软件库
         </RouterLink>
-        <a class="admin-nav-item is-disabled" href="#" @click.prevent>
+        <RouterLink class="admin-nav-item" to="/software/components" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">◇</span>
           组件库
-        </a>
+        </RouterLink>
         <a class="admin-nav-item is-disabled" href="#" @click.prevent>
           <span class="nav-ico" aria-hidden="true">▣</span>
           软件管理
@@ -48,10 +48,20 @@
           <template v-if="route.name === 'software-home'">
             <span class="current">首页</span>
           </template>
+          <template v-else-if="route.name === 'software-library'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">软件库</span>
+          </template>
+          <template v-else-if="route.name === 'component-library'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">组件库</span>
+          </template>
           <template v-else-if="route.name === 'software-detail'">
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
-            <RouterLink to="/software/detail">软件库</RouterLink>
+            <RouterLink to="/software/library">软件库</RouterLink>
             <span class="sep">/</span>
             <span class="current">软件详情</span>
           </template>
@@ -60,13 +70,130 @@
           </template>
         </nav>
         <div class="admin-header-center">
-          <div class="admin-search">
-            <select class="admin-search-type" aria-label="搜索类型">
-              <option>软件</option>
-              <option>软件</option>
-            </select>
-            <input type="search" class="admin-search-input" placeholder="搜索" />
-            <button type="button" class="admin-search-btn" aria-label="搜索"></button>
+          <div ref="searchWrapRef" class="admin-search-wrap">
+            <div class="admin-search">
+              <select
+                v-model="searchKind"
+                class="admin-search-type"
+                aria-label="搜索类型"
+                @mousedown.stop
+                @change="onSearchKindChange"
+              >
+                <option value="software">软件</option>
+                <option value="component">组件</option>
+              </select>
+              <input
+                v-model="searchQuery"
+                type="search"
+                class="admin-search-input"
+                placeholder="搜索软件或组件…"
+                autocomplete="off"
+                aria-autocomplete="list"
+                :aria-expanded="searchPanelOpen"
+                @focus="openSearchPanel"
+                @input="openSearchPanel"
+                @keydown.escape.prevent="closeSearchPanel"
+                @keydown.enter.prevent="submitSearch"
+              />
+              <button
+                type="button"
+                class="admin-search-btn"
+                aria-label="搜索"
+                @mousedown.prevent
+                @click="submitSearch"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </button>
+            </div>
+            <div
+              v-show="searchPanelOpen"
+              class="admin-search-panel"
+              role="listbox"
+              aria-label="搜索建议与历史"
+              @mousedown.prevent
+            >
+              <template v-if="!searchQueryTrimmed">
+                <div v-if="historySoftware.length" class="search-section">
+                  <div class="search-section-title">软件 · 搜索历史</div>
+                  <button
+                    v-for="(h, i) in historySoftware"
+                    :key="'hs-' + i + h.text"
+                    type="button"
+                    class="search-row"
+                    @click="goSoftware(h.text)"
+                  >
+                    <span class="search-row-badge search-row-badge--soft">软件</span>
+                    <span class="search-row-text">{{ h.text }}</span>
+                  </button>
+                </div>
+                <div v-if="historyComponent.length" class="search-section">
+                  <div class="search-section-title">组件 · 搜索历史</div>
+                  <button
+                    v-for="(h, i) in historyComponent"
+                    :key="'hc-' + i + h.text"
+                    type="button"
+                    class="search-row"
+                    @click="goComponent(h.text)"
+                  >
+                    <span class="search-row-badge search-row-badge--comp">组件</span>
+                    <span class="search-row-text">{{ h.text }}</span>
+                  </button>
+                </div>
+                <p v-if="!historySoftware.length && !historyComponent.length" class="search-empty">
+                  暂无搜索历史，输入关键词可匹配软件或组件。
+                </p>
+              </template>
+              <template v-else>
+                <div v-if="softMatches.length" class="search-section">
+                  <div class="search-section-title">软件 · 匹配</div>
+                  <button
+                    v-for="name in softMatches"
+                    :key="'ms-' + name"
+                    type="button"
+                    class="search-row"
+                    @click="goSoftware(name)"
+                  >
+                    <span class="search-row-badge search-row-badge--soft">软件</span>
+                    <span class="search-row-text">{{ name }}</span>
+                  </button>
+                </div>
+                <div v-if="compMatches.length" class="search-section">
+                  <div class="search-section-title">组件 · 匹配</div>
+                  <button
+                    v-for="name in compMatches"
+                    :key="'mc-' + name"
+                    type="button"
+                    class="search-row"
+                    @click="goComponent(name)"
+                  >
+                    <span class="search-row-badge search-row-badge--comp">组件</span>
+                    <span class="search-row-text">{{ name }}</span>
+                  </button>
+                </div>
+                <p v-if="!softMatches.length && !compMatches.length" class="search-empty">
+                  无匹配项，按回车将用当前关键词搜索「{{ searchKind === 'software' ? '软件' : '组件' }}」库。
+                </p>
+              </template>
+              <p class="search-hint">
+                未选下列表时按搜索或回车：进入左侧所选类型（{{ searchKind === 'software' ? '软件' : '组件' }}）库
+                <template v-if="searchQueryTrimmed">，并带上关键词</template>
+                <template v-else> 的全部列表</template>。
+              </p>
+            </div>
           </div>
         </div>
         <div class="admin-user">
@@ -86,11 +213,99 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import {
+  addSearchHistory,
+  historyByType,
+  matchCatalog,
+  SOFTWARE_CATALOG,
+  COMPONENT_CATALOG,
+} from '../composables/useAdminSearch'
 
 const route = useRoute()
 const router = useRouter()
+
+const searchWrapRef = ref(null)
+const searchKind = ref('software')
+const searchQuery = ref('')
+const searchPanelOpen = ref(false)
+
+const searchQueryTrimmed = computed(() => searchQuery.value.trim())
+
+const historySoftware = ref([])
+const historyComponent = ref([])
+
+function refreshHistory() {
+  historySoftware.value = historyByType('software')
+  historyComponent.value = historyByType('component')
+}
+
+const softMatches = computed(() => matchCatalog(searchQuery.value, SOFTWARE_CATALOG))
+const compMatches = computed(() => matchCatalog(searchQuery.value, COMPONENT_CATALOG))
+
+function openSearchPanel() {
+  refreshHistory()
+  searchPanelOpen.value = true
+}
+
+function closeSearchPanel() {
+  searchPanelOpen.value = false
+}
+
+function onSearchKindChange() {
+  refreshHistory()
+  if (searchQueryTrimmed.value) searchPanelOpen.value = true
+}
+
+function onDocClick(e) {
+  const el = searchWrapRef.value
+  if (el && !el.contains(e.target)) closeSearchPanel()
+}
+
+onMounted(() => {
+  refreshHistory()
+  document.addEventListener('click', onDocClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
+})
+
+function goSoftware(text) {
+  const q =
+    text !== undefined && text !== null ? String(text).trim() : searchQuery.value.trim()
+  if (q) addSearchHistory('software', q)
+  router.push({ name: 'software-library', query: q ? { q } : {} })
+  searchPanelOpen.value = false
+}
+
+function goComponent(text) {
+  const q =
+    text !== undefined && text !== null ? String(text).trim() : searchQuery.value.trim()
+  if (q) addSearchHistory('component', q)
+  router.push({ name: 'component-library', query: q ? { q } : {} })
+  searchPanelOpen.value = false
+}
+
+/** 未选下拉项时：由左侧类型决定进软件库或组件库；有关键词则写入 ?q= */
+function submitSearch() {
+  if (searchKind.value === 'software') goSoftware()
+  else goComponent()
+}
+
+watch(
+  () => [route.name, route.query.q],
+  () => {
+    if (route.name !== 'software-library' && route.name !== 'component-library') return
+    const q = route.query.q
+    const s = Array.isArray(q) ? q[0] : q
+    searchQuery.value = typeof s === 'string' ? s : ''
+    if (route.name === 'software-library') searchKind.value = 'software'
+    if (route.name === 'component-library') searchKind.value = 'component'
+  },
+  { immediate: true },
+)
 
 /** 深色态势总览（/dash），新标签打开；含 GitHub Pages base */
 const dataScreenHomeUrl = computed(() => {
@@ -110,6 +325,8 @@ const dataScreenHomeUrl = computed(() => {
   --admin-border: #e5e7eb;
 
   display: flex;
+  width: 100%;
+  flex: 1 1 auto;
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--admin-bg);
@@ -209,8 +426,10 @@ const dataScreenHomeUrl = computed(() => {
 .admin-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .admin-header {
@@ -256,16 +475,110 @@ const dataScreenHomeUrl = computed(() => {
   min-width: 0;
 }
 
+.admin-search-wrap {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+}
+
 .admin-search {
   display: flex;
   align-items: stretch;
-  max-width: 480px;
   min-height: 36px;
   width: 100%;
   border: 1px solid var(--admin-border);
   border-radius: 999px;
   overflow: hidden;
   background: #fafafa;
+}
+
+.admin-search-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 200;
+  padding: 8px 0 6px;
+  background: #fff;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  max-height: min(380px, 72vh);
+  overflow-y: auto;
+}
+
+.search-section {
+  padding: 0 8px 8px;
+}
+
+.search-section-title {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.02em;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 2px 0;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  color: #374151;
+}
+
+.search-row:hover {
+  background: #f3f4f6;
+}
+
+.search-row-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.search-row-badge--soft {
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
+}
+
+.search-row-badge--comp {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.search-row-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-empty {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.search-hint {
+  margin: 0;
+  padding: 10px 14px 6px;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.45;
+  border-top: 1px solid #f3f4f6;
 }
 .admin-search-type {
   border: none;
@@ -329,7 +642,11 @@ const dataScreenHomeUrl = computed(() => {
 
 .admin-content {
   flex: 1;
+  min-height: 0;
   padding: 24px;
   overflow: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 </style>
