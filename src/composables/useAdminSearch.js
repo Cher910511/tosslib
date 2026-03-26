@@ -17,18 +17,17 @@ export const SOFTWARE_CATALOG = [
   'sqlalchemy',
 ]
 
-/** 演示用组件名 */
+/** 演示用组件名（与组件库可点进详情的条目一致，便于顶部搜索匹配） */
 export const COMPONENT_CATALOG = [
-  '数据表格',
-  '折线图',
-  '按钮组',
-  '表单校验',
-  '树形选择',
-  '日期范围',
-  '上传组件',
-  '步骤条',
-  '富文本',
-  '地图底图',
+  'vertx-web-sstore-cookie',
+  'requests',
+  'openssl',
+  'axios',
+  'vue',
+  'gin',
+  'tokio',
+  'kotlinx-coroutines-core',
+  'akka-http',
 ]
 
 function norm(s) {

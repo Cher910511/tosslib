@@ -8,6 +8,13 @@ import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
 import SoftwareLibraryView from '../views/software/SoftwareLibraryView.vue'
 import SoftwareDetailView from '../views/software/SoftwareDetailView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
+import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
+import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
+
+const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
+  path: `components/detail/${key}`,
+  redirect: { name: 'component-detail', params: { id: 'vertx-web-sstore-cookie' } },
+}))
 
 const routes = [
   /* 部署后默认进入浅色「软件详情」；原态势总览大屏改到 /dash */
@@ -47,6 +54,20 @@ const routes = [
         name: 'component-library',
         component: ComponentLibraryView,
         meta: { adminTitle: '组件库' },
+      },
+      {
+        path: 'components/detail',
+        redirect: { name: 'component-detail', params: { id: 'vertx-web-sstore-cookie' } },
+      },
+      ...legacyLangDetailRedirects,
+      {
+        path: 'components/detail/:id',
+        name: 'component-detail',
+        component: ComponentDetailView,
+        meta: {
+          adminTitle: '组件详情',
+          isComponentDetail: true,
+        },
       },
       {
         path: 'detail',

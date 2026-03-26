@@ -244,12 +244,12 @@ def application(request):
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 漏洞 {{ row.vulnCount }}
               </span>
-              <div class="version-release__score" :title="'综合评分 ' + row.score">
-                <span class="version-release__score-label">评分</span>
-                <span class="version-release__score-val">{{ row.score }}</span>
-              </div>
+              <span class="version-release__vendor">{{ row.vendor }}</span>
             </div>
-            <span class="version-release__vendor">{{ row.vendor }}</span>
+            <div class="version-release__score" :title="'综合评分 ' + row.score">
+              <span class="version-release__score-label">评分</span>
+              <span class="version-release__score-val">{{ row.score }}</span>
+            </div>
           </div>
         </button>
       </div>
@@ -1220,6 +1220,7 @@ th {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+  margin-left: auto;
   padding: 5px 10px;
   background: #fff;
   border: 1px solid #e8eaed;
@@ -1268,13 +1269,13 @@ th {
 }
 
 .version-release__vendor {
-  margin-left: auto;
-  padding: 4px 2px;
+  padding: 4px 4px 4px 12px;
+  margin-left: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--v-accent);
   white-space: nowrap;
-  flex-shrink: 0;
+  /* border-left: 1px solid #e8eaed; */
 }
 
 @media (max-width: 640px) {

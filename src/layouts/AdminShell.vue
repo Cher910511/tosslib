@@ -14,7 +14,11 @@
           <span class="nav-ico" aria-hidden="true">⟨⟩</span>
           软件库
         </RouterLink>
-        <RouterLink class="admin-nav-item" to="/software/components" active-class="is-active">
+        <RouterLink
+          class="admin-nav-item"
+          to="/software/components"
+          :class="{ 'is-active': route.name === 'component-library' || route.name === 'component-detail' }"
+        >
           <span class="nav-ico" aria-hidden="true">◇</span>
           组件库
         </RouterLink>
@@ -57,6 +61,13 @@
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
             <span class="current">组件库</span>
+          </template>
+          <template v-else-if="route.meta.isComponentDetail">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <RouterLink to="/software/components">组件库</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">{{ componentDetailBreadcrumb }}</span>
           </template>
           <template v-else-if="route.name === 'software-detail'">
             <RouterLink to="/software/home">首页</RouterLink>
@@ -222,9 +233,14 @@ import {
   SOFTWARE_CATALOG,
   COMPONENT_CATALOG,
 } from '../composables/useAdminSearch'
-
 const route = useRoute()
 const router = useRouter()
+
+const componentDetailBreadcrumb = computed(() => {
+  const id = route.params.id
+  if (id != null && String(id).trim() !== '') return `组件详情 · ${String(id).trim()}`
+  return '组件详情'
+})
 
 const searchWrapRef = ref(null)
 const searchKind = ref('software')
