@@ -85,6 +85,18 @@ export const VERSION_HISTORY_BY_ID = {
     { version: '10.6.2', score: '6.8', released: '2023-11-20', vulnCount: 2, vendor: 'Lightbend' },
     { version: '10.6.0', score: '6.7', released: '2023-09-05', vulnCount: 2, vendor: 'Lightbend' },
   ],
+  thumbnailator: [
+    { version: '0.4.20', score: '7.1', released: '2023-06-01', vulnCount: 0, vendor: 'coobird' },
+    { version: '0.4.19', score: '7.0', released: '2022-11-10', vulnCount: 0, vendor: 'coobird' },
+  ],
+  'twelvemonkeys-imageio': [
+    { version: '3.12.0', score: '7.2', released: '2024-04-18', vulnCount: 0, vendor: 'TwelveMonkeys' },
+    { version: '3.11.0', score: '7.1', released: '2023-09-05', vulnCount: 0, vendor: 'TwelveMonkeys' },
+  ],
+  imgscalr: [
+    { version: '4.2', score: '6.8', released: '2018-03-15', vulnCount: 0, vendor: 'thebuzzmedia' },
+    { version: '4.1', score: '6.7', released: '2012-05-20', vulnCount: 0, vendor: 'thebuzzmedia' },
+  ],
 }
 
 function defaultHistoryForId(raw) {

@@ -78,6 +78,15 @@
             </RouterLink>
           </div>
         </div>
+
+        <RouterLink
+          class="nav-item"
+          :to="{ name: 'code-assistant' }"
+          active-class="active"
+        >
+          <span class="nav-icon">✦</span>
+          <span>AI 助手</span>
+        </RouterLink>
       </nav>
     </aside>
 

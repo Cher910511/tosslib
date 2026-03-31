@@ -22,6 +22,10 @@
           <span class="nav-ico" aria-hidden="true">◇</span>
           组件库
         </RouterLink>
+        <RouterLink class="admin-nav-item" to="/software/assistant" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">✦</span>
+          AI 助手
+        </RouterLink>
         <a class="admin-nav-item is-disabled" href="#" @click.prevent>
           <span class="nav-ico" aria-hidden="true">▣</span>
           软件管理
@@ -61,6 +65,11 @@
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
             <span class="current">组件库</span>
+          </template>
+          <template v-else-if="route.name === 'code-assistant'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">AI 助手</span>
           </template>
           <template v-else-if="route.meta.isComponentDetail">
             <RouterLink to="/software/home">首页</RouterLink>

@@ -180,6 +180,54 @@ const AKKA_HTTP = {
   packageDownloads: [],
 }
 
+const THUMBNAILATOR = {
+  detailLang: 'java',
+  name: 'thumbnailator',
+  version: '0.4.20',
+  componentCode: 'java-thumb-demo',
+  groupId: 'net.coobird',
+  artifactId: 'thumbnailator',
+  language: 'Java',
+  descriptionEn: 'Thumbnail generation library with fluent API for Java.',
+  descriptionZh: 'Java 图片缩略图与尺寸变换库，链式 API，适合批量生成缩略图。',
+  parentSoftwares: [],
+  licenses: [{ name: 'MIT License', code: 'MIT', version: '0.4.20', type: 'mit' }],
+  binaryPackages: [],
+  packageDownloads: [],
+}
+
+const TWELVEMONKEYS_IMAGEIO = {
+  detailLang: 'java',
+  name: 'imageio-jpeg',
+  version: '3.12.0',
+  componentCode: 'java-12m-demo',
+  groupId: 'com.twelvemonkeys.imageio',
+  artifactId: 'imageio-jpeg',
+  language: 'Java',
+  descriptionEn: 'Extended ImageIO plugins for JPEG and more formats.',
+  descriptionZh: '扩展 Java ImageIO 的编解码插件，支持更多图片格式与元数据读取。',
+  parentSoftwares: [],
+  licenses: [{ name: 'BSD 3-Clause', code: 'BSD-3-Clause', version: '3.12.0', type: 'bsd' }],
+  binaryPackages: [],
+  packageDownloads: [],
+}
+
+const IMGSCALR = {
+  detailLang: 'java',
+  name: 'imgscalr',
+  version: '4.2',
+  componentCode: 'java-imgscalr-demo',
+  groupId: 'org.imgscalr',
+  artifactId: 'imgscalr',
+  language: 'Java',
+  descriptionEn: 'Simple high-quality image scaling for Java.',
+  descriptionZh: '纯 Java 实现的图片缩放库，API 简单，适合服务端生成多种尺寸。',
+  parentSoftwares: [],
+  licenses: [{ name: 'Apache License 2.0', code: 'Apache-2.0', version: '4.2', type: 'apache' }],
+  binaryPackages: [],
+  packageDownloads: [],
+}
+
 /** @type {Record<string, typeof VERTX & { detailLang: string, goModule?: string }>} */
 export const COMPONENT_MOCKS = {
   'vertx-web-sstore-cookie': VERTX,
@@ -191,6 +239,9 @@ export const COMPONENT_MOCKS = {
   tokio: TOKIO,
   'kotlinx-coroutines-core': KOTLINX_COROUTINES,
   'akka-http': AKKA_HTTP,
+  thumbnailator: THUMBNAILATOR,
+  'twelvemonkeys-imageio': TWELVEMONKEYS_IMAGEIO,
+  imgscalr: IMGSCALR,
 }
 
 /** 组件库列表展示顺序（与九种引入语言一一对应演示） */
@@ -204,6 +255,9 @@ export const COMPONENT_LIBRARY_IDS = [
   'tokio',
   'kotlinx-coroutines-core',
   'akka-http',
+  'thumbnailator',
+  'twelvemonkeys-imageio',
+  'imgscalr',
 ]
 
 function slugToArtifactId(slug) {

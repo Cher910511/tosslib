@@ -9,6 +9,7 @@ import SoftwareLibraryView from '../views/software/SoftwareLibraryView.vue'
 import SoftwareDetailView from '../views/software/SoftwareDetailView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
+import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
 
 const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
@@ -54,6 +55,12 @@ const routes = [
         name: 'component-library',
         component: ComponentLibraryView,
         meta: { adminTitle: '组件库' },
+      },
+      {
+        path: 'assistant',
+        name: 'code-assistant',
+        component: CodeAssistantView,
+        meta: { adminTitle: 'AI 助手' },
       },
       {
         path: 'components/detail',

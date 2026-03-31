@@ -28,6 +28,9 @@ export const COMPONENT_CATALOG = [
   'tokio',
   'kotlinx-coroutines-core',
   'akka-http',
+  'thumbnailator',
+  'twelvemonkeys-imageio',
+  'imgscalr',
 ]
 
 function norm(s) {
