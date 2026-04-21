@@ -26,10 +26,34 @@
           <span class="nav-ico" aria-hidden="true">✦</span>
           AI 助手
         </RouterLink>
-        <a class="admin-nav-item is-disabled" href="#" @click.prevent>
-          <span class="nav-ico" aria-hidden="true">▣</span>
-          软件管理
-        </a>
+        <!-- 软件管理（带二级菜单） -->
+        <div class="admin-nav-group">
+          <div
+            class="admin-nav-item admin-nav-item--group"
+            :class="{ 'is-open': softwareManageOpen }"
+            @click="softwareManageOpen = !softwareManageOpen"
+          >
+            <span class="nav-ico" aria-hidden="true">▣</span>
+            <span class="nav-label">软件管理</span>
+            <span class="nav-caret" aria-hidden="true">{{ softwareManageOpen ? '▾' : '▸' }}</span>
+          </div>
+          <div v-show="softwareManageOpen" class="admin-nav-submenu">
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/manage"
+              active-class="is-active"
+            >
+              <span class="nav-label">软件列表</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/scan"
+              active-class="is-active"
+            >
+              <span class="nav-label">软件扫描</span>
+            </RouterLink>
+          </div>
+        </div>
         <a class="admin-nav-item is-disabled" href="#" @click.prevent>
           <span class="nav-ico" aria-hidden="true">⌘</span>
           组织管理
@@ -37,15 +61,6 @@
         <a class="admin-nav-item is-disabled" href="#" @click.prevent>
           <span class="nav-ico" aria-hidden="true">▤</span>
           需求反馈
-        </a>
-        <a
-          class="admin-nav-item admin-nav-external"
-          :href="dataScreenHomeUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span class="nav-ico" aria-hidden="true">▶</span>
-          数据大屏
         </a>
       </nav>
     </aside>
@@ -85,11 +100,19 @@
             <span class="sep">/</span>
             <span class="current">软件详情</span>
           </template>
+          <template v-else-if="route.name === 'software-manage' || route.name === 'software-scan'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <RouterLink to="/software/manage">软件管理</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">{{ route.name === 'software-scan' ? '软件扫描' : manageListCrumb }}</span>
+          </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>
           </template>
         </nav>
-        <div class="admin-header-center">
+        <div v-if="route.name === 'software-home'" class="admin-header-spacer" aria-hidden="true" />
+        <div v-else class="admin-header-center">
           <div ref="searchWrapRef" class="admin-search-wrap">
             <div class="admin-search">
               <select
@@ -106,7 +129,7 @@
                 v-model="searchQuery"
                 type="search"
                 class="admin-search-input"
-                placeholder="搜索软件或组件…"
+                :placeholder="searchPlaceholder"
                 autocomplete="off"
                 aria-autocomplete="list"
                 :aria-expanded="searchPanelOpen"
@@ -216,12 +239,21 @@
             </div>
           </div>
         </div>
+        <a
+          class="admin-dash-pill"
+          :href="dataScreenHomeUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          数据大屏
+        </a>
         <div class="admin-user">
           <div class="admin-avatar" aria-hidden="true">会</div>
           <div class="admin-user-meta">
-            <span class="admin-user-name">会饮篇</span>
-            <span class="admin-user-mail">xlue019@gmail.com</span>
+            <span class="admin-user-name">会饮简</span>
+            <span class="admin-user-mail">xluo6019@gmail.com</span>
           </div>
+          <span class="admin-user-caret" aria-hidden="true">▾</span>
         </div>
       </header>
 
@@ -245,11 +277,24 @@ import {
 const route = useRoute()
 const router = useRouter()
 
+// 软件管理二级菜单展开状态
+const softwareManageOpen = ref(false)
+
 const componentDetailBreadcrumb = computed(() => {
   const id = route.params.id
   if (id != null && String(id).trim() !== '') return `组件详情 · ${String(id).trim()}`
   return '组件详情'
 })
+
+const manageListCrumb = computed(() => {
+  const t = route.query.tab
+  const tab = Array.isArray(t) ? t[0] : t
+  return tab === 'component' ? '组件列表' : '软件列表'
+})
+
+const searchPlaceholder = computed(() =>
+  route.name === 'software-manage' ? '搜索…' : '搜索软件或组件…',
+)
 
 const searchWrapRef = ref(null)
 const searchKind = ref('software')
@@ -493,11 +538,38 @@ const dataScreenHomeUrl = computed(() => {
   font-weight: 500;
 }
 
+.admin-header-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
 .admin-header-center {
   flex: 1;
   display: flex;
   justify-content: center;
   min-width: 0;
+}
+
+.admin-dash-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin-right: 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  background: #f3f4f6;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.admin-dash-pill:hover {
+  background: #fee2e2;
+  color: #da203e;
 }
 
 .admin-search-wrap {
@@ -637,6 +709,12 @@ const dataScreenHomeUrl = computed(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.admin-user-caret {
+  font-size: 10px;
+  color: #9ca3af;
+  line-height: 1;
+  margin-left: -4px;
 }
 .admin-avatar {
   width: 40px;
