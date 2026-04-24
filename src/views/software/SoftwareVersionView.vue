@@ -24,6 +24,7 @@
               <th>发布时间</th>
               <th>漏洞数</th>
               <th>许可证</th>
+              <th>扫描状态</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -35,7 +36,7 @@
                 </div>
               </td>
             </tr>
-            <tr v-for="row in versionList" :key="row.version">
+<tr v-for="row in versionList" :key="row.version">
               <td>
                 <span class="version-num version-link" @click="goToScanResult(row)">
                   {{ row.version }}
@@ -49,6 +50,17 @@
               </td>
               <td>
                 <span class="license-tag">{{ row.license }}</span>
+              </td>
+              <td>
+                <button
+                  v-if="row.scanned"
+                  type="button"
+                  class="scan-badge scan-badge--link"
+                  @click="goToScanResult(row)"
+                >
+                  已扫描
+                </button>
+                <span v-else class="scan-badge scan-badge--none">未扫描</span>
               </td>
               <td>
                 <button type="button" class="version-action-btn" @click="goToScanResult(row)">
@@ -77,19 +89,19 @@ const versionList = ref([])
 // 演示数据
 const mockVersionData = {
   'werkzeug': [
-    { version: '3.0.0', releaseDate: '2024-01-01', vulnCount: 2, license: 'BSD-3-Clause' },
-    { version: '2.3.7', releaseDate: '2023-08-14', vulnCount: 3, license: 'BSD-3-Clause' },
-    { version: '2.3.6', releaseDate: '2023-07-01', vulnCount: 4, license: 'BSD-3-Clause' },
-    { version: '2.3.5', releaseDate: '2023-05-15', vulnCount: 5, license: 'BSD-3-Clause' },
+    { version: '3.0.0', releaseDate: '2024-01-01', vulnCount: 2, license: 'BSD-3-Clause', scanned: true },
+    { version: '2.3.7', releaseDate: '2023-08-14', vulnCount: 3, license: 'BSD-3-Clause', scanned: true },
+    { version: '2.3.6', releaseDate: '2023-07-01', vulnCount: 4, license: 'BSD-3-Clause', scanned: false },
+    { version: '2.3.5', releaseDate: '2023-05-15', vulnCount: 5, license: 'BSD-3-Clause', scanned: true },
   ],
   'vue': [
-    { version: '3.4.21', releaseDate: '2024-02-15', vulnCount: 1, license: 'MIT' },
-    { version: '3.4.0', releaseDate: '2024-01-10', vulnCount: 2, license: 'MIT' },
-    { version: '3.3.0', releaseDate: '2023-12-01', vulnCount: 0, license: 'MIT' },
+    { version: '3.4.21', releaseDate: '2024-02-15', vulnCount: 1, license: 'MIT', scanned: true },
+    { version: '3.4.0', releaseDate: '2024-01-10', vulnCount: 2, license: 'MIT', scanned: false },
+    { version: '3.3.0', releaseDate: '2023-12-01', vulnCount: 0, license: 'MIT', scanned: true },
   ],
   'react': [
-    { version: '18.2.0', releaseDate: '2024-01-15', vulnCount: 0, license: 'MIT' },
-    { version: '18.1.0', releaseDate: '2024-01-01', vulnCount: 1, license: 'MIT' },
+    { version: '18.2.0', releaseDate: '2024-01-15', vulnCount: 0, license: 'MIT', scanned: true },
+    { version: '18.1.0', releaseDate: '2024-01-01', vulnCount: 1, license: 'MIT', scanned: false },
   ],
 }
 

@@ -1,15 +1,33 @@
 <template>
   <div class="manage-page">
     <div class="manage-toolbar">
-      <div class="manage-title">
-        <h2>软件扫描</h2>
+      <div class="manage-title-row">
+        <div class="manage-tabs" role="tablist" aria-label="列表类型">
+          <button
+            type="button"
+            role="tab"
+            class="manage-tab"
+            :class="{ 'is-active': scanListTab === 'software' }"
+            :aria-selected="scanListTab === 'software'"
+            @click="setScanListTab('software')"
+          >
+            软件
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="manage-tab"
+            :class="{ 'is-active': scanListTab === 'component' }"
+            :aria-selected="scanListTab === 'component'"
+            @click="setScanListTab('component')"
+          >
+            组件
+          </button>
+        </div>
       </div>
       <div class="manage-actions">
         <button type="button" class="manage-add-btn manage-add-btn--primary" @click="showScanModal = true">
           开始扫描
-        </button>
-        <button type="button" class="manage-add-btn" @click="refreshList">
-          刷新列表
         </button>
       </div>
     </div>
@@ -20,12 +38,12 @@
       <div class="manage-table-wrap">
         <table class="manage-table">
           <thead>
-            <tr>
+<tr>
               <th>序号</th>
               <th>软件名称</th>
               <th>版本</th>
-              <th>扫描状态</th>
               <th>扫描时间</th>
+              <th>扫描状态</th>
               <th class="manage-th-op">操作</th>
             </tr>
           </thead>
@@ -46,18 +64,28 @@
             </tr>
             <tr v-for="(row, i) in paginatedList" :key="i">
               <td>{{ (page - 1) * pageSize + i + 1 }}</td>
-              <td>{{ row.name }}</td>
+<td>{{ row.name }}</td>
               <td>{{ row.version }}</td>
+              <td>{{ row.scanTime }}</td>
               <td>
                 <span class="scan-status" :class="'scan-status--' + row.status">
                   {{ statusText[row.status] }}
                 </span>
               </td>
-              <td>{{ row.scanTime }}</td>
               <td class="manage-td-op">
-                <button type="button" class="manage-linkish" @click="goToDetail(row)">查看详情</button>
-                <span class="manage-op-sep">|</span>
-                <button type="button" class="manage-linkish danger">删除</button>
+                <button v-if="row.status === 'scanning'" type="button" class="scan-btn scan-btn--scanning">
+                  <span class="scan-btn-spinner"></span>
+                  扫描中
+                </button>
+                <button v-else type="button" class="scan-btn" :class="row.status === 'success' ? 'scan-btn--rescan' : 'scan-btn--start'" @click="handleScan(row)">
+                  <svg v-if="row.status === 'success'" viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                  </svg>
+                  {{ row.status === 'success' ? '再次扫描' : '开始扫描' }}
+                </button>
               </td>
             </tr>
           </tbody>
@@ -99,7 +127,7 @@
                 :class="{ 'is-active': scanMode === 'fetch-software' }"
                 @click="scanMode = 'fetch-software'"
               >
-                拉取已有软件
+                扫描软件
               </button>
               <button
                 type="button"
@@ -107,69 +135,57 @@
                 :class="{ 'is-active': scanMode === 'fetch-component' }"
                 @click="scanMode = 'fetch-component'"
               >
-                拉取已有组件
-              </button>
-              <button
-                type="button"
-                class="scan-mode-tab"
-                :class="{ 'is-active': scanMode === 'upload' }"
-                @click="scanMode = 'upload'"
-              >
-                上传新包扫描
+                扫描组件
               </button>
             </div>
 
-            <!-- 拉取已有软件 -->
+<!-- 扫描软件 -->
             <div v-if="scanMode === 'fetch-software'" class="scan-form">
               <div class="form-group form-group--full">
-                <label class="form-label">选择软件 <span class="required">*</span></label>
-                <select v-model="formData.softwareId" class="form-input form-select">
-                  <option value="">请选择要扫描的软件</option>
-                  <option v-for="sw in softwareList" :key="sw.name" :value="sw.name">
-                    {{ sw.name }} ({{ sw.type }})
-                  </option>
-                </select>
-              </div>
-              <div class="form-group form-group--full">
-                <label class="form-label">版本号</label>
-                <input
-                  v-model="formData.version"
-                  type="text"
-                  class="form-input"
-                  placeholder="如 1.0.0"
-                />
-              </div>
-              <div class="form-group form-group--full">
-                <label class="form-label">上传软件包 <span class="required">*</span></label>
-                <div
-                  class="upload-dropzone"
-                  :class="{ 'is-dragover': isDragover }"
-                  @dragover.prevent="isDragover = true"
-                  @dragleave="isDragover = false"
-                  @drop.prevent="handleDrop"
-                  @click="$refs.fileInput.click()"
-                >
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    accept=".zip,.tar,.tar.gz,.tgz"
-                    hidden
-                    @change="handleFileChange"
-                  />
-                  <div class="upload-icon">↑</div>
-                  <p class="upload-hint">拖拽文件到此处，或<span class="upload-link">点击上传</span></p>
-                  <p class="upload-formats">支持 .zip、.tar、.tar.gz、.tgz 格式</p>
-                </div>
-                <div v-if="selectedFile" class="upload-file-info">
-                  <span class="file-icon">📦</span>
-                  <span class="file-name">{{ selectedFile.name }}</span>
-                  <span class="file-size">({{ formatFileSize(selectedFile.size) }})</span>
-                  <button type="button" class="file-remove" @click="selectedFile = null">×</button>
+                <label class="form-label">选择软件及版本</label>
+                <div class="software-card-list">
+                  <template v-if="softwareList.length > 0">
+                    <div
+                      v-for="sw in softwareList"
+                      :key="sw.name"
+                      class="software-card"
+                      :class="{ 'is-selected': isSoftwareSelected(sw.name) }"
+                    >
+                      <div class="software-card-header" @click="toggleSoftware(sw.name)">
+                                              <div class="software-card-left">
+                                                <span class="software-card-check">
+                                                  <span class="check-icon">{{ isSoftwareSelected(sw.name) ? '✓' : '' }}</span>
+                                                </span>
+                                                <div class="software-card-info">
+                                                <span class="software-card-name">{{ sw.name }}</span>
+                                                <span class="software-card-lang">{{ sw.lang }}</span>
+                                              </div>
+                                              </div>
+                                            </div>
+                                            <div class="version-tags">
+                        <label
+                          v-for="ver in getSoftwareVersions(sw.name)"
+                          :key="ver"
+                          class="version-tag"
+                          :class="{ 'is-selected': isVersionSelected(sw.name, ver) }"
+                        >
+                          <input
+                            type="checkbox"
+                            :checked="isVersionSelected(sw.name, ver)"
+                            @click.stop
+                            @change="toggleVersion(sw.name, ver)"
+                          />
+                          {{ ver }}
+                        </label>
+                        <span v-if="getSoftwareVersions(sw.name).length === 0" class="version-empty">暂无版本</span>
+                      </div>
+                    </div>
+                  </template>
+                  <div v-else class="software-empty">暂无软件</div>
                 </div>
               </div>
             </div>
 
-            <!-- 拉取已有组件（无需上传文件） -->
             <div v-if="scanMode === 'fetch-component'" class="scan-form">
               <div class="form-group form-group--full">
                 <label class="form-label">选择组件 <span class="required">*</span></label>
@@ -196,62 +212,6 @@
                   </div>
                 </div>
               </div>
-              <div class="form-tip">
-                将使用组件创建时上传的文件进行扫描，无需重新上传
-              </div>
-            </div>
-
-            <!-- 上传新包扫描 -->
-            <div v-if="scanMode === 'upload'" class="scan-form">
-              <div class="form-group">
-                <label class="form-label">软件名称 <span class="required">*</span></label>
-                <input
-                  v-model="formData.name"
-                  type="text"
-                  class="form-input"
-                  placeholder="请输入软件名称"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">软件类型 <span class="required">*</span></label>
-                <select v-model="formData.type" class="form-input form-select">
-                  <option value="">请选择软件类型</option>
-                  <option value="library">开源库</option>
-                  <option value="framework">框架</option>
-                  <option value="tool">工具软件</option>
-                  <option value="application">应用程序</option>
-                  <option value="sdk">SDK</option>
-                  <option value="other">其他</option>
-                </select>
-              </div>
-              <div class="form-group form-group--full">
-                <label class="form-label">上传软件包 <span class="required">*</span></label>
-                <div
-                  class="upload-dropzone"
-                  :class="{ 'is-dragover': isDragover }"
-                  @dragover.prevent="isDragover = true"
-                  @dragleave="isDragover = false"
-                  @drop.prevent="handleDrop"
-                  @click="$refs.fileInput.click()"
-                >
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    accept=".zip,.tar,.tar.gz,.tgz"
-                    hidden
-                    @change="handleFileChange"
-                  />
-                  <div class="upload-icon">↑</div>
-                  <p class="upload-hint">拖拽文件到此处，或<span class="upload-link">点击上传</span></p>
-                  <p class="upload-formats">支持 .zip、.tar、.tar.gz、.tgz 格式</p>
-                </div>
-                <div v-if="selectedFile" class="upload-file-info">
-                  <span class="file-icon">📦</span>
-                  <span class="file-name">{{ selectedFile.name }}</span>
-                  <span class="file-size">({{ formatFileSize(selectedFile.size) }})</span>
-                  <button type="button" class="file-remove" @click="selectedFile = null">×</button>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -270,6 +230,16 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Toast 提示 -->
+    <Teleport to="body">
+      <div v-if="toastVisible" class="toast-notification">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="toast-icon">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+        </svg>
+        <span>{{ toastMessage }}</span>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -278,32 +248,48 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const showScanModal = ref(false)
-const scanMode = ref('fetch-software') // 'fetch-software' | 'fetch-component' | 'upload'
-const selectedFile = ref(null)
-const isDragover = ref(false)
+const scanMode = ref('fetch-software') // 'fetch-software' | 'fetch-component'
 
 // 表单数据
 const formData = ref({
   // 拉取已有软件
-  softwareId: '',
-  version: '',
+  softwareId: [],   // 支持多选软件
+  selectedVersions: {}, // 软件名 -> 版本数组
   // 拉取已有组件
   componentId: '',
-  // 上传新包
-  name: '',
-  type: '',
 })
 
 const page = ref(1)
 const pageSize = ref(10)
 
+// 软件/组件 tab 切换
+const scanListTab = ref('software')
+
+function setScanListTab(tab) {
+  scanListTab.value = tab
+  page.value = 1
+}
+
 const router = useRouter()
 
 const statusText = {
-  pending: '待扫描',
   scanning: '扫描中',
-  completed: '已完成',
-  failed: '失败',
+  success: '扫描成功',
+  failed: '扫描失败',
+}
+
+// Toast 提示
+const toastVisible = ref(false)
+const toastMessage = ref('')
+const toastTimer = ref(null)
+
+function showToast(msg) {
+  toastMessage.value = msg
+  toastVisible.value = true
+  clearTimeout(toastTimer.value)
+  toastTimer.value = setTimeout(() => {
+    toastVisible.value = false
+  }, 2500)
 }
 
 
@@ -321,114 +307,214 @@ function goToDetail(row) {
 
 // 演示数据
 const scanList = ref([
-  { name: 'Vue.js', version: '3.4.21', status: 'completed', scanTime: '2024-03-20 14:32:15' },
-  { name: 'React', version: '18.2.0', status: 'completed', scanTime: '2024-03-20 14:28:03' },
-  { name: 'TensorFlow', version: '2.16.1', status: 'scanning', scanTime: '2024-03-20 14:25:47' },
-  { name: 'Spring Boot', version: '3.2.3', status: 'pending', scanTime: '2024-03-20 14:20:00' },
-  { name: 'FastAPI', version: '0.110.0', status: 'failed', scanTime: '2024-03-20 14:18:22' },
+  { name: 'Vue.js', version: '3.4.21', status: 'success', progress: 100, scanTime: '2024-03-20 14:32:15' },
+  { name: 'React', version: '18.2.0', status: 'success', progress: 100, scanTime: '2024-03-20 14:28:03' },
+  { name: 'TensorFlow', version: '2.16.1', status: 'scanning', progress: 65, scanTime: '2024-03-20 14:25:47' },
+  { name: 'Spring Boot', version: '3.2.3', status: 'failed', progress: 0, scanTime: '2024-03-20 14:20:00' },
+  { name: 'FastAPI', version: '0.110.0', status: 'failed', progress: 0, scanTime: '2024-03-20 14:18:22' },
 ])
 
-const softwareList = ref([
-  { name: 'React', type: 'framework' },
-  { name: 'Vue', type: 'framework' },
-  { name: 'Lodash', type: 'library' },
-  { name: 'Axios', type: 'library' },
-  { name: 'Express', type: 'framework' },
+// 组件扫描演示数据
+const componentScanList = ref([
+  { name: 'vue', version: '3.4.21', groupId: 'org.vuejs', status: 'completed', progress: 100, scanTime: '2024-03-20 14:35:10' },
+  { name: 'vue-router', version: '4.3.0', groupId: 'org.vuejs.router', status: 'completed', progress: 100, scanTime: '2024-03-20 14:33:42' },
+  { name: 'react', version: '18.2.0', groupId: 'org.facebook.react', status: 'scanning', progress: 42, scanTime: '2024-03-20 14:30:00' },
+  { name: 'spring-boot-starter-web', version: '3.2.3', groupId: 'org.springframework.boot', status: 'pending', progress: 0, scanTime: '2024-03-20 14:25:00' },
+  { name: '@angular/core', version: '17.3.4', groupId: 'org.angular.core', status: 'failed', progress: 0, scanTime: '2024-03-20 14:20:30' },
 ])
+
+// 根据 tab 返回对应列表
+const currentScanList = computed(() => {
+  return scanListTab.value === 'component' ? componentScanList.value : scanList.value
+})
+
+const paginatedList = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return currentScanList.value.slice(start, start + pageSize.value)
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(currentScanList.value.length / pageSize.value)))
 
 const componentList = ref([
   { id: 1, name: 'vue', softwareId: 'Vue', softwareName: 'Vue', version: '3.4.21', lang: 'JavaScript', license: 'MIT' },
   { id: 2, name: 'vue-router', softwareId: 'Vue', softwareName: 'Vue', version: '4.3.0', lang: 'JavaScript', license: 'MIT' },
   { id: 3, name: 'lodash', softwareId: 'Lodash', softwareName: 'Lodash', version: '4.17.21', lang: 'JavaScript', license: 'MIT' },
   { id: 4, name: 'axios', softwareId: 'Axios', softwareName: 'Axios', version: '1.6.8', lang: 'JavaScript', license: 'MIT' },
+  { id: 5, name: 'react', softwareId: 'React', softwareName: 'React', version: '18.2.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 6, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '18.2.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 7, name: 'react', softwareId: 'React', softwareName: 'React', version: '18.1.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 8, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '18.1.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 9, name: 'react', softwareId: 'React', softwareName: 'React', version: '18.0.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 10, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '18.0.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 11, name: 'react', softwareId: 'React', softwareName: 'React', version: '17.0.2', lang: 'JavaScript', license: 'MIT' },
+  { id: 12, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '17.0.2', lang: 'JavaScript', license: 'MIT' },
+  { id: 13, name: 'react', softwareId: 'React', softwareName: 'React', version: '17.0.1', lang: 'JavaScript', license: 'MIT' },
+  { id: 14, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '17.0.1', lang: 'JavaScript', license: 'MIT' },
+  { id: 15, name: 'react', softwareId: 'React', softwareName: 'React', version: '16.14.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 16, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '16.14.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 17, name: 'react', softwareId: 'React', softwareName: 'React', version: '16.13.1', lang: 'JavaScript', license: 'MIT' },
+  { id: 18, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '16.13.1', lang: 'JavaScript', license: 'MIT' },
+  { id: 19, name: 'react', softwareId: 'React', softwareName: 'React', version: '16.8.6', lang: 'JavaScript', license: 'MIT' },
+  { id: 20, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '16.8.6', lang: 'JavaScript', license: 'MIT' },
+  { id: 21, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.22.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 22, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.21.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 23, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.20.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 24, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.19.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 25, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.18.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 26, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.17.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 27, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.16.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 28, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.15.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 29, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.14.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 30, name: 'react-router-dom', softwareId: 'React', softwareName: 'React', version: '6.13.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 31, name: 'react', softwareId: 'React', softwareName: 'React', version: '16.8.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 32, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '16.8.0', lang: 'JavaScript', license: 'MIT' },
+  { id: 33, name: 'react', softwareId: 'React', softwareName: 'React', version: '16.8.4', lang: 'JavaScript', license: 'MIT' },
+  { id: 34, name: 'react-dom', softwareId: 'React', softwareName: 'React', version: '16.8.4', lang: 'JavaScript', license: 'MIT' },
 ])
+
+const softwareList = ref([
+  { name: 'React', type: 'framework', lang: 'JavaScript' },
+  { name: 'Vue', type: 'framework', lang: 'JavaScript' },
+  { name: 'Lodash', type: 'library', lang: 'JavaScript' },
+  { name: 'Axios', type: 'library', lang: 'JavaScript' },
+  { name: 'Express', type: 'framework', lang: 'JavaScript' },
+])
+
+// 根据 componentList 聚合软件 -> 版本列表
+const softwareVersionsMap = computed(() => {
+  const map = {}
+  componentList.value.forEach(comp => {
+    if (!map[comp.softwareName]) {
+      map[comp.softwareName] = new Set()
+    }
+    map[comp.softwareName].add(comp.version)
+  })
+  // 转换为排序后的数组
+  Object.keys(map).forEach(k => {
+    map[k] = Array.from(map[k]).sort()
+  })
+  return map
+})
+
+function getSoftwareVersions(swName) {
+  return softwareVersionsMap.value[swName] || []
+}
+
+function isSoftwareSelected(name) {
+  return formData.value.softwareId.includes(name)
+}
+
+function isVersionSelected(swName, ver) {
+  return formData.value.selectedVersions[swName]?.includes(ver) || false
+}
+
+const isAllSelected = computed(() => {
+  return softwareList.value.length > 0 &&
+    softwareList.value.every(sw => formData.value.softwareId.includes(sw.name))
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    // 取消全选
+    formData.value.softwareId = []
+    formData.value.selectedVersions = {}
+  } else {
+    // 全选所有软件 + 默认全选每个软件的版本
+    formData.value.softwareId = softwareList.value.map(sw => sw.name)
+    softwareList.value.forEach(sw => {
+      formData.value.selectedVersions[sw.name] = [...getSoftwareVersions(sw.name)]
+    })
+  }
+}
+
+function toggleSoftware(name) {
+  const arr = formData.value.softwareId
+  const idx = arr.indexOf(name)
+  if (idx === -1) {
+    arr.push(name)
+    // 新增软件时默认全选版本
+    formData.value.selectedVersions[name] = [...getSoftwareVersions(name)]
+  } else {
+    arr.splice(idx, 1)
+    delete formData.value.selectedVersions[name]
+  }
+}
+
+function toggleVersion(swName, ver) {
+  let arr = formData.value.selectedVersions[swName]
+  if (!arr) {
+    arr = []
+    formData.value.selectedVersions[swName] = arr
+  }
+  const idx = arr.indexOf(ver)
+  if (idx === -1) {
+    arr.push(ver)
+    // 选中版本时自动把软件加入 softwareId
+    if (!formData.value.softwareId.includes(swName)) {
+      formData.value.softwareId.push(swName)
+    }
+  } else {
+    arr.splice(idx, 1)
+  }
+}
 
 const canStartScan = computed(() => {
   if (scanMode.value === 'fetch-software') {
-    // 拉取已有软件：需要选择软件 + 上传文件
-    return formData.value.softwareId !== '' && selectedFile.value !== null
+    // 拉取已有软件：需要选择软件，且至少选了一个软件的一个版本
+    const hasSelectedVersion = Object.values(formData.value.selectedVersions).some(v => v && v.length > 0)
+    return formData.value.softwareId.length > 0 && hasSelectedVersion
   } else if (scanMode.value === 'fetch-component') {
     // 拉取已有组件：只需要选择组件（文件已在创建时上传）
     return formData.value.componentId !== ''
-  } else if (scanMode.value === 'upload') {
-    // 上传新包：需要名称、类型、文件
-    return formData.value.name.trim() !== '' && formData.value.type !== '' && selectedFile.value !== null
   }
   return false
-})
-
-const totalPages = computed(() => Math.max(1, Math.ceil(scanList.value.length / pageSize.value)))
-
-const paginatedList = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return scanList.value.slice(start, start + pageSize.value)
 })
 
 watch(pageSize, () => { page.value = 1 })
 
 function closeModal() {
   showScanModal.value = false
-  selectedFile.value = null
-  // 重置所有表单字段
-  formData.value.name = ''
-  formData.value.type = ''
-  formData.value.softwareId = ''
+  formData.value.softwareId = []
+  formData.value.selectedVersions = {}
   formData.value.componentId = ''
-  formData.value.version = ''
-}
-
-function handleDrop(e) {
-  isDragover.value = false
-  const file = e.dataTransfer.files[0]
-  if (file) validateAndSetFile(file)
-}
-
-function handleFileChange(e) {
-  const file = e.target.files[0]
-  if (file) validateAndSetFile(file)
-}
-
-function validateAndSetFile(file) {
-  const validExts = ['.zip', '.tar', '.tar.gz', '.tgz']
-  const ext = '.' + file.name.split('.').pop().toLowerCase()
-  if (!validExts.some(e => file.name.toLowerCase().endsWith(e))) {
-    alert('仅支持 .zip、.tar、.tar.gz、.tgz 格式')
-    return
-  }
-  selectedFile.value = file
-}
-
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / 1024 / 1024).toFixed(1) + ' MB'
 }
 
 function startScan() {
   let name = ''
   let version = '待检测'
 
-  if (scanMode.value === 'new-software') {
-    // 新建软件
-    name = formData.value.name
-  } else if (scanMode.value === 'add-component') {
-    // 新增组件
-    name = formData.value.softwareId + ' / ' + formData.value.componentName
-    version = formData.value.version || '待检测'
-  } else if (scanMode.value === 'upload') {
-    // 扫描新包
-    name = formData.value.name
+  if (scanMode.value === 'fetch-software') {
+    // 扫描已有软件的多个版本
+    const versions = []
+    formData.value.softwareId.forEach(swName => {
+      (formData.value.selectedVersions[swName] || []).forEach(ver => {
+        versions.push({ name: swName, version: ver })
+      })
+    })
+    versions.forEach(({ name, version }) => {
+      scanList.value.unshift({ name, version, status: 'scanning', progress: 0, scanTime: new Date().toLocaleString('zh-CN') })
+    })
+    showToast(`扫描任务已开始，共 ${versions.length} 个`)
+  } else if (scanMode.value === 'fetch-component') {
+    // 扫描已有组件
+    const comp = componentList.value.find(c => c.id === formData.value.componentId)
+    scanList.value.unshift({ name: comp.name, version: comp.version, status: 'scanning', progress: 0, scanTime: new Date().toLocaleString('zh-CN') })
+    showToast('扫描任务已开始')
   }
-
-  scanList.value.unshift({
-    name,
-    version,
-    status: 'pending',
-    scanTime: new Date().toLocaleString('zh-CN'),
-  })
 
   closeModal()
   page.value = 1
+}
+
+// 表格行内重新扫描
+function handleScan(row) {
+  const idx = scanList.value.findIndex(r => r === row)
+  if (idx !== -1) {
+    scanList.value[idx].status = 'scanning'
+    scanList.value[idx].progress = 0
+    scanList.value[idx].scanTime = new Date().toLocaleString('zh-CN')
+    showToast('扫描任务已开始')
+  }
 }
 
 function refreshList() {
@@ -496,6 +582,62 @@ function refreshList() {
   cursor: not-allowed;
 }
 
+.manage-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.manage-tab {
+  position: relative;
+  padding: 10px 20px 12px;
+  margin-bottom: -1px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.manage-tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: #e5e7eb;
+}
+
+.manage-tabs .manage-tab:last-child::after {
+  display: none;
+}
+
+.manage-tab.is-active {
+  color: #da203e;
+}
+
+.manage-tab.is-active::after {
+  display: none;
+}
+
+.manage-tab.is-active::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #da203e;
+}
+
+.manage-tab:hover:not(.is-active) {
+  color: #374151;
+}
+
 .manage-card {
   background: #fff;
   border-radius: 8px;
@@ -546,6 +688,35 @@ function refreshList() {
 .scan-status--scanning { background: #dbeafe; color: #1e40af; }
 .scan-status--completed { background: #d1fae5; color: #065f46; }
 .scan-status--failed { background: #fee2e2; color: #991b1b; }
+
+/* 扫描状态进度条 */
+.scan-status-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scan-status-progress .progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.scan-status-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.scan-status-progress .progress-text {
+  font-size: 12px;
+  color: #6b7280;
+  min-width: 32px;
+}
 
 /* 详情弹窗 */
 .detail-body {
@@ -911,9 +1082,6 @@ function refreshList() {
 
 /* 基本信息表单 */
 .scan-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
   margin-bottom: 20px;
   padding-bottom: 20px;
   border-bottom: 1px solid #e5e7eb;
@@ -991,6 +1159,159 @@ function refreshList() {
 
 .scan-mode-tab:first-child { border-right: 1px solid #e5e7eb; }
 .scan-mode-tab.is-active { background: #da203e; color: #fff; }
+
+/* 软件卡片列表 */
+.software-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.software-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.15s;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.software-card:hover {
+  border-color: #da203e;
+  box-shadow: 0 2px 8px rgba(218, 32, 62, 0.08);
+}
+.software-card.is-selected {
+  border-color: #da203e;
+  background: #fff8f8;
+}
+
+.software-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.software-card-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #fff;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.software-card.is-selected .software-card-check {
+  background: #da203e;
+  border-color: #da203e;
+}
+
+.software-card-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.software-card-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  flex-shrink: 0;
+}
+.software-card.is-selected .software-card-name { color: #da203e; }
+
+.software-card-lang {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.software-card-expand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.expand-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+.software-card.is-expanded .expand-arrow { transform: rotate(180deg); }
+
+.software-card-expand {
+  display: none;
+}
+
+.expand-arrow {
+  display: none;
+}
+.software-card.is-expanded .expand-arrow { transform: rotate(180deg); }
+
+.version-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 12px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.version-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+.version-tag:hover {
+  border-color: #da203e;
+  color: #da203e;
+}
+.version-tag.is-selected {
+  background: #da203e;
+  border-color: #da203e;
+  color: #fff;
+}
+.version-tag input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  accent-color: currentColor;
+  cursor: pointer;
+  margin: 0;
+}
+
+.version-empty {
+  font-size: 13px;
+  color: #9ca3af;
+  padding: 4px 0;
+}
+
+.software-empty {
+  padding: 32px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+}
 
 /* 组件列表 */
 .component-list {
@@ -1184,6 +1505,104 @@ function refreshList() {
 
 .fetch-item-name { font-weight: 500; color: #111827; font-size: 14px; }
 .fetch-item-info { font-size: 12px; color: #6b7280; }
+
+/* ===== Toast ===== */
+.toast-notification {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: #111827;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: toastIn 0.25s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+/* ===== 操作列按钮 ===== */
+.scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scan-btn--start {
+  background: linear-gradient(135deg, #da203e, #c41835);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(218, 32, 62, 0.3);
+}
+
+.scan-btn--start:hover {
+  background: linear-gradient(135deg, #c41835, #a8102c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(218, 32, 62, 0.4);
+}
+
+.scan-btn--rescan {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.scan-btn--rescan:hover {
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.scan-btn--scanning {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  cursor: default;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.scan-btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.scan-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #f59e0b;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .fetch-empty {
   padding: 24px;

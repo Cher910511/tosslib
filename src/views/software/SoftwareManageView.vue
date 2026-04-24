@@ -43,6 +43,7 @@
                 <th>开源许可证</th>
                 <th>版本数量</th>
                 <th>更新时间</th>
+                <th>扫描状态</th>
                 <th class="manage-th-op">操作</th>
               </template>
               <template v-else>
@@ -52,6 +53,7 @@
                 <th>groupId</th>
                 <th>编程语言</th>
                 <th>开源许可证</th>
+                <th>扫描状态</th>
                 <th class="manage-th-op">操作</th>
               </template>
             </tr>
@@ -60,7 +62,7 @@
             <!-- 软件列表 -->
             <template v-if="tab === 'software'">
               <tr v-if="softwareRows.length === 0" class="manage-empty-row">
-                <td colspan="6">
+                <td colspan="7">
                   <div class="manage-empty">
                     <div class="manage-empty-art" aria-hidden="true">
                       <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -83,6 +85,17 @@
                 <td>{{ row.license }}</td>
                 <td>{{ row.versionCount }}</td>
                 <td>{{ row.updatedAt }}</td>
+                <td>
+                  <button
+                    v-if="row.scanned"
+                    type="button"
+                    class="scan-badge scan-badge--link"
+                    @click="goToScanResult(row)"
+                  >
+                    已扫描
+                  </button>
+                  <span v-else class="scan-badge scan-badge--none">未扫描</span>
+                </td>
                 <td class="manage-td-op">
                   <button type="button" class="manage-linkish">编辑</button>
                   <span class="manage-op-sep">|</span>
@@ -94,7 +107,7 @@
             <!-- 组件列表 -->
             <template v-else>
               <tr v-if="componentRows.length === 0" class="manage-empty-row">
-                <td colspan="7">
+                <td colspan="8">
                   <div class="manage-empty">
                     <div class="manage-empty-art" aria-hidden="true">
                       <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -114,6 +127,17 @@
                 <td>{{ row.groupId }}</td>
                 <td>{{ row.lang }}</td>
                 <td>{{ row.license }}</td>
+                <td>
+                  <button
+                    v-if="row.scanned"
+                    type="button"
+                    class="scan-badge scan-badge--link"
+                    @click="goToScanResult(row)"
+                  >
+                    已扫描
+                  </button>
+                  <span v-else class="scan-badge scan-badge--none">未扫描</span>
+                </td>
                 <td class="manage-td-op">
                   <button type="button" class="manage-linkish">编辑</button>
                   <span class="manage-op-sep">|</span>
@@ -173,36 +197,36 @@ const page = ref(1)
 const pageSize = ref(10)
 
 // 软件数据
-const softwareRows = [
-  { id: 1, name: 'Vue.js', lang: 'JavaScript', license: 'MIT', versionCount: 5, updatedAt: '2024-03-20' },
-  { id: 2, name: 'React', lang: 'JavaScript', license: 'MIT', versionCount: 3, updatedAt: '2024-03-19' },
-  { id: 3, name: 'TensorFlow', lang: 'Python', license: 'Apache-2.0', versionCount: 8, updatedAt: '2024-03-18' },
-  { id: 4, name: 'Spring Boot', lang: 'Java', license: 'Apache-2.0', versionCount: 12, updatedAt: '2024-03-17' },
-  { id: 5, name: 'Django', lang: 'Python', license: 'BSD', versionCount: 4, updatedAt: '2024-03-16' },
-  { id: 6, name: 'FastAPI', lang: 'Python', license: 'MIT', versionCount: 2, updatedAt: '2024-03-15' },
-  { id: 7, name: 'Express', lang: 'JavaScript', license: 'MIT', versionCount: 6, updatedAt: '2024-03-14' },
-  { id: 8, name: 'Angular', lang: 'TypeScript', license: 'MIT', versionCount: 7, updatedAt: '2024-03-13' },
-  { id: 9, name: 'Flask', lang: 'Python', license: 'BSD', versionCount: 3, updatedAt: '2024-03-12' },
-  { id: 10, name: 'NestJS', lang: 'TypeScript', license: 'MIT', versionCount: 4, updatedAt: '2024-03-11' },
-  { id: 11, name: 'PyTorch', lang: 'Python', license: 'BSD', versionCount: 9, updatedAt: '2024-03-10' },
-  { id: 12, name: 'Next.js', lang: 'JavaScript', license: 'MIT', versionCount: 5, updatedAt: '2024-03-09' },
-]
+const softwareRows = ref([
+  { id: 1, name: 'Vue.js', lang: 'JavaScript', license: 'MIT', versionCount: 5, updatedAt: '2024-03-20', scanned: true },
+  { id: 2, name: 'React', lang: 'JavaScript', license: 'MIT', versionCount: 3, updatedAt: '2024-03-19', scanned: true },
+  { id: 3, name: 'TensorFlow', lang: 'Python', license: 'Apache-2.0', versionCount: 8, updatedAt: '2024-03-18', scanned: false },
+  { id: 4, name: 'Spring Boot', lang: 'Java', license: 'Apache-2.0', versionCount: 12, updatedAt: '2024-03-17', scanned: true },
+  { id: 5, name: 'Django', lang: 'Python', license: 'BSD', versionCount: 4, updatedAt: '2024-03-16', scanned: false },
+  { id: 6, name: 'FastAPI', lang: 'Python', license: 'MIT', versionCount: 2, updatedAt: '2024-03-15', scanned: true },
+  { id: 7, name: 'Express', lang: 'JavaScript', license: 'MIT', versionCount: 6, updatedAt: '2024-03-14', scanned: false },
+  { id: 8, name: 'Angular', lang: 'TypeScript', license: 'MIT', versionCount: 7, updatedAt: '2024-03-13', scanned: true },
+  { id: 9, name: 'Flask', lang: 'Python', license: 'BSD', versionCount: 3, updatedAt: '2024-03-12', scanned: false },
+  { id: 10, name: 'NestJS', lang: 'TypeScript', license: 'MIT', versionCount: 4, updatedAt: '2024-03-11', scanned: true },
+  { id: 11, name: 'PyTorch', lang: 'Python', license: 'BSD', versionCount: 9, updatedAt: '2024-03-10', scanned: false },
+  { id: 12, name: 'Next.js', lang: 'JavaScript', license: 'MIT', versionCount: 5, updatedAt: '2024-03-09', scanned: true },
+])
 
 // 组件数据
-const componentRows = [
-  { id: 1, software: 'Vue.js', name: 'vue', version: '3.4.21', groupId: 'org.vuejs', lang: 'JavaScript', license: 'MIT' },
-  { id: 2, software: 'Vue.js', name: 'vue-router', version: '4.3.0', groupId: 'org.vuejs.router', lang: 'JavaScript', license: 'MIT' },
-  { id: 3, software: 'Vue.js', name: 'vuex', version: '4.1.0', groupId: 'org.vuejs.vuex', lang: 'JavaScript', license: 'MIT' },
-  { id: 4, software: 'React', name: 'react', version: '18.2.0', groupId: 'org.facebook.react', lang: 'JavaScript', license: 'MIT' },
-  { id: 5, software: 'React', name: 'react-dom', version: '18.2.0', groupId: 'org.facebook.react-dom', lang: 'JavaScript', license: 'MIT' },
-  { id: 6, software: 'React', name: 'react-native', version: '0.73.6', groupId: 'org.facebook.react-native', lang: 'JavaScript', license: 'MIT' },
-  { id: 7, software: 'Spring Boot', name: 'spring-boot-starter-web', version: '3.2.3', groupId: 'org.springframework.boot', lang: 'Java', license: 'Apache-2.0' },
-  { id: 8, software: 'Spring Boot', name: 'spring-boot-starter-data-jpa', version: '3.2.3', groupId: 'org.springframework.boot', lang: 'Java', license: 'Apache-2.0' },
-  { id: 9, software: 'Angular', name: '@angular/core', version: '17.3.4', groupId: 'org.angular.core', lang: 'TypeScript', license: 'MIT' },
-  { id: 10, software: 'Angular', name: '@angular/router', version: '17.3.4', groupId: 'org.angular.router', lang: 'TypeScript', license: 'MIT' },
-  { id: 11, software: 'NestJS', name: '@nestjs/core', version: '10.3.8', groupId: 'org.nestjs.core', lang: 'TypeScript', license: 'MIT' },
-  { id: 12, software: 'NestJS', name: '@nestjs/common', version: '10.3.8', groupId: 'org.nestjs.common', lang: 'TypeScript', license: 'MIT' },
-]
+const componentRows = ref([
+  { id: 1, software: 'Vue.js', name: 'vue', version: '3.4.21', groupId: 'org.vuejs', lang: 'JavaScript', license: 'MIT', scanned: true },
+  { id: 2, software: 'Vue.js', name: 'vue-router', version: '4.3.0', groupId: 'org.vuejs.router', lang: 'JavaScript', license: 'MIT', scanned: true },
+  { id: 3, software: 'Vue.js', name: 'vuex', version: '4.1.0', groupId: 'org.vuejs.vuex', lang: 'JavaScript', license: 'MIT', scanned: false },
+  { id: 4, software: 'React', name: 'react', version: '18.2.0', groupId: 'org.facebook.react', lang: 'JavaScript', license: 'MIT', scanned: true },
+  { id: 5, software: 'React', name: 'react-dom', version: '18.2.0', groupId: 'org.facebook.react-dom', lang: 'JavaScript', license: 'MIT', scanned: false },
+  { id: 6, software: 'React', name: 'react-native', version: '0.73.6', groupId: 'org.facebook.react-native', lang: 'JavaScript', license: 'MIT', scanned: true },
+  { id: 7, software: 'Spring Boot', name: 'spring-boot-starter-web', version: '3.2.3', groupId: 'org.springframework.boot', lang: 'Java', license: 'Apache-2.0', scanned: false },
+  { id: 8, software: 'Spring Boot', name: 'spring-boot-starter-data-jpa', version: '3.2.3', groupId: 'org.springframework.boot', lang: 'Java', license: 'Apache-2.0', scanned: true },
+  { id: 9, software: 'Angular', name: '@angular/core', version: '17.3.4', groupId: 'org.angular.core', lang: 'TypeScript', license: 'MIT', scanned: false },
+  { id: 10, software: 'Angular', name: '@angular/router', version: '17.3.4', groupId: 'org.angular.router', lang: 'TypeScript', license: 'MIT', scanned: true },
+  { id: 11, software: 'NestJS', name: '@nestjs/core', version: '10.3.8', groupId: 'org.nestjs.core', lang: 'TypeScript', license: 'MIT', scanned: false },
+  { id: 12, software: 'NestJS', name: '@nestjs/common', version: '10.3.8', groupId: 'org.nestjs.common', lang: 'TypeScript', license: 'MIT', scanned: true },
+])
 
 const total = computed(() => tab.value === 'software' ? softwareRows.length : componentRows.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value) || 1))
@@ -514,6 +538,53 @@ function goToVersions(software) {
   color: #374151;
   background: #fff;
   cursor: pointer;
+}
+
+.scan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.scan-badge--done {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.scan-badge--done::before {
+  content: '✓';
+  font-size: 10px;
+}
+
+.scan-badge--none {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.scan-badge--link {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #15803d;
+  border: 1px solid #86efac;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scan-badge--link:hover {
+  background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.2);
+}
+
+.scan-badge--link::before {
+  content: '✓';
+  font-size: 10px;
 }
 
 .visually-hidden {
