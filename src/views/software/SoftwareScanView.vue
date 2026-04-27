@@ -64,7 +64,7 @@
             </tr>
             <tr v-for="(row, i) in paginatedList" :key="i">
               <td>{{ (page - 1) * pageSize + i + 1 }}</td>
-<td>{{ row.name }}</td>
+<td class="software-name-cell" @click="goToDetail(row)">{{ row.name }}</td>
               <td>{{ row.version }}</td>
               <td>{{ row.scanTime }}</td>
               <td>
@@ -73,10 +73,12 @@
                 </span>
               </td>
               <td class="manage-td-op">
-                <button v-if="row.status === 'scanning'" type="button" class="scan-btn scan-btn--scanning">
-                  <span class="scan-btn-spinner"></span>
-                  扫描中
-                </button>
+                <div v-if="row.status === 'scanning'" class="scan-status-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: row.progress + '%' }"></div>
+                  </div>
+                  <span class="progress-text">{{ row.progress }}%</span>
+                </div>
                 <button v-else type="button" class="scan-btn" :class="row.status === 'success' ? 'scan-btn--rescan' : 'scan-btn--start'" @click="handleScan(row)">
                   <svg v-if="row.status === 'success'" viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
                     <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
