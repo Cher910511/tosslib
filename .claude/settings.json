@@ -80,5 +80,10 @@
     "deny": [
       "Read(./.entire/metadata/**)"
     ]
-  }
+  },
+    "env": {
+        "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+        "ANTHROPIC_AUTH_TOKEN": "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",
+        "ANTHROPIC_API_KEY": ""
+    }
 }
