@@ -1,0 +1,128 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "597ecc444e9c",
+  "session_id": "1c9b58ab-e22a-48ca-afee-3c8d0b379ccb",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-11T03:56:03.282791Z",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    ".claude/settings.json",
+    "src/layouts/AdminShell.vue",
+    "src/router/index.js",
+    "src/utils/platformBinaryMarker.js",
+    "src/views/software/SignatureVerifyView.vue"
+  ],
+  "agent": "Claude Code",
+  "model": "default",
+  "turn_id": "a79197ebe450",
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-11T03:56:03.27968Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 31,
+    "human_modified": 2052,
+    "human_removed": 0,
+    "total_committed": 31,
+    "total_lines_changed": 2083,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1,
+      "user_lines_removed": 6,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.json": 1
+      },
+      "user_removed_per_file": {
+        ".claude/settings.json": 6
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 173,
+      "user_lines_removed": 331,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6,
+      "user_added_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 173
+      },
+      "user_removed_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 331
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 320,
+      "user_lines_removed": 339,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6,
+      "user_added_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 320
+      },
+      "user_removed_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 339
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 402,
+      "user_lines_removed": 342,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6,
+      "user_added_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 402
+      },
+      "user_removed_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 342
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 404,
+      "user_lines_removed": 342,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6,
+      "user_added_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 404
+      },
+      "user_removed_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 342
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 381,
+      "user_lines_removed": 346,
+      "agent_lines_added": 973,
+      "agent_lines_removed": 6,
+      "user_added_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 381
+      },
+      "user_removed_per_file": {
+        "src/views/software/SignatureVerifyView.vue": 346
+      }
+    }
+  ]
+}
