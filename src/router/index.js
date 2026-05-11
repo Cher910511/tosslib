@@ -11,6 +11,7 @@ import SoftwareManageView from '../views/software/SoftwareManageView.vue'
 import SoftwareVersionView from '../views/software/SoftwareVersionView.vue'
 import SoftwareScanView from '../views/software/SoftwareScanView.vue'
 import ScanResultView from '../views/software/ScanResultView.vue'
+import SignatureVerifyView from '../views/software/SignatureVerifyView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
@@ -109,6 +110,12 @@ const routes = [
         name: 'scan-result',
         component: ScanResultView,
         meta: { adminTitle: '扫描结果' },
+      },
+      {
+        path: 'signature-verify',
+        name: 'signature-verify',
+        component: SignatureVerifyView,
+        meta: { adminTitle: '签名验证' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

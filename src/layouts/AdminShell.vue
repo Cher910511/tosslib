@@ -26,6 +26,10 @@
           <span class="nav-ico" aria-hidden="true">✦</span>
           AI 助手
         </RouterLink>
+        <RouterLink class="admin-nav-item" to="/software/signature-verify" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">◈</span>
+          签名验证
+        </RouterLink>
         <!-- 软件管理（带二级菜单） -->
         <div class="admin-nav-group">
           <div
@@ -85,6 +89,11 @@
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
             <span class="current">AI 助手</span>
+          </template>
+          <template v-else-if="route.name === 'signature-verify'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">签名验证</span>
           </template>
           <template v-else-if="route.meta.isComponentDetail">
             <RouterLink to="/software/home">首页</RouterLink>
