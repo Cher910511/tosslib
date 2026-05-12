@@ -1,0 +1,395 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "8c41ad88366e",
+  "session_id": "e3a9df70-b9ff-45ed-9588-65237488d7dd",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-12T06:53:11.445476Z",
+  "branch": "main",
+  "checkpoints_count": 29,
+  "files_touched": [
+    "public/reports/detection-report.html",
+    "src/layouts/AdminShell.vue",
+    "src/router/index.js",
+    "src/views/software/DetectionReportView.vue"
+  ],
+  "agent": "Claude Code",
+  "model": "default",
+  "turn_id": "ffca7c0d10e7",
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 30
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-12T06:53:11.44077Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 3720,
+    "human_modified": 2779,
+    "human_removed": 0,
+    "total_committed": 3720,
+    "total_lines_changed": 6499,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1113,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 1058,
+        "src/layouts/AdminShell.vue": 9,
+        "src/router/index.js": 7,
+        "src/views/software/DetectionReportView.vue": 39
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 90,
+      "user_lines_removed": 54,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 90
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 54
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 147,
+      "user_lines_removed": 51,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 147
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 51
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 151,
+      "user_lines_removed": 85,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 151
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 85
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 223,
+      "user_lines_removed": 94,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 223
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 94
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 231,
+      "user_lines_removed": 94,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 231
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 94
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 230,
+      "user_lines_removed": 95,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 230
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 95
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 409,
+      "user_lines_removed": 112,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 409
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 112
+      }
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 409,
+      "user_lines_removed": 112,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 409
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 112
+      }
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 406,
+      "user_lines_removed": 112,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 406
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 112
+      }
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 406,
+      "user_lines_removed": 112,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 406
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 112
+      }
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 588,
+      "user_lines_removed": 120,
+      "agent_lines_added": 1113,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 588
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 120
+      }
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 16,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 17,
+      "user_lines_added": 236,
+      "user_lines_removed": 17,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 236
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 17
+      }
+    },
+    {
+      "checkpoint_number": 18,
+      "user_lines_added": 167,
+      "user_lines_removed": 54,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 167
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 54
+      }
+    },
+    {
+      "checkpoint_number": 19,
+      "user_lines_added": 227,
+      "user_lines_removed": 95,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 227
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 95
+      }
+    },
+    {
+      "checkpoint_number": 20,
+      "user_lines_added": 266,
+      "user_lines_removed": 124,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 266
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 124
+      }
+    },
+    {
+      "checkpoint_number": 21,
+      "user_lines_added": 255,
+      "user_lines_removed": 124,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 255
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 124
+      }
+    },
+    {
+      "checkpoint_number": 22,
+      "user_lines_added": 235,
+      "user_lines_removed": 135,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 235
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 135
+      }
+    },
+    {
+      "checkpoint_number": 23,
+      "user_lines_added": 241,
+      "user_lines_removed": 140,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 241
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 140
+      }
+    },
+    {
+      "checkpoint_number": 24,
+      "user_lines_added": 239,
+      "user_lines_removed": 142,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 239
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 142
+      }
+    },
+    {
+      "checkpoint_number": 25,
+      "user_lines_added": 221,
+      "user_lines_removed": 141,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 221
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 141
+      }
+    },
+    {
+      "checkpoint_number": 26,
+      "user_lines_added": 221,
+      "user_lines_removed": 141,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 221
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 141
+      }
+    },
+    {
+      "checkpoint_number": 27,
+      "user_lines_added": 207,
+      "user_lines_removed": 141,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 207
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 141
+      }
+    },
+    {
+      "checkpoint_number": 28,
+      "user_lines_added": 232,
+      "user_lines_removed": 158,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 232
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 158
+      }
+    },
+    {
+      "checkpoint_number": 29,
+      "user_lines_added": 231,
+      "user_lines_removed": 161,
+      "agent_lines_added": 1549,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "public/reports/detection-report.html": 231
+      },
+      "user_removed_per_file": {
+        "public/reports/detection-report.html": 161
+      }
+    }
+  ]
+}
