@@ -249,7 +249,32 @@
       font-size: 0.78em;
       color: var(--text-secondary);
       line-height: 1.55;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      align-items: center;
     }
+    .ov-chart-legend .ov-li {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ov-chart-legend .ov-sw {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .ov-chart-legend .ov-sw.seg-clean { background: #c5e1a5; }
+    .ov-chart-legend .ov-sw.seg-c1 { background: #ffcdd2; }
+    .ov-chart-legend .ov-sw.seg-c2 { background: #ffe0b2; }
+    .ov-chart-legend .ov-sw.seg-c3 { background: #fff9c4; }
+    .ov-chart-legend .ov-sw.seg-c4 { background: #e0e4ea; }
+    .ov-chart-legend .ov-sw.seg-lic-w { background: #ffe0b2; }
+    .ov-chart-legend .ov-sw.seg-lic-s { background: #ffcdd2; }
+    .ov-chart-legend .ov-sw.seg-lic-t { background: #d7ccc8; }
+    .ov-chart-legend .ov-sw.seg-lic-p { background: #c8e6c9; }
     .ov-stackbar {
       display: flex;
       gap: 6px;
@@ -909,7 +934,7 @@
       <h1>fastjson-v1.2</h1>
       <div class="subtitle">可信开源扫描检测报告</div>
       <div class="org">可信开源代码库</div>
-      <div class="meta">报告日期：2026-05-06</div>
+      <div class="meta">扫描日期：2026-05-06</div>
     </div>
   </div>
 
@@ -933,18 +958,26 @@
           <h3 class="ov-sec-title">扫描元数据</h3>
           <div class="info-grid">
             <div class="info-item"><div class="ilabel">扫描类型</div><div class="ivalue">源码包 / 二进制包</div></div>
-            <div class="info-item"><div class="ilabel">工件名称 / 版本</div><div class="ivalue">fastjson-v1.2 / v1.2</div></div>
+            <div class="info-item"><div class="ilabel">文件名称 / 版本</div><div class="ivalue">fastjson-v1.2 / v1.2</div></div>
             <div class="info-item"><div class="ilabel">扫描时间</div><div class="ivalue">2026-05-06 10:27</div></div>
           </div>
         </div>
         <div class="ov-zone">
           <h3 class="ov-sec-title">组件分布</h3>
           <div class="ov-stackbar" aria-label="组件按风险暴露桶分布（示例）">
-            <div class="ov-seg seg-clean" style="flex: 13 1 0"><span>13</span></div>
+            <div class="ov-seg seg-clean" style="flex: 12 1 0"><span>12</span></div>
             <div class="ov-seg seg-c1" style="flex: 2 1 0"><span>2</span></div>
             <div class="ov-seg seg-c2" style="flex: 1 1 0"><span>1</span></div>
             <div class="ov-seg seg-c3" style="flex: 1 1 0"><span>1</span></div>
+            <div class="ov-seg seg-c4" style="flex: 1 1 0"><span>1</span></div>
           </div>
+          <p class="ov-chart-legend">
+            <span class="ov-li"><span class="ov-sw seg-clean" aria-hidden="true"></span>无漏洞组件</span>
+            <span class="ov-li"><span class="ov-sw seg-c1" aria-hidden="true"></span>含超危漏洞的组件</span>
+            <span class="ov-li"><span class="ov-sw seg-c2" aria-hidden="true"></span>含高危漏洞的组件</span>
+            <span class="ov-li"><span class="ov-sw seg-c3" aria-hidden="true"></span>含中危漏洞的组件</span>
+            <span class="ov-li"><span class="ov-sw seg-c4" aria-hidden="true"></span>含低危漏洞的组件</span>
+          </p>
         </div>
         <div class="ov-zone">
           <h3 class="ov-sec-title">漏洞分布</h3>
@@ -954,6 +987,12 @@
             <div class="ov-seg seg-c3" style="flex: 6 1 0"><span>6</span></div>
             <div class="ov-seg seg-c4" style="flex: 2 1 0"><span>2</span></div>
           </div>
+          <p class="ov-chart-legend">
+            <span class="ov-li"><span class="ov-sw seg-c1" aria-hidden="true"></span>超危</span>
+            <span class="ov-li"><span class="ov-sw seg-c2" aria-hidden="true"></span>高危</span>
+            <span class="ov-li"><span class="ov-sw seg-c3" aria-hidden="true"></span>中危</span>
+            <span class="ov-li"><span class="ov-sw seg-c4" aria-hidden="true"></span>低危</span>
+          </p>
         </div>
         <div class="ov-zone">
           <h3 class="ov-sec-title">许可证分布</h3>
@@ -963,6 +1002,12 @@
             <div class="ov-seg seg-lic-t" style="flex: 1 1 0"><span>1</span></div>
             <div class="ov-seg seg-lic-p" style="flex: 10 1 0"><span>10</span></div>
           </div>
+          <p class="ov-chart-legend">
+            <span class="ov-li"><span class="ov-sw seg-lic-w" aria-hidden="true"></span>弱保护</span>
+            <span class="ov-li"><span class="ov-sw seg-lic-s" aria-hidden="true"></span>强保护</span>
+            <span class="ov-li"><span class="ov-sw seg-lic-t" aria-hidden="true"></span>未知型</span>
+            <span class="ov-li"><span class="ov-sw seg-lic-p" aria-hidden="true"></span>宽松型</span>
+          </p>
         </div>
       </div>
     </div>
@@ -1068,7 +1113,7 @@
         <div class="stat-item"><div class="label">超危</div><div class="value danger">3</div></div>
         <div class="stat-item"><div class="label">高危</div><div class="value warning">4</div></div>
         <div class="stat-item"><div class="label">中危</div><div class="value" style="color:#f57f17;">6</div></div>
-        <div class="stat-item"><div class="label">低 / 信息</div><div class="value">2</div></div>
+        <div class="stat-item"><div class="label">低危</div><div class="value">2</div></div>
       </div>
       <table>
         <thead>
@@ -1449,7 +1494,7 @@
           <!-- <div class="muted" style="font-size:0.75em;margin-top:4px;">强著佐权 / GPL、AGPL 等</div> -->
         </div>
         <div class="stat-item">
-          <div class="label">为止型</div>
+          <div class="label">未知型</div>
           <div class="value" style="font-size:1.5rem;color:#6d4c41;">1</div>
           <!-- <div class="muted" style="font-size:0.75em;margin-top:4px;">策略内「为止」类 / 待业务确认</div> -->
         </div>
