@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扫描检测报告（PR 模版示例）— fastjson-v1.2</title>
+  <style>
+    :root {
+      --primary: #1a237e;
+      --primary-light: #3949ab;
+      --accent: #ff6f00;
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #222;
+      --text-secondary: #555;
+      --border: #e0e0e0;
+      --danger: #d32f2f;
+      --warning: #f57c00;
+      --info: #1976d2;
+      --success: #388e3c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 22px 44px; }
+
+    /* 封面：白底；Logo + 名称仅固定在封面左上角 */
+    .report-cover {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 72px 24px 48px;
+      background: #fff;
+      color: var(--text);
+      box-sizing: border-box;
+      page-break-after: always;
+      break-after: page;
+      border-bottom: 1px solid var(--border);
+    }
+    .report-cover .report-brand {
+      position: absolute;
+      top: 22px;
+      left: 22px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .report-cover .report-brand svg { flex-shrink: 0; display: block; }
+    .report-cover .report-brand-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    .report-cover-inner {
+      width: 100%;
+      max-width: 720px;
+    }
+    .report-cover-inner h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--primary);
+    }
+    .report-cover-inner .subtitle {
+      font-size: 1.12em;
+      color: var(--text);
+      margin-top: 14px;
+      line-height: 1.55;
+    }
+    .report-cover-inner .org {
+      margin-top: 10px;
+      font-size: 0.98em;
+      color: var(--text-secondary);
+    }
+    .report-cover-inner .meta {
+      margin-top: 22px;
+      font-size: 0.88em;
+      color: var(--text-secondary);
+    }
+
+    .report-main {
+      background: var(--bg);
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 30px;
+      margin-bottom: 26px;
+    }
+    .card-title {
+      font-size: 1.25em;
+      color: var(--primary);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary);
+    }
+    .card-title .tag {
+      font-size: 0.65em;
+      font-weight: 600;
+      vertical-align: middle;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #e8eaf6;
+      color: var(--primary);
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+    }
+    .stat-item {
+      background: #f8f9ff;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #e8eaf6;
+    }
+    .stat-item .label { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 6px; }
+    .stat-item .value { font-size: 1.75em; font-weight: 700; color: var(--primary); }
+    .stat-item .value.danger { color: var(--danger); }
+    .stat-item .value.warning { color: var(--warning); }
+
+    /* ===== 扫描概览页（第 1 章卡片）===== */
+    .card.analytics-page {
+      display: flex;
+      flex-direction: column;
+      page-break-after: always;
+      break-after: page;
+      margin-bottom: 26px;
+      padding: 32px 34px 40px;
+      border: 1px solid #e2e6ee;
+      background: #fff;
+      box-shadow: 0 1px 8px rgba(26, 35, 126, 0.05);
+    }
+    .analytics-page-head {
+      margin-bottom: 24px;
+    }
+    .analytics-page-head .card-title {
+      margin-bottom: 0;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e4e9f2;
+      font-size: 1.28em;
+      letter-spacing: 0.02em;
+    }
+    .analytics-page .analytics-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    @media (max-width: 720px) {
+      .analytics-page .analytics-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .analytics-page .analytics-kpi {
+      background: #fff;
+      border: 1px solid #e4e8f0;
+      border-radius: 10px;
+      padding: 16px 10px 14px;
+      text-align: center;
+    }
+    .analytics-page .analytics-kpi .k {
+      font-size: 0.7em;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .analytics-page .analytics-kpi .v {
+      font-size: 1.45rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+    .analytics-page .analytics-kpi.d .v {
+      color: var(--danger);
+    }
+    .analytics-page .analytics-kpi.w .v {
+      color: #e65100;
+    }
+    .analytics-overview-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-bottom: 12px;
+    }
+    .ov-zone {
+      background: #f8f9fc;
+      border: 1px solid #ebeff6;
+      border-radius: 10px;
+      padding: 20px 22px 22px;
+    }
+    .ov-sec-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 0 0 16px;
+      padding-left: 13px;
+      border-left: 3px solid var(--primary-light);
+      line-height: 1.35;
+    }
+    .ov-zone .info-grid {
+      margin: 0;
+      padding: 16px 18px;
+      background: #fff;
+      border: 1px solid #eef0f6;
+      border-radius: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px 22px;
+    }
+    .ov-zone .info-item .ilabel {
+      font-size: 0.74em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #6b7280;
+    }
+    .ov-zone .info-item .ivalue {
+      font-size: 0.93em;
+      margin-top: 6px;
+      color: #1a1d24;
+    }
+    .ov-chart-legend {
+      margin: 12px 0 0;
+      font-size: 0.78em;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+    .ov-stackbar {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+      min-height: 52px;
+      padding: 8px;
+      border-radius: 8px;
+      background: #eef1f7;
+      border: 1px solid #e1e6ef;
+    }
+    .ov-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 40px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .ov-seg.seg-plain {
+      background: #cfd8dc;
+      color: #37474f;
+    }
+    .ov-seg.seg-clean {
+      background: #c5e1a5;
+      color: #33691e;
+    }
+    .ov-seg.seg-c1 {
+      background: #ffcdd2;
+      color: #b71c1c;
+    }
+    .ov-seg.seg-c2 {
+      background: #ffe0b2;
+      color: #e65100;
+    }
+    .ov-seg.seg-c3 {
+      background: #fff9c4;
+      color: #f57f17;
+    }
+    .ov-seg.seg-c4 {
+      background: #e0e4ea;
+      color: #37474f;
+    }
+    .ov-seg.seg-lic-w {
+      background: #ffe0b2;
+      color: #e65100;
+    }
+    .ov-seg.seg-lic-s {
+      background: #ffcdd2;
+      color: #b71c1c;
+    }
+    .ov-seg.seg-lic-t {
+      background: #d7ccc8;
+      color: #3e2723;
+    }
+    .ov-seg.seg-lic-p {
+      background: #c8e6c9;
+      color: #1b5e20;
+    }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78em; font-weight: 600; }
+    .badge-critical { background: #ffebee; color: #c62828; }
+    .badge-high { background: #fff3e0; color: #e65100; }
+    .badge-medium { background: #fff8e1; color: #f57f17; }
+    .badge-low { background: #e8f5e9; color: #2e7d32; }
+    .badge-info { background: #e3f2fd; color: #1565c0; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.9em; }
+    th { background: var(--primary); color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:hover td { background: #f8f9ff; }
+    .table-wrap {
+      overflow-x: auto;
+      margin: 12px 0;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    /* ===== 恶意代码卡片布局（PDF 友好，一行两字段） ===== */
+    .malware-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin: 14px 0;
+    }
+    .malware-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      break-inside: avoid;
+    }
+    .malware-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #ffcdd2;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .malware-card-header .file-name {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: var(--text);
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .malware-card-header .severity {
+      flex-shrink: 0;
+    }
+    .malware-card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 24px;
+    }
+    .malware-card-grid .field {
+      min-width: 0;
+    }
+    .malware-card-grid .field.full-width {
+      grid-column: 1 / -1;
+    }
+    .malware-card-grid .field .f-label {
+      font-size: 0.72em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .malware-card-grid .field .f-value {
+      font-size: 0.92em;
+      line-height: 1.5;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .malware-card-grid .field .f-value.mono {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.82em;
+    }
+    .malware-card-grid .field .f-value .threat-detail {
+      display: block;
+      background: #fafafa;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-top: 4px;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }
+    .malware-log-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+    .malware-log-section .log-label {
+      font-size: 0.72em;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .malware-log-section .log-content {
+      max-height: 200px;
+      overflow: auto;
+      font-size: 0.72em;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+      background: #f8f9fa;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .sev-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .sev-critical { background: #d32f2f; }
+    .sev-high { background: #f57c00; }
+    .sev-medium { background: #fbc02d; }
+    .sev-low { background: #7cb342; }
+    .sev-dot.empty { background: #e0e0e0; }
+    /* 组件表 · 漏洞等级数量（圆点内数字） */
+    .vuln-sev-counts {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .vuln-sev-counts .vsc {
+      min-width: 24px;
+      height: 24px;
+      padding: 0 5px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72em;
+      font-weight: 700;
+      line-height: 1;
+      box-sizing: border-box;
+    }
+    .vuln-sev-counts .vsc-zero {
+      background: #eeeeee;
+      color: #9e9e9e;
+      font-weight: 600;
+    }
+    .vuln-sev-counts .vsc-critical {
+      background: #b71c1c;
+      color: #fff;
+    }
+    .vuln-sev-counts .vsc-high {
+      background: #ef6c00;
+      color: #fff;
+    }
+    .vuln-sev-counts .vsc-medium {
+      background: #fbc02d;
+      color: #5d4037;
+    }
+    .vuln-sev-counts .vsc-low {
+      background: #fff59d;
+      color: #6d4c41;
+    }
+    .version-upgrade { color: var(--success); font-weight: 600; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 12px 0;
+      padding: 14px;
+      background: #f8f9ff;
+      border-radius: 8px;
+    }
+    .info-item .ilabel { font-size: 0.78em; color: var(--text-secondary); }
+    .info-item .ivalue { font-weight: 600; font-size: 0.92em; margin-top: 2px; }
+    .vuln-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .vuln-title .cve { color: var(--primary); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.95em; }
+    .vuln-desc {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      background: #fafafa;
+      border-radius: 6px;
+      font-size: 0.88em;
+      line-height: 1.65;
+    }
+    .vuln-detail-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .vuln-cvss-pill {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #ffebee;
+      color: #b71c1c;
+    }
+    .vuln-card.high .vuln-cvss-pill { background: #fff3e0; color: #e65100; }
+    .vuln-kv-grid {
+      display: grid;
+      grid-template-columns: minmax(100px, 120px) 1fr minmax(100px, 120px) 1fr;
+      gap: 8px 14px;
+      font-size: 0.88em;
+      margin-top: 12px;
+      align-items: start;
+    }
+    .vuln-kv-grid .k {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .vuln-kv-grid .v { word-break: break-word; line-height: 1.6; }
+    .vuln-kv-grid .v.mono {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.8em;
+    }
+    .vuln-kv-grid .v.vec { font-size: 0.88em; color: #222; }
+    .vuln-kv-grid .k.vec { color: #555; font-weight: 500; font-size: 0.85em; }
+    .vuln-vector-wrap {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: #f8f9ff;
+      border: 1px solid #e8eaf6;
+      border-radius: 8px;
+    }
+    .vuln-vector-wrap .vuln-kv-grid { margin-top: 0; }
+    .vuln-block-label {
+      font-size: 0.72em;
+      letter-spacing: 0.06em;
+      color: var(--primary);
+      font-weight: 700;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .vuln-extra {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.85em;
+      color: #424242;
+      line-height: 1.55;
+    }
+    .vuln-extra ul { margin: 6px 0 0 1em; padding: 0; }
+    .vuln-extra li { margin: 4px 0; }
+    .affected-list { margin: 6px 0 0; padding-left: 1.15em; font-size: 0.88em; }
+    .affected-list li { margin: 5px 0; }
+    .fix-info {
+      background: #e8f5e9;
+      border-radius: 6px;
+      padding: 8px 14px;
+      margin-top: 10px;
+      font-size: 0.88em;
+    }
+    .fix-detail {
+      margin-top: 6px;
+      padding: 12px 14px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      font-size: 0.88em;
+      border: 1px solid #c8e6c9;
+    }
+    .fix-detail-item {
+      display: grid;
+      grid-template-columns: minmax(92px, 118px) 1fr;
+      gap: 8px 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      align-items: start;
+    }
+    .fix-detail-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .fix-detail-item:first-child { padding-top: 0; }
+    .fd-key {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+    .fd-val { color: #1b5e20; line-height: 1.55; word-break: break-word; }
+    /* 组件信息块（漏洞模块 3.3） */
+    .comp-block {
+      margin: 20px 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .comp-block-header {
+      font-size: 1.1em;
+      font-weight: 700;
+      padding: 12px 16px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .comp-block-header .cb-badge {
+      font-size: 0.72em;
+      font-weight: 400;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 10px;
+      border-radius: 12px;
+    }
+    .comp-info-grid {
+      display: grid;
+      grid-template-columns: minmax(100px, 126px) 1fr minmax(100px, 126px) 1fr;
+      gap: 6px 14px;
+      padding: 14px 16px;
+      font-size: 0.88em;
+      background: #fafbff;
+      border-bottom: 1px solid #eee;
+    }
+    .comp-info-grid .ci-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.75em;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .comp-info-grid .ci-value {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .comp-info-grid .ci-value .pkg-tag {
+      background: #e3f2fd;
+      padding: 0 8px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      display: inline-block;
+    }
+    .comp-vulns {
+      padding: 10px 16px 16px;
+    }
+    .comp-vulns .cv-head {
+      font-size: 0.76em;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
+      margin: 28px 0;
+      opacity: 0.25;
+    }
+    .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .muted { color: var(--text-secondary); font-size: 0.9em; }
+    .checklist { margin: 10px 0 0 1.1em; }
+    .checklist li { margin: 6px 0; }
+    .dev-note {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.85em;
+      margin-top: 12px;
+    }
+    .dev-note strong { color: #e65100; }
+    .footer-note {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-secondary);
+      font-size: 0.82em;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    /* ===== 修复建议卡片 ===== */
+    .fix-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .fix-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .fix-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 16px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .fix-card-header .comp-name {
+      font-weight: 700;
+      font-size: 1.05em;
+      color: var(--primary);
+    }
+    .fix-card-header .fix-action {
+      font-size: 1em;
+      font-weight: 700;
+      color: var(--success);
+      background: #e8f5e9;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .fix-card-header .fix-action .old-ver {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    .fix-card-header .fix-action .new-ver {
+      color: var(--success);
+      font-weight: 700;
+    }
+    .fix-card-header .fix-action .arrow {
+      color: var(--text-secondary);
+      font-weight: 400;
+      margin: 0 4px;
+    }
+    .fix-card-header .fix-priority {
+      margin-left: auto;
+    }
+    .fix-card-header .fix-id {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.82em;
+      color: var(--text-secondary);
+    }
+    .fix-vuln-list {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      align-items: center;
+    }
+    .fix-vuln-list .fv-label {
+      font-size: 0.82em;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .fix-vuln-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .fix-vuln-item .cve-id {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-weight: 600;
+      font-size: 0.90em;
+      color: var(--text);
+      min-width: 140px;
+    }
+    .fix-vuln-item .cve-cvss {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 6px;
+      background: #f5f5f5;
+    }
+    .fix-vuln-item .cve-cvss.critical { background: #ffebee; color: #c62828; }
+    .fix-vuln-item .cve-cvss.high     { background: #fff3e0; color: #e65100; }
+    .fix-vuln-item .cve-cvss.medium   { background: #fff8e1; color: #f57f17; }
+
+    h3.comp { color: var(--primary); font-size: 1.05em; margin: 20px 0 8px; }
+
+    @page {
+      size: A4;
+      margin: 16mm 12mm 18mm 12mm;
+    }
+    @media print {
+      body {
+        background: #fff !important;
+        color: #111;
+        font-size: 10.5pt;
+        orphans: 3;
+        widows: 3;
+      }
+      .report-cover .report-brand,
+      .report-cover .report-brand svg {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .report-cover .report-brand {
+        position: absolute;
+        top: 12mm;
+        left: 14mm;
+      }
+      .report-cover .report-brand-name { color: #1a237e; }
+      .report-cover {
+        background: #fff !important;
+        min-height: 100vh;
+        padding-top: 20mm;
+        page-break-after: always !important;
+        break-after: page !important;
+        border-bottom: 1px solid #ddd;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .report-main { background: #fff !important; }
+      .container { max-width: none; padding: 0; }
+      .card.analytics-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        min-height: 100vh;
+        background: #fff !important;
+        box-shadow: none !important;
+        border: 1px solid #ccc;
+      }
+      .analytics-page .ov-zone {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .analytics-page .ov-seg {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .card {
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+        padding: 14px 16px;
+        border-radius: 8px;
+      }
+      .card-title {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+      .comp-block,
+      .fix-card,
+      .malware-card,
+      .vuln-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .dev-note,
+      .fix-detail,
+      .vuln-desc,
+      .vuln-extra {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .malware-card-list { gap: 12px; }
+      table {
+        font-size: 9.1pt;
+        border-collapse: collapse;
+      }
+      thead { display: table-header-group; }
+      th {
+        padding: 8px 10px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      td { padding: 8px 10px; vertical-align: top; }
+      tr:hover td { background: transparent !important; }
+      tbody tr:nth-child(even) td { background: #f7f7f7; }
+      .malware-log-section .log-content {
+        max-height: none;
+        overflow: visible;
+        font-size: 8pt;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .malware-card { break-inside: avoid; }
+      code { font-size: 0.92em; word-break: break-word; }
+      a { color: #111; text-decoration: none; }
+      .vuln-sev-counts .vsc {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-cover">
+    <div class="report-brand">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16 0C24.8366 0 32 7.16344 32 16C32 24.8366 24.8366 32 16 32C12.4334 32 9.13995 30.8323 6.47949 28.8594L9 13.6436H4.77539L2.95996 25.2725C1.09651 22.6566 0 19.4565 0 16C0 14.6188 0.174855 13.2785 0.503906 12H12.0645L11.5879 15H15.6387L16.1152 12H22.5801L21.6797 21H14.6855L15.3213 17H11.2705L10.5508 21.5293C10.2615 23.3507 11.6696 24.9995 13.5137 25H22.585C24.0295 24.9998 25.2544 23.9736 25.5283 22.582L25.5703 22.2988L26.6699 11.2988C26.8465 9.53293 25.4592 8.00025 23.6846 8H2.1416C4.90814 3.21785 10.0779 0 16 0Z" fill="#DA203E"/></svg>
+      <span class="report-brand-name">可信开源代码库</span>
+    </div>
+    <div class="report-cover-inner container">
+      <h1>fastjson-v1.2</h1>
+      <div class="subtitle">可信开源扫描检测报告</div>
+      <div class="org">可信开源代码库</div>
+      <div class="meta">报告日期：2026-05-06</div>
+    </div>
+  </div>
+
+  <div class="report-main">
+    <div class="container">
+
+    <!-- 1. 数据总览（含原「扫描范围与元数据」） -->
+    <div class="card analytics-page">
+      <div class="analytics-page-head">
+        <div class="card-title">1. 扫描概览</div>
+      </div>
+      <div class="analytics-kpi-row">
+        <div class="analytics-kpi"><div class="k">组件总数</div><div class="v">17</div></div>
+        <div class="analytics-kpi d"><div class="k">风险组件</div><div class="v">4</div></div>
+        <div class="analytics-kpi w"><div class="k">已知漏洞</div><div class="v">15</div></div>
+        <div class="analytics-kpi w"><div class="k">许可证数</div><div class="v">6</div></div>
+        <div class="analytics-kpi d"><div class="k">恶意代码</div><div class="v">1</div></div>
+      </div>
+      <div class="analytics-overview-stack">
+        <div class="ov-zone">
+          <h3 class="ov-sec-title">扫描元数据</h3>
+          <div class="info-grid">
+            <div class="info-item"><div class="ilabel">扫描类型</div><div class="ivalue">源码包 / 二进制包</div></div>
+            <div class="info-item"><div class="ilabel">工件名称 / 版本</div><div class="ivalue">fastjson-v1.2 / v1.2</div></div>
+            <div class="info-item"><div class="ilabel">扫描时间</div><div class="ivalue">2026-05-06 10:27</div></div>
+          </div>
+        </div>
+        <div class="ov-zone">
+          <h3 class="ov-sec-title">组件分布</h3>
+          <div class="ov-stackbar" aria-label="组件按风险暴露桶分布（示例）">
+            <div class="ov-seg seg-clean" style="flex: 13 1 0"><span>13</span></div>
+            <div class="ov-seg seg-c1" style="flex: 2 1 0"><span>2</span></div>
+            <div class="ov-seg seg-c2" style="flex: 1 1 0"><span>1</span></div>
+            <div class="ov-seg seg-c3" style="flex: 1 1 0"><span>1</span></div>
+          </div>
+        </div>
+        <div class="ov-zone">
+          <h3 class="ov-sec-title">漏洞分布</h3>
+          <div class="ov-stackbar" aria-label="漏洞按严重度条数">
+            <div class="ov-seg seg-c1" style="flex: 3 1 0"><span>3</span></div>
+            <div class="ov-seg seg-c2" style="flex: 4 1 0"><span>4</span></div>
+            <div class="ov-seg seg-c3" style="flex: 6 1 0"><span>6</span></div>
+            <div class="ov-seg seg-c4" style="flex: 2 1 0"><span>2</span></div>
+          </div>
+        </div>
+        <div class="ov-zone">
+          <h3 class="ov-sec-title">许可证分布</h3>
+          <div class="ov-stackbar" aria-label="许可证策略按组件个数">
+            <div class="ov-seg seg-lic-w" style="flex: 4 1 0"><span>4</span></div>
+            <div class="ov-seg seg-lic-s" style="flex: 2 1 0"><span>2</span></div>
+            <div class="ov-seg seg-lic-t" style="flex: 1 1 0"><span>1</span></div>
+            <div class="ov-seg seg-lic-p" style="flex: 10 1 0"><span>10</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 组件清单与 SBOM -->
+    <div class="card">
+      <div class="card-title">2. 组件清单与 SBOM</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>组件</th>
+            <th>供应商</th>
+            <th>生态</th>
+            <th>语言</th>
+            <th>当前版本</th>
+            <th>推荐版本</th>
+            <th>漏洞分布</th>
+            <th>许可证</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><strong>cxf-rt-transports-http</strong></td>
+            <td class="mono" style="font-size:0.82em;">org.apache.cxf</td>
+            <td>maven</td>
+            <td>Java</td>
+            <td>3.1.2</td>
+            <td><span class="version-upgrade">3.6.9</span></td>
+            <td>
+              <div class="vuln-sev-counts" title="超危 / 高危 / 中危 / 低危·信息">
+                <span class="vsc vsc-critical" title="超危">1</span>
+                <span class="vsc vsc-high" title="高危">1</span>
+                <span class="vsc vsc-medium" title="中危">1</span>
+                <span class="vsc vsc-zero" title="低危">0</span>
+              </div>
+            </td>
+            <td>Apache-2.0</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><strong>okhttp</strong></td>
+            <td class="mono" style="font-size:0.82em;">com.squareup.okhttp3</td>
+            <td>maven</td>
+            <td>Java</td>
+            <td>3.6.0</td>
+            <td><span class="version-upgrade">5.2.3</span></td>
+            <td>
+              <div class="vuln-sev-counts" title="超危 / 高危 / 中危 / 低危·信息">
+                <span class="vsc vsc-zero" title="超危">0</span>
+                <span class="vsc vsc-zero" title="高危">0</span>
+                <span class="vsc vsc-medium" title="中危">1</span>
+                <span class="vsc vsc-zero" title="低危">0</span>
+              </div>
+            </td>
+            <td>Apache-2.0</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><strong>spring-messaging</strong></td>
+            <td class="mono" style="font-size:0.82em;">org.springframework</td>
+            <td>maven</td>
+            <td>Java</td>
+            <td>4.3.7.RELEASE</td>
+            <td><span class="version-upgrade">7.0.1</span></td>
+            <td>
+              <div class="vuln-sev-counts" title="超危 / 高危 / 中危 / 低危·信息">
+                <span class="vsc vsc-critical" title="超危">1</span>
+                <span class="vsc vsc-zero" title="高危">0</span>
+                <span class="vsc vsc-medium" title="中危">1</span>
+                <span class="vsc vsc-zero" title="低危 / 信息">0</span>
+              </div>
+            </td>
+            <td>eCos-2.0</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><strong>spring-webmvc</strong></td>
+            <td class="mono" style="font-size:0.82em;">org.springframework</td>
+            <td>maven</td>
+            <td>Java</td>
+            <td>4.3.7.RELEASE</td>
+            <td><span class="version-upgrade">7.0.1</span></td>
+            <td>
+              <div class="vuln-sev-counts" title="超危 / 高危 / 中危 / 低危·信息">
+                <span class="vsc vsc-critical" title="超危">1</span>
+                <span class="vsc vsc-high" title="高危">1</span>
+                <span class="vsc vsc-medium" title="中危">1</span>
+                <span class="vsc vsc-low" title="低危 / 信息">1</span>
+              </div>
+            </td>
+            <td>eCos-2.0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. 漏洞：统计 + 主表 + 详情示例 -->
+    <div class="card">
+      <div class="card-title">3. 漏洞信息</div>
+      <div class="overview-grid">
+        <div class="stat-item"><div class="label">超危</div><div class="value danger">3</div></div>
+        <div class="stat-item"><div class="label">高危</div><div class="value warning">4</div></div>
+        <div class="stat-item"><div class="label">中危</div><div class="value" style="color:#f57f17;">6</div></div>
+        <div class="stat-item"><div class="label">低 / 信息</div><div class="value">2</div></div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>CVE ID</th>
+            <th>CWE 编号</th>
+            <th>CVSS 打分</th>
+            <th>发布时间</th>
+            <th>影响组件/版本</th>
+            <th>修复版本</th>
+            <th>程序语言</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">CVE-2018-1275</td>
+            <td class="mono">CWE-502</td>
+            <td><span class="mono">9.8</span> <span class="badge badge-critical">超危</span></td>
+            <td>2018-04-12</td>
+            <td class="mono">spring-messaging @ 4.3.7.RELEASE</td>
+            <td>7.0.1+</td>
+            <td>Java</td>
+          </tr>
+          <tr>
+            <td class="mono">CVE-2018-8039</td>
+            <td class="mono">CWE-400</td>
+            <td><span class="mono">8.1</span> <span class="badge badge-high">高危</span></td>
+            <td>2018-08-01</td>
+            <td class="mono">cxf-rt-transports-http @ 3.1.2</td>
+            <td>3.6.9+</td>
+            <td>Java</td>
+          </tr>
+          <tr>
+            <td class="mono">CVE-2024-38828</td>
+            <td class="mono">CWE-918</td>
+            <td><span class="mono">5.3</span> <span class="badge badge-medium">中危</span></td>
+            <td>2024-10-14</td>
+            <td class="mono">spring-webmvc @ 4.3.7.RELEASE</td>
+            <td>7.0.1+</td>
+            <td>Java</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin:16px 0 8px;"><strong>影响组件与漏洞详情</strong></p>
+
+      <!-- 组件：spring-messaging -->
+      <div class="comp-block">
+        <div class="comp-block-header">
+          <span>spring-messaging</span>
+          <span class="cb-badge">1 个关联漏洞</span>
+        </div>
+        <div class="comp-info-grid">
+          <span class="ci-label">组件名称</span>
+          <span class="ci-value">spring-messaging</span>
+          <span class="ci-label">包管理器</span>
+          <span class="ci-value"><span class="pkg-tag">Maven</span></span>
+          <span class="ci-label">版本</span>
+          <span class="ci-value" style="color:var(--danger);">4.3.7.RELEASE</span>
+          <span class="ci-label">最新版本</span>
+          <span class="ci-value" style="color:var(--success);">7.0.1</span>
+          <span class="ci-label">所属语言</span>
+          <span class="ci-value">Java</span>
+          <span class="ci-label">GroupID</span>
+          <span class="ci-value">org.springframework</span>
+          <span class="ci-label">发布时间</span>
+          <span class="ci-value">2016-06-30</span>
+          <span class="ci-label">许可证</span>
+          <span class="ci-value">eCos-2.0</span>
+        </div>
+        <div class="comp-vulns">
+          <div class="cv-head">关联漏洞</div>
+          <div class="vuln-card critical" style="margin:0;">
+            <div class="vuln-detail-head">
+              <div class="vuln-title"><span class="cve">CVE-2018-1275</span></div>
+            </div>
+            <div class="vuln-block-label" style="margin-top:6px;">漏洞详情</div>
+            <div class="vuln-kv-grid" style="margin-top:8px;">
+              <div class="k">CVSS 打分</div>
+              <div class="v mono" style="font-weight:700;color:var(--danger);">CVSS 3.1 基础分 9.8（严重）</div>
+              <div class="k">发布日期</div>
+              <div class="v">2018-04-12</div>
+              <div class="k">CVE 编号</div>
+              <div class="v mono">CVE-2018-1275</div>
+              <div class="k">高危程度</div>
+              <div class="v"><span class="badge badge-critical">超危</span></div>
+            </div>
+            <div class="vuln-block-label">安全向量</div>
+            <div class="vuln-vector-wrap">
+              <div class="vuln-kv-grid">
+                <div class="k vec">攻击向量</div>
+                <div class="v vec">网络</div>
+                <div class="k vec">攻击复杂度</div>
+                <div class="v vec">低</div>
+                <div class="k vec">用户交互</div>
+                <div class="v vec">无</div>
+                <div class="k vec">需要特殊权限</div>
+                <div class="v vec">无</div>
+              </div>
+            </div>
+            <div class="vuln-block-label">简介</div>
+            <div class="vuln-desc">Spring Framework 在特定配置下通过 STOMP over WebSocket 处理消息时存在安全缺陷，攻击者可能构造恶意 payload 导致远程执行未授权操作（正式报告可在此截断长描述）。</div>
+            <div class="vuln-block-label">附加信息</div>
+            <div class="vuln-extra">
+              <ul>
+                <li><strong>CWE：</strong>CWE-502（不可信数据的反序列化）等（以漏洞库为准）</li>
+                <li><strong>CVSS 向量（示例）：</strong><span class="mono" style="font-size:0.82em;">CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</span></li>
+                <li><strong>参考链接：</strong><span class="mono" style="font-size:0.82em;word-break:break-all;">https://nvd.nist.gov/vuln/detail/CVE-2018-1275</span></li>
+              </ul>
+            </div>
+            <div class="vuln-block-label">修复建议</div>
+            <div class="fix-detail">
+              <div class="fix-detail-item"><span class="fd-key">补丁版本</span><span class="fd-val">7.0.1+</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复兼容性</span><span class="fd-val">兼容（建议执行回归测试）</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复建议</span><span class="fd-val">升级 <strong>spring-messaging</strong> 至 <strong>7.0.1+</strong>；升级后执行回归测试并复扫。关联建议 ID：<strong>FIX-001</strong>。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 组件：spring-webmvc -->
+      <div class="comp-block">
+        <div class="comp-block-header">
+          <span>spring-webmvc</span>
+          <span class="cb-badge">2 个关联漏洞</span>
+        </div>
+        <div class="comp-info-grid">
+          <span class="ci-label">组件名称</span>
+          <span class="ci-value">spring-webmvc</span>
+          <span class="ci-label">包管理器</span>
+          <span class="ci-value"><span class="pkg-tag">Maven</span></span>
+          <span class="ci-label">版本</span>
+          <span class="ci-value" style="color:var(--danger);">4.3.7.RELEASE</span>
+          <span class="ci-label">最新版本</span>
+          <span class="ci-value" style="color:var(--success);">7.0.1</span>
+          <span class="ci-label">所属语言</span>
+          <span class="ci-value">Java</span>
+          <span class="ci-label">GroupID</span>
+          <span class="ci-value">org.springframework</span>
+          <span class="ci-label">发布时间</span>
+          <span class="ci-value">2016-06-30</span>
+          <span class="ci-label">许可证</span>
+          <span class="ci-value">eCos-2.0</span>
+        </div>
+        <div class="comp-vulns">
+          <div class="cv-head">关联漏洞</div>
+          <div class="vuln-card critical" style="margin:0 0 10px;">
+            <div class="vuln-detail-head">
+              <div class="vuln-title"><span class="cve">CVE-2018-1275</span></div>
+            </div>
+            <div class="vuln-block-label" style="margin-top:6px;">漏洞详情</div>
+            <div class="vuln-kv-grid" style="margin-top:8px;">
+              <div class="k">发布日期</div>
+              <div class="v">2018-04-12</div>
+              <div class="k">CVE 编号</div>
+              <div class="v mono">CVE-2018-1275</div>
+              <div class="k">CVSS 打分</div>
+              <div class="v mono" style="font-weight:700;color:var(--danger);">CVSS 3.1 基础分 9.8（严重）</div>
+              <div class="k">高危程度</div>
+              <div class="v"><span class="badge badge-critical">超危</span></div>
+            </div>
+            <div class="vuln-block-label">安全向量</div>
+            <div class="vuln-vector-wrap">
+              <div class="vuln-kv-grid">
+                <div class="k vec">攻击向量</div>
+                <div class="v vec">网络</div>
+                <div class="k vec">攻击复杂度</div>
+                <div class="v vec">低</div>
+                <div class="k vec">用户交互</div>
+                <div class="v vec">无</div>
+                <div class="k vec">需要特殊权限</div>
+                <div class="v vec">无</div>
+              </div>
+            </div>
+            <div class="vuln-block-label">简介</div>
+            <div class="vuln-desc">Spring Framework 在特定配置下通过 STOMP over WebSocket 处理消息时存在安全缺陷，攻击者可能构造恶意 payload 导致远程执行未授权操作（正式报告可在此截断长描述）。</div>
+            <div class="vuln-block-label">附加信息</div>
+            <div class="vuln-extra">
+              <ul>
+                <li><strong>CWE：</strong>CWE-502（不可信数据的反序列化）等（以漏洞库为准）</li>
+                <li><strong>CVSS 向量（示例）：</strong><span class="mono" style="font-size:0.82em;">CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</span></li>
+                <li><strong>披露 / 更新时间：</strong>2018-04-12 · 条目最后同步 2026-05-01（示例）</li>
+                <li><strong>参考链接：</strong><span class="mono" style="font-size:0.82em;word-break:break-all;">https://nvd.nist.gov/vuln/detail/CVE-2018-1275</span></li>
+              </ul>
+            </div>
+            <div class="vuln-block-label">修复建议</div>
+            <div class="fix-detail">
+              <div class="fix-detail-item"><span class="fd-key">补丁版本</span><span class="fd-val">7.0.1+</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复兼容性</span><span class="fd-val">兼容（建议执行回归测试）</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复建议</span><span class="fd-val">升级 <strong>spring-webmvc</strong> 至 <strong>7.0.1+</strong>；升级后执行回归测试并复扫。关联建议 ID：<strong>FIX-001</strong>。</span></div>
+            </div>
+          </div>
+          <div class="vuln-card high" style="margin:0;">
+            <div class="vuln-detail-head">
+              <div class="vuln-title"><span class="cve">CVE-2024-38828</span></div>
+            </div>
+            <div class="vuln-block-label" style="margin-top:6px;">漏洞详情</div>
+            <div class="vuln-kv-grid" style="margin-top:8px;">
+              <div class="k">发布日期</div>
+              <div class="v">2024-09-10（示例）</div>
+              <div class="k">CVE 编号</div>
+              <div class="v mono">CVE-2024-38828</div>
+              <div class="k">CVSS 打分</div>
+              <div class="v mono" style="font-weight:600;color:var(--warning);">CVSS 3.x 基础分 5.3（中危）</div>
+              <div class="k">高危程度</div>
+              <div class="v"><span class="badge badge-medium">中危</span></div>
+            </div>
+            <div class="vuln-block-label">安全向量</div>
+            <div class="vuln-vector-wrap">
+              <div class="vuln-kv-grid">
+                <div class="k vec">攻击向量</div>
+                <div class="v vec">网络</div>
+                <div class="k vec">攻击复杂度</div>
+                <div class="v vec">低</div>
+                <div class="k vec">用户交互</div>
+                <div class="v vec">无</div>
+                <div class="k vec">需要特殊权限</div>
+                <div class="v vec">低（示例）</div>
+              </div>
+            </div>
+            <div class="vuln-block-label">简介</div>
+            <div class="vuln-desc">Spring WebMVC 在处理特定请求时可能绕过认证限制，导致信息泄漏或权限提升。（示例描述，实际内容以漏洞库为准）</div>
+            <div class="vuln-block-label">附加信息</div>
+            <div class="vuln-extra">
+              <ul>
+                <li><strong>CWE：</strong>CWE-287（认证绕过）</li>
+                <li><strong>披露 / 更新时间：</strong>2024-09-10（示例）</li>
+                <li><strong>参考链接：</strong><span class="mono" style="font-size:0.82em;word-break:break-all;">https://nvd.nist.gov/vuln/detail/CVE-2024-38828</span></li>
+              </ul>
+            </div>
+            <div class="vuln-block-label">修复建议</div>
+            <div class="fix-detail">
+              <div class="fix-detail-item"><span class="fd-key">补丁版本</span><span class="fd-val">7.0.1+</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复兼容性</span><span class="fd-val">兼容（建议执行回归测试）</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复建议</span><span class="fd-val">升级 <strong>spring-webmvc</strong> 至 <strong>7.0.1+</strong>；升级后执行回归测试并复扫。关联建议 ID：<strong>FIX-003</strong>。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 组件：cxf-rt-transports-http -->
+      <div class="comp-block">
+        <div class="comp-block-header">
+          <span>cxf-rt-transports-http</span>
+          <span class="cb-badge">1 个关联漏洞</span>
+        </div>
+        <div class="comp-info-grid">
+          <span class="ci-label">组件名称</span>
+          <span class="ci-value">cxf-rt-transports-http</span>
+          <span class="ci-label">包管理器</span>
+          <span class="ci-value"><span class="pkg-tag">Maven</span></span>
+          <span class="ci-label">版本</span>
+          <span class="ci-value" style="color:var(--danger);">3.1.2</span>
+          <span class="ci-label">最新版本</span>
+          <span class="ci-value" style="color:var(--success);">3.6.9</span>
+          <span class="ci-label">所属语言</span>
+          <span class="ci-value">Java</span>
+          <span class="ci-label">GroupID</span>
+          <span class="ci-value">org.apache.cxf</span>
+          <span class="ci-label">发布时间</span>
+          <span class="ci-value">2016-08-23</span>
+          <span class="ci-label">许可证</span>
+          <span class="ci-value">Apache-2.0</span>
+        </div>
+        <div class="comp-vulns">
+          <div class="cv-head">关联漏洞</div>
+          <div class="vuln-card high" style="margin:0;">
+            <div class="vuln-detail-head">
+              <div class="vuln-title"><span class="cve">CVE-2018-8039</span></div>
+            </div>
+            <div class="vuln-block-label" style="margin-top:6px;">漏洞详情</div>
+            <div class="vuln-kv-grid" style="margin-top:8px;">
+              <div class="k">发布日期</div>
+              <div class="v">2018-08-02（示例）</div>
+              <div class="k">CVE 编号</div>
+              <div class="v mono">CVE-2018-8039</div>
+              <div class="k">CVSS 打分</div>
+              <div class="v mono" style="font-weight:700;color:var(--warning);">CVSS 3.0 基础分 8.1（高危）</div>
+              <div class="k">高危程度</div>
+              <div class="v"><span class="badge badge-high">高危</span></div>
+            </div>
+            <div class="vuln-block-label">安全向量</div>
+            <div class="vuln-vector-wrap">
+              <div class="vuln-kv-grid">
+                <div class="k vec">攻击向量</div>
+                <div class="v vec">网络</div>
+                <div class="k vec">攻击复杂度</div>
+                <div class="v vec">高</div>
+                <div class="k vec">用户交互</div>
+                <div class="v vec">无</div>
+                <div class="k vec">需要特殊权限</div>
+                <div class="v vec">无</div>
+              </div>
+            </div>
+            <div class="vuln-block-label">简介</div>
+            <div class="vuln-desc">Apache CXF 在 TLS 主机名校验与 HTTP 客户端委托场景下未正确传播校验结果，客户端在特定配置下可能遭受中间人攻击。</div>
+            <div class="vuln-block-label">附加信息</div>
+            <div class="vuln-extra">
+              <ul>
+                <li><strong>CWE：</strong>CWE-295（证书验证不当）</li>
+                <li><strong>CVSS 向量（示例）：</strong><span class="mono" style="font-size:0.82em;">CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H</span></li>
+                <li><strong>披露 / 更新时间：</strong>2018-08-02（示例）</li>
+                <li><strong>参考链接：</strong><span class="mono" style="font-size:0.82em;word-break:break-all;">https://nvd.nist.gov/vuln/detail/CVE-2018-8039</span></li>
+              </ul>
+            </div>
+            <div class="vuln-block-label">修复建议</div>
+            <div class="fix-detail">
+              <div class="fix-detail-item"><span class="fd-key">补丁版本</span><span class="fd-val">3.6.9+</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复兼容性</span><span class="fd-val">需评估 TLS/HTTP 客户端配置；建议先在预发验证</span></div>
+              <div class="fix-detail-item"><span class="fd-key">修复建议</span><span class="fd-val">升级 <strong>cxf-rt-transports-http</strong> 至 <strong>3.6.9+</strong>；若暂时无法升级，按厂商公告评估临时缓解（如强制 TLS 校验策略）。关联建议 ID：<strong>FIX-002</strong>。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 修复建议 -->
+    <div class="card">
+      <div class="card-title">4. 修复建议</div>
+      <div class="fix-card-list">
+        <div class="fix-card">
+          <div class="fix-card-header">
+            <span class="comp-name">spring-messaging</span>
+            <span class="fix-action"><span class="old-ver">4.3.7.RELEASE</span> <span class="arrow">→</span> <span class="new-ver">7.0.1+</span></span>
+          </div>
+          <div class="fix-vuln-list">
+            <div class="fv-label">关联漏洞（1）</div>
+            <div class="fix-vuln-item">
+              <span class="cve-id">CVE-2018-1275</span>
+              <span class="cve-cvss critical">CVSS 9.8</span>
+            </div>
+          </div>
+        </div>
+        <div class="fix-card">
+          <div class="fix-card-header">
+            <span class="comp-name">spring-webmvc</span>
+            <span class="fix-action"><span class="old-ver">4.3.7.RELEASE</span> <span class="arrow">→</span> <span class="new-ver">7.0.1+</span></span>
+          </div>
+          <div class="fix-vuln-list">
+            <div class="fv-label">关联漏洞（2）</div>
+            <div class="fix-vuln-item">
+              <span class="cve-id">CVE-2018-1275</span>
+              <span class="cve-cvss critical">CVSS 9.8</span>
+            </div>
+            <div class="fix-vuln-item">
+              <span class="cve-id">CVE-2024-38828</span>
+              <span class="cve-cvss medium">CVSS 5.3</span>
+            </div>
+          </div>
+        </div>
+        <div class="fix-card">
+          <div class="fix-card-header">
+            <span class="comp-name">cxf-rt-transports-http</span>
+            <span class="fix-action"><span class="old-ver">3.1.2</span> <span class="arrow">→</span> <span class="new-ver">3.6.9+</span></span>
+          </div>
+          <div class="fix-vuln-list">
+            <div class="fv-label">关联漏洞（1）</div>
+            <div class="fix-vuln-item">
+              <span class="cve-id">CVE-2018-8039</span>
+              <span class="cve-cvss high">CVSS 8.1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 许可证 -->
+    <div class="card">
+      <div class="card-title">5. 许可证信息</div>
+      <!-- <p class="muted" style="margin-bottom:12px;"><strong>6.0 许可证合规总结</strong>（按策略引擎对许可证条目的归类统计，示例数字；无命中类别显示 0。）</p> -->
+      <div class="overview-grid">
+        <div class="stat-item">
+          <div class="label">弱保护</div>
+          <div class="value warning" style="font-size:1.5rem;">4</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">强保护</div>
+          <div class="value danger" style="font-size:1.5rem;">2</div>
+          <!-- <div class="muted" style="font-size:0.75em;margin-top:4px;">强著佐权 / GPL、AGPL 等</div> -->
+        </div>
+        <div class="stat-item">
+          <div class="label">为止型</div>
+          <div class="value" style="font-size:1.5rem;color:#6d4c41;">1</div>
+          <!-- <div class="muted" style="font-size:0.75em;margin-top:4px;">策略内「为止」类 / 待业务确认</div> -->
+        </div>
+        <div class="stat-item">
+          <div class="label">宽松型</div>
+          <div class="value" style="font-size:1.5rem;color:var(--success);">10</div>
+          <!-- <div class="muted" style="font-size:0.75em;margin-top:4px;">MIT、Apache、BSD 等</div> -->
+        </div>
+      </div>
+      <!-- <p class="muted" style="margin:8px 0 14px;"><strong>6.1 许可证明细</strong></p> -->
+      <table style="margin-top:0;">
+        <thead>
+          <tr>
+            <th>许可证名称</th>
+            <th>许可证种类</th>
+            <th>影响组件</th>
+            <th>版本</th>
+            <th>许可证分数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>eCos License version 2.0</td>
+            <td>类 GPL / 源码可用型</td>
+            <td>spring-webmvc、spring-messaging</td>
+            <td>4.3.7.RELEASE</td>
+            <td><strong>7</strong></td>
+          </tr>
+          <tr>
+            <td>Apache License 2.0</td>
+            <td>宽松型</td>
+            <td>okhttp</td>
+            <td>3.6.0</td>
+            <td><strong>3</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6. 恶意代码 -->
+    <div class="card">
+      <div class="card-title">6. 恶意代码</div>
+      <!-- 卡片布局：每个恶意文件一张卡片，一行展示两个字段，PDF 友好 -->
+      <div class="malware-card-list">
+        <div class="malware-card">
+          <div class="malware-card-header">
+            <span class="file-name">setup_helper.sh</span>
+            <span class="severity"><span class="badge badge-critical">严重</span></span>
+          </div>
+          <div class="malware-card-grid">
+            <div class="field">
+              <div class="f-label">恶意类别</div>
+              <div class="f-value">供应链投毒</div>
+            </div>
+            <div class="field">
+              <div class="f-label">恶意类型</div>
+              <div class="f-value">脚本类后门</div>
+            </div>
+            <div class="field">
+              <div class="f-label">恶意类型小类</div>
+              <div class="f-value">安装阶段远程拉取</div>
+            </div>
+            <div class="field">
+              <div class="f-label">置信度</div>
+              <div class="f-value mono">0.94</div>
+            </div>
+            <div class="field full-width">
+              <div class="f-label">文件位置</div>
+              <div class="f-value mono" style="word-break:break-all;">artifact-root/scripts/setup_helper.sh</div>
+            </div>
+            <div class="field full-width">
+              <div class="f-label">威胁内容（检测结果）</div>
+              <div class="f-value">
+                <span class="threat-detail">检测到脚本在安装阶段使用 <code>curl</code> 从非常用域名下载可执行内容，且对下载结果直接 <code>chmod +x</code> 并执行；与已知投毒模式高度相似。建议阻断发布并人工复核构建链路。</span>
+              </div>
+            </div>
+          </div>
+          <div class="malware-log-section">
+            <div class="log-label">关键日志</div>
+            <div class="log-content">[2026-05-06T10:27:41Z] RULE=SCRIPT_PULL_EXEC SEVERITY=critical path=scripts/setup_helper.sh
+[2026-05-06T10:27:41Z] HASH_SHA256 file=setup_helper.sh value=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+[2026-05-06T10:27:42Z] SNIPPET_LINE=47 matched_pattern=curl\s+-sSL\s+http[s]?://[^\s]+\s+\|\s+bash
+[2026-05-06T10:27:42Z] URL_EXTRACTED=https://cdn-example-malware.fake/installer.bin
+[2026-05-06T10:27:43Z] ENTROPY_SCAN chunk=installer.bin score=7.82 threshold=7.5 status=ALERT
+[2026-05-06T10:27:44Z] YARA hit=Generic_Suspicious_Installer rule_id=GEN-SUSP-019 offset=0x2040
+[2026-05-06T10:27:45Z] BEHAVIOR_SIM sandbox=linux-glibc-2.35 syscall_sequence=open,read,mmap,clone,execve notes=unexpected execve after memfd_create
+[2026-05-06T10:27:46Z] NETWORK_SIM egress_blocked=true attempted_dest=203.0.113.10:443 count=3
+[2026-05-06T10:27:47Z] TIMELINE delta_ms=6123 first_alert=SCRIPT_PULL_EXEC last_alert=BEHAVIOR_ANOMALY
+[2026-05-06T10:27:48Z] CORRELATION sbom_component=null direct_in_root=true ci_layer=post-install
+[2026-05-06T10:27:49Z] EXPORT bundle_id=SCAN-DEMO-001 artifact_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+[2026-05-06T10:27:50Z] POLICY_EVAL policy_pack=enterprise-2026.05 outcome=BLOCK release_gate=FAILED
+[2026-05-06T10:27:51Z] TRACE_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890 scanner_build=2.14.0+sha.abc123def
+（以上为示例关键日志片段，真实环境可能含数千行；导出 PDF 时可折叠为附录或外链审计文件。）</div>
+          </div>
+        </div>
+      </div>
+      <!-- <p class="muted" style="margin-top:12px;">说明：未检出不代表绝对安全，仅表示在当前规则集与扫描范围内的结果。无命中时本段可替换为「本次扫描未检出恶意特征」及规则集版本说明。</p> -->
+    </div>
+
+    </div><!-- /.container -->
+  </div><!-- /.report-main -->
+
+    <!-- 7. 附录与声明 -->
+    <!-- <div class="card">
+      <div class="card-title">7. 附录与限制说明</div>
+      <ul class="checklist muted">
+        <li><strong>附录 A：</strong>完整漏洞列表（可与 CSV/JSON 同源）。</li>
+        <li><strong>附录 B：</strong>完整组件列表或 SBOM 附件索引。</li>
+        <li><strong>限制：</strong>工具能力边界、误报/漏报说明、报告有效期、建议复扫周期。</li>
+      </ul>
+    </div> -->
+
+    <!-- <div class="footer-note">
+      <p>本页为 <strong>检测报告 PR 模版 + 示例数据</strong>，已由前端修复历史损坏标签并补齐章节结构。</p>
+      <p>示例统计：17 个组件 · 4 个风险组件 · 15 个已知漏洞（与正文示例行数不必严格一致，以接口为准）。</p>
+    </div>
+  </div> -->
+</body>
+</html>
