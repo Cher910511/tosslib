@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "8c41ad88366e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 17,
+  "files_touched": [
+    "public/reports/detection-report.html",
+    "src/layouts/AdminShell.vue",
+    "src/router/index.js",
+    "src/views/software/DetectionReportView.vue"
+  ],
+  "sessions": [
+    {
+      "metadata": "/8c/41ad88366e/0/metadata.json",
+      "transcript": "/8c/41ad88366e/0/full.jsonl",
+      "content_hash": "/8c/41ad88366e/0/content_hash.txt",
+      "prompt": "/8c/41ad88366e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
