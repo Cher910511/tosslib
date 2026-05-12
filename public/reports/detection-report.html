@@ -665,6 +665,17 @@
     }
     .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
     .muted { color: var(--text-secondary); font-size: 0.9em; }
+    /* 空数据模块占位 */
+    .empty-module {
+      margin-top: 0;
+      padding: 28px 20px;
+      text-align: center;
+      background: #fafbfc;
+      border: 1px dashed #cfd8e3;
+      border-radius: 10px;
+      color: var(--text-secondary);
+      font-size: 0.95em;
+    }
     .checklist { margin: 10px 0 0 1.1em; }
     .checklist li { margin: 6px 0; }
     .dev-note {
@@ -1538,23 +1549,14 @@
       <!-- <p class="muted" style="margin-top:12px;">说明：未检出不代表绝对安全，仅表示在当前规则集与扫描范围内的结果。无命中时本段可替换为「本次扫描未检出恶意特征」及规则集版本说明。</p> -->
     </div>
 
+    <!-- 空数据模块示例 -->
+    <div class="card">
+      <div class="card-title">7. 空数据示例</div>
+      <div class="empty-module">暂无数据</div>
+    </div>
+
     </div><!-- /.container -->
   </div><!-- /.report-main -->
 
-    <!-- 7. 附录与声明 -->
-    <!-- <div class="card">
-      <div class="card-title">7. 附录与限制说明</div>
-      <ul class="checklist muted">
-        <li><strong>附录 A：</strong>完整漏洞列表（可与 CSV/JSON 同源）。</li>
-        <li><strong>附录 B：</strong>完整组件列表或 SBOM 附件索引。</li>
-        <li><strong>限制：</strong>工具能力边界、误报/漏报说明、报告有效期、建议复扫周期。</li>
-      </ul>
-    </div> -->
-
-    <!-- <div class="footer-note">
-      <p>本页为 <strong>检测报告 PR 模版 + 示例数据</strong>，已由前端修复历史损坏标签并补齐章节结构。</p>
-      <p>示例统计：17 个组件 · 4 个风险组件 · 15 个已知漏洞（与正文示例行数不必严格一致，以接口为准）。</p>
-    </div>
-  </div> -->
 </body>
 </html>
