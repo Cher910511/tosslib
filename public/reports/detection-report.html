@@ -91,6 +91,15 @@
       margin-top: 10px;
       font-size: 0.98em;
       color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .report-cover-inner .org .org-logo {
+      flex-shrink: 0;
+      display: block;
     }
     .report-cover-inner .meta {
       margin-top: 22px;
@@ -828,7 +837,8 @@
         widows: 3;
       }
       .report-cover .report-brand,
-      .report-cover .report-brand svg {
+      .report-cover .report-brand svg,
+      .report-cover-inner .org .org-logo {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -933,7 +943,10 @@
     <div class="report-cover-inner container">
       <h1>fastjson-v1.2</h1>
       <div class="subtitle">可信开源扫描检测报告</div>
-      <div class="org">可信开源代码库</div>
+      <div class="org">
+        <svg class="org-logo" width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16 0C24.8366 0 32 7.16344 32 16C32 24.8366 24.8366 32 16 32C12.4334 32 9.13995 30.8323 6.47949 28.8594L9 13.6436H4.77539L2.95996 25.2725C1.09651 22.6566 0 19.4565 0 16C0 14.6188 0.174855 13.2785 0.503906 12H12.0645L11.5879 15H15.6387L16.1152 12H22.5801L21.6797 21H14.6855L15.3213 17H11.2705L10.5508 21.5293C10.2615 23.3507 11.6696 24.9995 13.5137 25H22.585C24.0295 24.9998 25.2544 23.9736 25.5283 22.582L25.5703 22.2988L26.6699 11.2988C26.8465 9.53293 25.4592 8.00025 23.6846 8H2.1416C4.90814 3.21785 10.0779 0 16 0Z" fill="#DA203E"/></svg>
+        <span>可信开源代码库</span>
+      </div>
       <div class="meta">扫描日期：2026-05-06</div>
     </div>
   </div>
