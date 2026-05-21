@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2125550a4f62",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 37,
+  "files_touched": [
+    "public/docs/manual/README.md",
+    "public/manual/manual-main-bg.svg",
+    "src/components/software/ContributorCommitCard.vue",
+    "src/data/contribCommitMock.js",
+    "src/data/manualToc.js",
+    "src/docs/manual/assistant.md",
+    "src/docs/manual/component-library.md",
+    "src/docs/manual/home.md",
+    "src/docs/manual/organization.md",
+    "src/layouts/AdminShell.vue",
+    "src/router/index.js",
+    "src/utils/renderMarkdown.js",
+    "src/views/manual/UserManualView.vue",
+    "src/views/software/SoftwareDetailView.vue"
+  ],
+  "sessions": [
+    {
+      "metadata": "/21/25550a4f62/0/metadata.json",
+      "transcript": "/21/25550a4f62/0/full.jsonl",
+      "content_hash": "/21/25550a4f62/0/content_hash.txt",
+      "prompt": "/21/25550a4f62/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}

@@ -1,0 +1,190 @@
+@src/views/software/SoftwareDetailView.vue 帮我把贡献者信息还原成和图片一样
+
+---
+
+@src/views/software/SoftwareDetailView.vue 帮我把贡献者信息tab还原成和图片一样
+
+---
+
+我要在现在的基础上加上这样的贡献者commit表格 你看看要怎么把这么多数据更好的加进这个tab
+
+---
+
+面积图修改为和上面主题色一样的红色呢
+
+---
+
+我感觉放在一页展示不太好页 要不你再贡献者tab下面再加tab
+
+---
+
+我现在需要在上面导航栏加一个问题的icon 左侧侧边栏下方加上一个使用手册的入口 点击跳转到新页面 然后新页面有侧边栏 侧边栏有一级二级三级目录 一级有软件库 组件库 ai助手 签名验证 软件管理 组织管理 软件管理 你往这些一级里给我塞一些二级和三级目录吧 主要就是介绍一下平台的主要功能 你可以参考一下https://tosslib.com/  帮我写成多个md文档 需要插入图片的地方提醒我一下
+
+---
+
+点击新建一个标签页 还有现在侧边栏下面还有备案号 你在备案号的基础上加上使用手册的跳转
+
+---
+
+如果是新的标签页 就不用左上角返回平台的按钮了 帮我优化一下 左上角改成可信开源代码库的logo 还有侧边栏的样式帮我优化的好看一些
+
+---
+
+去掉侧栏的小圆点 你参考一下这个样式
+
+---
+
+侧边栏上方的logo和使用手册的字体和样式调整一下 侧栏下方去掉tosslib.com  还有右侧文档渲染宽度太窄了 你适应一下屏幕大小
+
+---
+
+侧边栏上方的logo都没有展示完全 右侧内容的边距有点大
+
+---
+
+logo和文字没有对齐啊
+
+---
+
+可信开源代码库和使用手册改成一行展示 然后可信开源代码库后加一个竖的分割线 然后使用手册
+
+---
+
+可信开源代码库和使用手册的字都大一些
+
+---
+
+hover可信开源代码库不要变红 可以点击进首页 但是点使用手册不能跳转首页啊
+
+---
+
+右侧样式也帮我优化一下吧 参考一下这个样式
+
+---
+
+面包屑前面的home icon去掉
+
+---
+
+右侧颜色参考这个背景色 然后在背景的基础上加上一个白色卡片
+
+---
+
+右侧颜色参考这个背景色 然后在背景的基础上加上一个白色卡片
+
+---
+
+<svg width="1440" height="327" viewBox="0 0 1440 327" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_698_5726" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="1440" height="327">
+<rect width="1440" height="327" fill="url(#paint0_linear_698_5726)"/>
+</mask>
+<g mask="url(#mask0_698_5726)">
+<g filter="url(#filter0_f_698_5726)">
+<rect x="-40" y="-126" width="738" height="561" rx="280.5" fill="#ED0026" fill-opacity="0.05"/>
+</g>
+<g filter="url(#filter1_f_698_5726)">
+<rect x="455" y="-126" width="505" height="561" rx="252.5" fill="#FF6464" fill-opacity="0.08"/>
+</g>
+<g filter="url(#filter2_f_698_5726)">
+<rect x="785" y="-126" width="655" height="561" rx="280.5" fill="#FF9945" fill-opacity="0.08"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_f_698_5726" x="-240" y="-326" width="1138" height="961" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_698_5726"/>
+</filter>
+<filter id="filter1_f_698_5726" x="215" y="-366" width="985" height="1041" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="120" result="effect1_foregroundBlur_698_5726"/>
+</filter>
+<filter id="filter2_f_698_5726" x="585" y="-326" width="1055" height="961" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_698_5726"/>
+</filter>
+<linearGradient id="paint0_linear_698_5726" x1="720" y1="0" x2="720" y2="327" gradientUnits="userSpaceOnUse">
+<stop stop-color="#D9D9D9"/>
+<stop offset="1" stop-color="#F8FAFC" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>
+这是背景颜色
+
+---
+
+背景图没换啊 换成这个试试看
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+是个纯黑的图片 好像不太对 你还是用svg吧
+
+---
+
+md的分割线没有渲染
+
+---
+
+md的分割线没有渲染
+
+---
+
+md的分割线没有渲染
+
+---
+
+md的分割线没有渲染
+
+---
+
+md的分割线没有渲染
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
+
+---
+
+帮我@home.md (15-17) 在这里插入这张图片
