@@ -16,6 +16,7 @@ import DetectionReportView from '../views/software/DetectionReportView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
+import UserManualView from '../views/manual/UserManualView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
 
 const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
@@ -126,6 +127,12 @@ const routes = [
       },
       { path: '', redirect: { name: 'software-home' } },
     ],
+  },
+  {
+    path: '/software/manual/:docId?',
+    name: 'user-manual',
+    component: UserManualView,
+    meta: { title: '使用手册' },
   },
 ]
 

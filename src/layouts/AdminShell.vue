@@ -71,6 +71,26 @@
           需求反馈
         </a>
       </nav>
+      <div class="admin-aside-footer">
+        <a
+          class="admin-footer-manual"
+          :href="manualPageUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="admin-footer-manual-ico" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </span>
+          使用手册
+        </a>
+        <p class="admin-footer-icp">
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >渝ICP备2023009037号-13</a>
+        </p>
+      </div>
     </aside>
 
     <div class="admin-main">
@@ -265,6 +285,16 @@
         >
           数据大屏
         </a>
+        <a
+          class="admin-help-btn"
+          :href="manualPageUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="使用手册（新标签页打开）"
+          aria-label="在新标签页打开使用手册"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </a>
         <div class="admin-user">
           <div class="admin-avatar" aria-hidden="true">会</div>
           <div class="admin-user-meta">
@@ -400,6 +430,12 @@ const dataScreenHomeUrl = computed(() => {
   const href = router.resolve({ name: 'home' }).href
   return new URL(href, window.location.origin).href
 })
+
+/** 使用手册，新标签打开 */
+const manualPageUrl = computed(() => {
+  const href = router.resolve({ name: 'user-manual' }).href
+  return new URL(href, window.location.origin).href
+})
 </script>
 
 <style scoped>
@@ -469,6 +505,56 @@ const dataScreenHomeUrl = computed(() => {
   flex-direction: column;
   gap: 4px;
   padding: 0 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.admin-aside-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-footer-manual {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.admin-footer-manual:hover {
+  color: var(--admin-primary);
+}
+
+.admin-footer-manual-ico {
+  display: flex;
+  opacity: 0.85;
+}
+
+.admin-footer-icp {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.admin-footer-icp a {
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.admin-footer-icp a:hover {
+  color: #6b7280;
+  text-decoration: underline;
 }
 
 .admin-nav-item {
@@ -589,6 +675,28 @@ const dataScreenHomeUrl = computed(() => {
   background: #fee2e2;
   color: #da203e;
 }
+
+.admin-help-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 4px;
+  border-radius: 999px;
+  color: #6b7280;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.admin-help-btn:hover {
+  background: rgba(218, 32, 62, 0.08);
+  color: #da203e;
+}
+
 
 .admin-search-wrap {
   position: relative;

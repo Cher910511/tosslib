@@ -255,15 +255,140 @@ def application(request):
       </div>
     </div>
 
-    <div v-show="activeTab !== 'intro' && activeTab !== 'versions'" class="tab-panel placeholder">
+    <div v-if="activeTab === 'contrib'" class="tab-panel contrib-panel">
+      <div class="contrib-subtabs" role="tablist" aria-label="贡献者子分类">
+        <button
+          v-for="st in contribSubTabs"
+          :key="st.key"
+          type="button"
+          role="tab"
+          class="contrib-subtab"
+          :class="{ 'is-active': contribSubTab === st.key }"
+          :aria-selected="contribSubTab === st.key"
+          @click="setContribSubTab(st.key)"
+        >
+          {{ st.label }}
+        </button>
+      </div>
+
+      <div
+        v-if="contribSubTab === 'distribution'"
+        class="contrib-subpanel"
+      >
+        <header class="contrib-head">
+          <h2 class="contrib-title">贡献者分布</h2>
+          <p class="contrib-sub">
+            有关 Pull Request 创建者的公司信息和地区分布（使用公共 GitHub 信息进行分析）
+          </p>
+        </header>
+
+        <div class="contrib-charts">
+          <div class="contrib-chart-card">
+            <h3 class="contrib-chart-title">国家/地区分布</h3>
+            <div ref="contribRegionChartRef" class="contrib-echart" />
+          </div>
+          <div class="contrib-chart-card">
+            <h3 class="contrib-chart-title">组织/公司分布</h3>
+            <div ref="contribOrgChartRef" class="contrib-echart" />
+          </div>
+        </div>
+
+        <div class="contrib-scores">
+          <div class="contrib-score-card">
+            <div class="contrib-score-head">
+              <span class="contrib-score-ico" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <span class="contrib-score-label">scorecard评分</span>
+              <button type="button" class="contrib-info" title="基于 OpenSSF Scorecard 的仓库安全与健康度评估" aria-label="scorecard 说明">
+                <span class="contrib-info-inner">i</span>
+              </button>
+            </div>
+            <p class="contrib-score-val">{{ contribScorecard }}</p>
+          </div>
+          <div class="contrib-score-card">
+            <div class="contrib-score-head">
+              <span class="contrib-score-ico" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <span class="contrib-score-label">criticality评分</span>
+              <button type="button" class="contrib-info" title="项目在开源生态中的关键程度参考指标" aria-label="criticality 说明">
+                <span class="contrib-info-inner">i</span>
+              </button>
+            </div>
+            <p class="contrib-score-val">{{ contribCriticality }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="contribSubTab === 'commits'"
+        class="contrib-subpanel contrib-subpanel--commits"
+      >
+        <section class="contrib-commit-section" aria-label="贡献者提交统计">
+          <div class="contrib-commit-toolbar">
+            <div class="contrib-commit-toolbar-top">
+              <div class="contrib-commit-title-wrap">
+                <h2 class="contrib-commit-title">
+                  贡献者
+                  <span class="contrib-commit-badge">{{ contribCommitTotal }}</span>
+                </h2>
+                <span class="contrib-commit-range-text">{{ contribCommitRangeLabel }}</span>
+              </div>
+              <div class="contrib-commit-dates" role="group" aria-label="日期筛选">
+                <input
+                  v-model="contribDateStart"
+                  type="date"
+                  class="contrib-date-input"
+                  :min="contribCommitBounds.start"
+                  :max="contribDateEnd"
+                  aria-label="开始日期"
+                />
+                <span class="contrib-date-sep">至</span>
+                <input
+                  v-model="contribDateEnd"
+                  type="date"
+                  class="contrib-date-input"
+                  :min="contribDateStart"
+                  :max="contribCommitBounds.end"
+                  aria-label="结束日期"
+                />
+              </div>
+            </div>
+            <p class="contrib-commit-sub">
+              对 main 分支的贡献, 不包括合并提交和机器人帐户
+            </p>
+          </div>
+          <div class="contrib-commit-grid">
+            <ContributorCommitCard
+              v-for="row in contribCommitsFiltered"
+              :key="row.login"
+              :contributor="row"
+            />
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div
+      v-show="activeTab !== 'intro' && activeTab !== 'versions' && activeTab !== 'contrib'"
+      class="tab-panel placeholder"
+    >
       <p class="placeholder-text">「{{ tabLabel }}」内容占位，可后续接入接口。</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import * as echarts from 'echarts'
 import { useRoute, useRouter } from 'vue-router'
+import ContributorCommitCard from '../../components/software/ContributorCommitCard.vue'
+import {
+  contribCommitList,
+  contribCommitViewRange,
+  filterContribSeriesByRange,
+} from '../../data/contribCommitMock.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -444,6 +569,232 @@ function copyInstall() {
   const text = `pip install ${p.name}==${p.version}`
   navigator.clipboard?.writeText(text).catch(() => {})
 }
+
+/** 贡献者 tab：与产品稿一致的演示数据，后续可换接口 */
+const contribScorecard = '7.30/10'
+const contribCriticality = '0.76/1'
+
+const contribCommitBounds = contribCommitViewRange
+const contribDateStart = ref(contribCommitViewRange.start)
+const contribDateEnd = ref(contribCommitViewRange.end)
+
+watch([contribDateStart, contribDateEnd], () => {
+  if (contribDateStart.value > contribDateEnd.value) {
+    const a = contribDateStart.value
+    contribDateStart.value = contribDateEnd.value
+    contribDateEnd.value = a
+  }
+})
+
+const contribCommitTotal = computed(() => contribCommitList.length)
+
+const contribCommitRangeLabel = computed(
+  () => `${contribDateStart.value} 至 ${contribDateEnd.value}`,
+)
+
+const contribCommitsFiltered = computed(() =>
+  filterContribSeriesByRange(contribCommitList, contribDateStart.value, contribDateEnd.value),
+)
+
+const contribSubTabs = [
+  { key: 'distribution', label: '分布概览' },
+  { key: 'commits', label: '提交排行' },
+]
+const contribSubTab = ref('distribution')
+
+function setContribSubTab(key) {
+  if (contribSubTabs.some((t) => t.key === key)) contribSubTab.value = key
+}
+
+const contribMockRegion = [
+  ['泰国', 0.19],
+  ['巴西', 0.57],
+  ['格鲁吉亚', 0.38],
+  ['台湾', 0.25],
+  ['新西兰', 0.12],
+  ['德国', 0.42],
+  ['日本', 0.33],
+  ['美国', 0.51],
+  ['英国', 0.29],
+  ['法国', 0.22],
+  ['印度', 0.35],
+  ['韩国', 0.28],
+  ['新加坡', 0.18],
+  ['澳大利亚', 0.15],
+  ['加拿大', 0.31],
+  ['荷兰', 0.24],
+  ['瑞典', 0.17],
+  ['瑞士', 0.14],
+  ['西班牙', 0.21],
+  ['意大利', 0.26],
+  ['波兰', 0.16],
+  ['越南', 0.2],
+]
+
+const contribMockOrgNames = [
+  'smx ltd',
+  'palantir',
+  'alibaba',
+  'netcracker',
+  'google',
+  'microsoft',
+  'amazon',
+  'meta',
+  'oracle',
+  'ibm',
+  'red hat',
+  'intel',
+  'nvidia',
+  'vmware',
+  'salesforce',
+  'sap',
+  'cisco',
+]
+
+const contribRegionChartRef = ref(null)
+const contribOrgChartRef = ref(null)
+let contribRegionChart = null
+let contribOrgChart = null
+
+const CONTRIB_RED = '#da203e'
+
+function contribBarOption(categories, values, yMax) {
+  const rotate = categories.length > 10 ? 32 : 0
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params) => {
+        const p = params[0]
+        return `${p.name}<br/>${Number(p.value).toFixed(2)}%`
+      },
+    },
+    grid: { left: 44, right: 10, top: 22, bottom: 48 },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLabel: { color: '#6b7280', fontSize: 10, interval: 0, rotate },
+      axisLine: { lineStyle: { color: '#e5e7eb' } },
+      axisTick: { alignWithLabel: true },
+    },
+    yAxis: {
+      type: 'value',
+      max: yMax,
+      splitLine: { lineStyle: { type: 'dashed', color: '#e8eaed' } },
+      axisLabel: {
+        color: '#9ca3af',
+        fontSize: 10,
+        formatter: (v) => `${v}%`,
+      },
+      axisLine: { show: false },
+    },
+    dataZoom: [
+      {
+        type: 'slider',
+        xAxisIndex: 0,
+        height: 14,
+        bottom: 4,
+        borderColor: '#eceef2',
+        backgroundColor: '#f9fafb',
+        fillerColor: 'rgba(218, 32, 62, 0.12)',
+        handleIcon:
+          'path://M-1,0 L1,0 L1,6 L-1,6 z',
+        handleSize: 10,
+        handleStyle: { color: CONTRIB_RED, borderColor: CONTRIB_RED },
+        moveHandleSize: 0,
+        brushSelect: false,
+      },
+    ],
+    series: [
+      {
+        type: 'bar',
+        data: values,
+        barMaxWidth: 32,
+        itemStyle: {
+          color: CONTRIB_RED,
+          borderRadius: [3, 3, 0, 0],
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (p) => `${Number(p.value).toFixed(2)}%`,
+          color: '#374151',
+          fontSize: 10,
+          fontWeight: 600,
+        },
+      },
+    ],
+  }
+}
+
+function disposeContribCharts() {
+  contribRegionChart?.dispose()
+  contribOrgChart?.dispose()
+  contribRegionChart = null
+  contribOrgChart = null
+}
+
+function resizeContribCharts() {
+  contribRegionChart?.resize()
+  contribOrgChart?.resize()
+}
+
+function initContribCharts() {
+  const elR = contribRegionChartRef.value
+  const elO = contribOrgChartRef.value
+  if (!elR || !elO) return
+  if (!contribRegionChart) {
+    contribRegionChart = echarts.init(elR)
+    const rc = contribMockRegion.map((x) => x[0])
+    const rv = contribMockRegion.map((x) => x[1])
+    contribRegionChart.setOption(contribBarOption(rc, rv, 0.65))
+  }
+  if (!contribOrgChart) {
+    contribOrgChart = echarts.init(elO)
+    const ov = contribMockOrgNames.map(() => 0.25)
+    contribOrgChart.setOption(contribBarOption(contribMockOrgNames, ov, 0.28))
+  }
+  resizeContribCharts()
+}
+
+function ensureContribCharts() {
+  if (activeTab.value !== 'contrib' || contribSubTab.value !== 'distribution') return
+  nextTick(() => {
+    initContribCharts()
+    requestAnimationFrame(() => resizeContribCharts())
+  })
+}
+
+onMounted(() => {
+  if (activeTab.value === 'contrib') ensureContribCharts()
+  window.addEventListener('resize', resizeContribCharts)
+})
+
+watch(activeTab, (k) => {
+  if (k === 'contrib') {
+    ensureContribCharts()
+  } else {
+    disposeContribCharts()
+  }
+})
+
+watch(contribSubTab, (sub) => {
+  if (activeTab.value !== 'contrib') return
+  if (sub === 'distribution') {
+    nextTick(() => {
+      initContribCharts()
+      requestAnimationFrame(() => resizeContribCharts())
+    })
+  } else {
+    disposeContribCharts()
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', resizeContribCharts)
+  disposeContribCharts()
+})
 </script>
 
 <style scoped>
@@ -1095,6 +1446,307 @@ th {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 12px;
   word-break: break-all;
+}
+
+.contrib-panel {
+  padding: 20px 22px 24px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.contrib-subtabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: -6px -4px 18px;
+  padding: 0 2px 2px;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.contrib-subtab {
+  position: relative;
+  flex-shrink: 0;
+  padding: 8px 14px 10px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.contrib-subtab:hover {
+  color: #111827;
+}
+
+.contrib-subtab.is-active {
+  color: #da203e;
+  font-weight: 600;
+}
+
+.contrib-subtab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 3px;
+  background: #da203e;
+  border-radius: 2px 2px 0 0;
+}
+
+.contrib-subpanel {
+  min-width: 0;
+}
+
+.contrib-subpanel--commits .contrib-commit-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.contrib-head {
+  margin: 0 0 20px;
+}
+
+.contrib-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.contrib-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #9ca3af;
+}
+
+.contrib-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .contrib-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contrib-chart-card {
+  padding: 14px 14px 10px;
+  background: #fafafa;
+  border: 1px solid #eceef2;
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.contrib-chart-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.contrib-echart {
+  width: 100%;
+  height: 280px;
+}
+
+.contrib-scores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .contrib-scores {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contrib-score-card {
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #eceef2;
+  border-radius: 10px;
+}
+
+.contrib-score-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.contrib-score-ico {
+  display: flex;
+  color: #da203e;
+  flex-shrink: 0;
+}
+
+.contrib-score-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.contrib-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  color: #9ca3af;
+  font: inherit;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.contrib-info:hover {
+  border-color: #da203e;
+  color: #da203e;
+}
+
+.contrib-info-inner {
+  font-size: 10px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+}
+
+.contrib-score-val {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.contrib-commit-section {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #eceef2;
+}
+
+.contrib-commit-toolbar {
+  margin-bottom: 16px;
+}
+
+.contrib-commit-toolbar-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.contrib-commit-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  min-width: 0;
+}
+
+.contrib-commit-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.contrib-commit-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #da203e;
+  background: rgba(218, 32, 62, 0.1);
+  border: 1px solid rgba(218, 32, 62, 0.22);
+}
+
+.contrib-commit-range-text {
+  font-size: 13px;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.contrib-commit-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.contrib-date-input {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.contrib-date-input:focus {
+  outline: none;
+  border-color: rgba(218, 32, 62, 0.45);
+  box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.12);
+}
+
+.contrib-date-sep {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.contrib-commit-sub {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9ca3af;
+}
+
+.contrib-commit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .contrib-commit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .contrib-commit-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .placeholder {
