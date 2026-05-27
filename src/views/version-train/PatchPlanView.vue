@@ -36,9 +36,20 @@
         </div>
       </div>
       <div class="pp-cve-table-wrap">
+        <div v-if="selectedCveIds.length > 0" class="pp-batch-bar">
+          <span class="pp-batch-count">已选 {{ selectedCveIds.length }} 项</span>
+          <div class="pp-batch-actions">
+            <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchCveShelf(true)">批量上架</button>
+            <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchCveShelf(false)">批量下架</button>
+          </div>
+          <button type="button" class="pp-btn pp-btn-ghost pp-btn-xs" @click="selectedCveIds = []">取消选择</button>
+        </div>
         <table class="pp-cve-table">
           <thead>
             <tr>
+              <th class="pp-th-check">
+                <input type="checkbox" :checked="isAllCveSelected" :indeterminate="isCveIndeterminate" @change="toggleAllCve" />
+              </th>
               <th>CVE 编号</th>
               <th>严重级别</th>
               <th>影响组件</th>
@@ -46,10 +57,14 @@
               <th>发布时间</th>
               <th>漏洞描述</th>
               <th>影响状态</th>
+              <th class="pp-th-op">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="cve in paginatedCveList" :key="cve.id" :class="{ 'pp-cve-row--affected': cve.affected, 'pp-cve-row--resolved': !cve.affected }">
+              <td class="pp-td-check">
+                <input type="checkbox" :checked="selectedCveIds.includes(cve.id)" @change="toggleCve(cve.id)" />
+              </td>
               <td><span class="pp-code">{{ cve.cveId }}</span></td>
               <td>
                 <span class="pp-level" :class="'pp-level--' + levelClass(cve.level)">{{ cve.level }}</span>
@@ -62,6 +77,14 @@
                 <span class="pp-badge" :class="cve.affected ? 'pp-badge--danger' : 'pp-badge--muted'">
                   {{ cve.affected ? '受影响' : '已处理' }}
                 </span>
+              </td>
+              <td class="pp-td-op">
+                <template v-if="!cve.affected">
+                  <button type="button" class="pp-linkish" @click="shelfCve(cve, true)">重新上架</button>
+                </template>
+                <template v-else>
+                  <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfCve(cve, false)">下架</button>
+                </template>
               </td>
             </tr>
           </tbody>
@@ -98,6 +121,7 @@
           >
             <div class="pp-train-item-main">
               <span class="pp-train-name">{{ train.name }}</span>
+              <span v-if="trainHasUnresolvedAffected(train)" class="pp-red-dot" title="有受影响软件未处理"></span>
               <span class="pp-train-badge">{{ train.softwareList.length }}</span>
             </div>
             <div class="pp-train-item-meta">
@@ -188,9 +212,12 @@
                         <button type="button" class="pp-linkish pp-linkish--danger" @click="removeSw(sw)">移除</button>
                       </template>
                       <template v-else-if="activeTrain.status === '已发车'">
-                        <button v-if="getShelfStatus(sw) !== '上架中'" type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">上架</button>
-                        <span v-if="getShelfStatus(sw) !== '上架中' && getShelfStatus(sw) !== '已下架'" class="pp-op-sep"></span>
-                        <button v-if="getShelfStatus(sw) !== '已下架'" type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
+                        <template v-if="getShelfStatus(sw) === '已下架'">
+                          <button type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">重新上架</button>
+                        </template>
+                        <template v-else>
+                          <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
+                        </template>
                       </template>
                     </td>
                   </tr>
@@ -245,9 +272,12 @@
                         <button type="button" class="pp-linkish pp-linkish--danger" @click="removeSw(sw)">移除</button>
                       </template>
                       <template v-else-if="activeTrain.status === '已发车'">
-                        <button v-if="getShelfStatus(sw) !== '上架中'" type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">上架</button>
-                        <span v-if="getShelfStatus(sw) !== '上架中' && getShelfStatus(sw) !== '已下架'" class="pp-op-sep"></span>
-                        <button v-if="getShelfStatus(sw) !== '已下架'" type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
+                        <template v-if="getShelfStatus(sw) === '已下架'">
+                          <button type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">重新上架</button>
+                        </template>
+                        <template v-else>
+                          <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
+                        </template>
                       </template>
                     </td>
                   </tr>
@@ -344,6 +374,58 @@ const paginatedCveList = computed(() => {
 })
 
 // ============================
+// CVE 选择 & 上下架
+// ============================
+const selectedCveIds = ref([])
+
+const isAllCveSelected = computed(() => {
+  const list = paginatedCveList.value
+  return list.length > 0 && list.every(c => selectedCveIds.value.includes(c.id))
+})
+const isCveIndeterminate = computed(() => {
+  const list = paginatedCveList.value
+  const selected = list.filter(c => selectedCveIds.value.includes(c.id))
+  return selected.length > 0 && selected.length < list.length
+})
+function toggleAllCve(e) {
+  if (e.target.checked) {
+    const ids = paginatedCveList.value.map(c => c.id)
+    selectedCveIds.value = [...new Set([...selectedCveIds.value, ...ids])]
+  } else {
+    const pageIds = new Set(paginatedCveList.value.map(c => c.id))
+    selectedCveIds.value = selectedCveIds.value.filter(id => !pageIds.has(id))
+  }
+}
+function toggleCve(id) {
+  const idx = selectedCveIds.value.indexOf(id)
+  if (idx === -1) selectedCveIds.value.push(id)
+  else selectedCveIds.value.splice(idx, 1)
+}
+
+function shelfCve(cve, affected) {
+  cve.affected = affected
+  cve.action = affected ? '待处理' : '已下架'
+  addLog(affected ? '上架' : '下架', `${cve.cveId} ${cve.component}`)
+  showToast(`${affected ? '已上架' : '已下架'} ${cve.cveId}`, 'success')
+}
+
+function batchCveShelf(affected) {
+  const label = affected ? '上架' : '下架'
+  let count = 0
+  selectedCveIds.value.forEach(id => {
+    const cve = patchPlanCVEList.find(c => c.id === id)
+    if (cve) {
+      cve.affected = affected
+      cve.action = affected ? '待处理' : '已下架'
+      count++
+    }
+  })
+  addLog(`批量${label}`, `共 ${count} 项 CVE`)
+  showToast(`批量${label}完成：${count} 项`, 'success')
+  selectedCveIds.value = []
+}
+
+// ============================
 // 版本火车侧边栏
 // ============================
 const trainSearch = ref('')
@@ -360,6 +442,27 @@ const filteredTrains = computed(() => {
 const activeTrain = computed(() =>
   versionTrains.find(t => t.id === activeTrainId.value) || null
 )
+
+/**
+ * 判断火车是否有未处理的受影响软件（用于侧边栏红点提示）
+ * 待发车：受影响软件未被移除（还在 softwareList 中）
+ * 已发车/已结束：受影响软件未下架
+ */
+function trainHasUnresolvedAffected(train) {
+  const affectedNames = new Set(patchPlanCVEList.filter(c => c.affected).map(c => c.component))
+  const affectedItems = train.softwareList.filter(sw => affectedNames.has(sw.name))
+  if (affectedItems.length === 0) return false
+  if (train.status === '待发车') {
+    // 待发车：有受影响软件且未被"移除"就算
+    return true
+  }
+  // 已发车/已结束：检查是否有未下架的
+  return affectedItems.some(sw => {
+    const k = train.id + '-' + sw.id
+    const status = shelfStatusMap.get(k)
+    return status !== '已下架'
+  })
+}
 
 // ============================
 // 上架状态追踪（key = trainId-swId）
@@ -649,6 +752,8 @@ function levelClass(level) {
 .pp-cve-row--affected { background: #fff; }
 .pp-cve-row--resolved td { color: #9ca3af; }
 .pp-cve-desc { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; }
+.pp-th-check, .pp-td-check { width: 40px; text-align: center; }
+.pp-th-check input[type=checkbox], .pp-td-check input[type=checkbox] { accent-color: #4f46e5; }
 .pp-cve-search { position: relative; }
 .pp-cve-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
 .pp-cve-input {
@@ -690,16 +795,26 @@ function levelClass(level) {
   width: 100%; padding: 11px 16px; border: none; border-left: 3px solid transparent;
   background: transparent; cursor: pointer; text-align: left; font-family: inherit;
   transition: all 0.12s;
+  position: relative;
 }
 .pp-train-item:hover { background: #f9fafb; }
 .pp-train-item--active { background: #fef2f2; border-left-color: #da203e; }
 .pp-train-item-main { display: flex; align-items: center; justify-content: space-between; }
 .pp-train-name { font-size: 14px; font-weight: 600; color: #111827; }
+.pp-red-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+}
 .pp-train-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px;
   font-size: 11px; font-weight: 600; background: #f3f4f6; color: #6b7280;
   border: 1px solid #e5e7eb; flex-shrink: 0;
+  margin-top: 6px;
 }
 .pp-train-item-meta { display: flex; align-items: center; gap: 8px; }
 .pp-train-status { font-size: 11px; padding: 1px 8px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
@@ -808,7 +923,6 @@ function levelClass(level) {
 .pp-linkish--muted:hover { color: #6b7280; }
 .pp-linkish--danger { color: #dc2626; }
 .pp-linkish--danger:hover { color: #b91c1c; }
-.pp-op-sep { color: #d1d5db; font-size: 12px; user-select: none; margin: 0 3px; }
 
 /* 分页 */
 .pp-pagination {

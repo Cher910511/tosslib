@@ -62,17 +62,44 @@
                 <span class="vt-tree-train-status" :class="'vt-sidestatus--' + activeTrain.status">{{ activeTrain.status }}</span>
                 <span class="vt-dot-badge">{{ activeTrain.softwareList.length }}</span>
               </div>
+              <div class="vt-tree-toolbar">
+                <button type="button" class="vt-tree-toolbar-btn" @click="expandAll">全部展开</button>
+                <button type="button" class="vt-tree-toolbar-btn" @click="collapseAll">全部收起</button>
+              </div>
               <div class="vt-tree-children">
-                <div v-for="sw in activeTrain.softwareList" :key="sw.id" class="vt-tree-software is-active">
-                  <span class="vt-tree-bullet">◈</span>
-                  <span class="vt-tree-sw-name">{{ sw.name }}</span>
-                  <span class="vt-tree-sw-version">v{{ sw.version }}</span>
-                  <span class="vt-badge vt-badge--sm" :class="reviewResultClass(sw.reviewResult)">{{ sw.reviewResult || '未评审' }}</span>
-                  <span v-if="sw.scanStatus === '已扫描'" class="vt-tree-meta scan-ok">✓ 已扫描</span>
-                  <span v-else class="vt-tree-meta scan-none">○ 未扫描</span>
-                  <span class="vt-tree-sw-opinion" :title="sw.reviewOpinion">{{ sw.reviewOpinion ? '📝 ' + sw.reviewOpinion : '' }}</span>
+                <div v-for="sw in activeTrain.softwareList.filter(s => (s.type || 'software') !== 'component')" :key="sw.id" class="vt-tree-software is-active">
+                  <div class="vt-tree-sw-row" @click="toggleSwComp(sw.id)">
+                    <span class="vt-tree-expand-icon">{{ isSwOpen(sw.id) ? '▼' : '▶' }}</span>
+                    <span class="vt-tree-sw-name">{{ sw.name }}</span>
+                    <span class="vt-tree-sw-version">v{{ sw.version }}</span>
+                    <span class="vt-badge vt-badge--sm" :class="reviewResultClass(sw.reviewResult)">{{ sw.reviewResult || '未评审' }}</span>
+                    <span v-if="sw.scanStatus === '已扫描'" class="vt-tree-meta scan-ok">✓ 已扫描</span>
+                    <span v-else class="vt-tree-meta scan-none">○ 未扫描</span>
+                    <span class="vt-tree-sw-opinion" :title="sw.reviewOpinion">{{ sw.reviewOpinion ? sw.reviewOpinion : '' }}</span>
+                  </div>
+                  <!-- 组件子节点 -->
+                  <div v-if="isSwOpen(sw.id)" class="vt-tree-sw-children">
+                    <div v-if="getComponentsForSw(activeTrain, sw.name).length === 0" class="vt-tree-comp-empty">── 暂无组件</div>
+                    <div
+                      v-for="(comp, compIdx) in getComponentsForSw(activeTrain, sw.name)"
+                      :key="comp.id"
+                      class="vt-tree-component"
+                    >
+                      <div class="vt-tree-comp-row">
+                        <span class="vt-tree-comp-connector">{{ compIdx === getComponentsForSw(activeTrain, sw.name).length - 1 ? '└' : '├' }}</span>
+                        <strong class="vt-tree-comp-tag">组件</strong>
+                        <span class="vt-tree-comp-name">{{ comp.name.split(' / ')[1] || comp.name }}</span>
+                        <span class="vt-tree-comp-version">v{{ comp.version }}</span>
+                        <span class="vt-tree-comp-lang">{{ comp.lang }}</span>
+                        <span class="vt-badge vt-badge--sm" :class="reviewResultClass(comp.reviewResult)">{{ comp.reviewResult || '未评审' }}</span>
+                        <span v-if="comp.scanStatus === '已扫描'" class="vt-tree-meta scan-ok">✓ 已扫描</span>
+                        <span v-else class="vt-tree-meta scan-none">○ 未扫描</span>
+                        <span class="vt-tree-sw-opinion" :title="comp.reviewOpinion">{{ comp.reviewOpinion ? comp.reviewOpinion : '' }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div v-if="activeTrain.softwareList.length === 0" class="vt-tree-empty-row">暂无软件</div>
+                <div v-if="activeTrain.softwareList.filter(s => (s.type || 'software') !== 'component').length === 0" class="vt-tree-empty-row">暂无软件</div>
               </div>
             </template>
             <div v-else class="vt-tree-empty">
@@ -684,7 +711,42 @@ function createNewTrain() {
 }
 
 // ------- 版本信息树切换 -------
+
+// ------- 信息树：展开/收起组件 -------
+const openSwIds = ref(new Set())
+
+/** 获取当前火车的纯软件列表（排除组件类型） */
+function getSoftwareItems(train) {
+  if (!train) return []
+  return train.softwareList.filter(s => (s.type || 'software') !== 'component')
+}
+
+/** 初始化/刷新展开状态：全部展开 */
+function refreshOpenSwSet() {
+  if (activeTrain.value) {
+    openSwIds.value = new Set(getSoftwareItems(activeTrain.value).map(s => s.id))
+  }
+}
+/** 全部展开 */
+function expandAll() { refreshOpenSwSet() }
+/** 全部收起 */
+function collapseAll() { openSwIds.value = new Set() }
+
+function toggleSwComp(swId) {
+  const s = new Set(openSwIds.value)
+  if (s.has(swId)) s.delete(swId); else s.add(swId)
+  openSwIds.value = s
+}
+function isSwOpen(swId) {
+  return openSwIds.value.has(swId)
+}
+function getComponentsForSw(train, swName) {
+  if (!train) return []
+  return train.softwareList.filter(item => item.type === 'component' && item.software === swName)
+}
+
 function toggleVersionInfo() {
+  refreshOpenSwSet()
   showVersionInfo.value = !showVersionInfo.value
 }
 
@@ -1368,22 +1430,55 @@ function importSelectedSoftware() {
 .vt-tree-train-status { font-size: 11px; padding: 1px 8px; border-radius: 8px; font-weight: 500; }
 .vt-tree-train-toggle { font-size: 12px; color: #da203e; cursor: pointer; white-space: nowrap; }
 .vt-tree-train-toggle:hover { text-decoration: underline; }
-.vt-tree-children { padding: 4px 0 4px 28px; background: #fafafa; }
+.vt-tree-toolbar {
+  display: flex; gap: 8px;
+  padding: 6px 16px;
+}
+.vt-tree-toolbar-btn {
+  font-size: 12px; color: #da203e; background: none; border: none;
+  cursor: pointer; padding: 2px 4px;
+}
+.vt-tree-toolbar-btn:hover { text-decoration: underline; }
+.vt-tree-children { padding: 4px 0 4px 28px; }
 .vt-tree-software {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 16px;
-  border-bottom: 1px dashed #e5e7eb;
+  padding: 0;
   font-size: 13px;
 }
 .vt-tree-software.is-active { background: transparent; }
 .vt-tree-software:last-child { border-bottom: none; }
-.vt-tree-bullet { font-size: 12px; color: #da203e; }
+.vt-tree-sw-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px dashed #e5e7eb;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.vt-tree-sw-row:hover { background: #f3f4f6; }
+.vt-tree-expand-icon { font-size: 10px; color: #9ca3af; width: 14px; text-align: center; flex-shrink: 0; }
 .vt-tree-sw-name { font-weight: 500; color: #111827; min-width: 120px; }
 .vt-tree-sw-version { font-size: 12px; color: #da203e; font-weight: 600; min-width: 80px; }
 .vt-tree-meta { font-size: 12px; }
 .vt-tree-meta.scan-ok { color: #16a34a; }
 .vt-tree-meta.scan-none { color: #9ca3af; }
 .vt-tree-sw-opinion { font-size: 12px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+
+/* ── 组件子节点树 ── */
+.vt-tree-sw-children {
+  padding: 6px 8px 6px 32px;
+  margin: 0 12px 6px;
+}
+.vt-tree-component { padding: 3px 0; }
+.vt-tree-comp-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+.vt-tree-comp-connector { color: #9ca3af; font-family: monospace; font-weight: 700; width: 16px; text-align: center; flex-shrink: 0; }
+.vt-tree-comp-tag { font-size: 10px; color: #1e40af; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+.vt-tree-comp-name { color: #1e293b; font-weight: 600; }
+.vt-tree-comp-version { font-size: 12px; color: #3b82f6; font-weight: 600; }
+.vt-tree-comp-lang { font-size: 11px; color: #94a3b8; }
+.vt-tree-comp-empty { color: #9ca3af; font-size: 12px; padding: 6px 8px; }
 .vt-tree-empty-row { padding: 12px 16px; color: #9ca3af; font-size: 13px; }
 .vt-tree-empty { padding: 40px 16px; text-align: center; }
 .vt-title-status {
