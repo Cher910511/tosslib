@@ -41,27 +41,8 @@
           <span>态势总览</span>
         </RouterLink>
 
-        <div class="nav-dropdown">
-          <button
-            type="button"
-            class="nav-dropdown-trigger"
-            :class="{ 'is-open': analyticsOpen, 'is-active-group': isAnalyticsRoute }"
-            :aria-expanded="analyticsOpen"
-            aria-controls="nav-analytics-sub"
-            @click="analyticsOpen = !analyticsOpen"
-          >
-            <span class="nav-icon">▸</span>
-            <span class="trigger-label">数据报表</span>
-            <span class="caret" aria-hidden="true">{{ analyticsOpen ? '▲' : '▼' }}</span>
-          </button>
-          <div
-            id="nav-analytics-sub"
-            v-show="analyticsOpen"
-            class="nav-dropdown-panel"
-            role="region"
-          >
-            <RouterLink
-              class="nav-item sub"
+        <RouterLink
+              class="nav-item"
               :to="{ name: 'analytics-screen' }"
               active-class="active"
             >
@@ -69,24 +50,13 @@
               <span>数据大屏</span>
             </RouterLink>
             <RouterLink
-              class="nav-item sub"
+              class="nav-item"
               :to="{ name: 'report-tables' }"
               active-class="active"
             >
               <span class="nav-icon">▦</span>
               <span>标准表格</span>
             </RouterLink>
-          </div>
-        </div>
-
-        <RouterLink
-          class="nav-item"
-          :to="{ name: 'code-assistant' }"
-          active-class="active"
-        >
-          <span class="nav-icon">✦</span>
-          <span>AI 助手</span>
-        </RouterLink>
       </nav>
     </aside>
 

@@ -1,6 +1,7 @@
 // ==================== 版本火车 · 模拟数据 ====================
 
 // 1. 技术评审结果（待入库的软件列表 - 模拟从 Excel 导入）
+// 每项带有 type 字段: 'software' | 'component'
 export const reviewResults = [
   { id: 1, name: 'Apache Kafka', lang: 'Java', stars: 28500, license: 'Apache-2.0', scanStatus: '已扫描', riskLevel: '低', reviewResult: '通过', reviewOpinion: '成熟度较高，社区活跃，建议入库', reviewedAt: '2026-05-20' },
   { id: 2, name: 'Elasticsearch', lang: 'Java', stars: 69200, license: 'Apache-2.0', scanStatus: '已扫描', riskLevel: '低', reviewResult: '通过', reviewOpinion: '主流搜索引擎组件，安全合规', reviewedAt: '2026-05-20' },
@@ -49,7 +50,18 @@ export const reviewResults = [
   { id: 45, name: 'Vite', lang: 'TypeScript', stars: 68000, license: 'MIT', scanStatus: '已扫描', riskLevel: '低', reviewResult: '通过', reviewOpinion: '前端构建工具，建议入库', reviewedAt: '2026-05-24' },
 ]
 
-// 2. 版本火车列表
+// 2. 版本火车列表（含组件数据，每车20+项以演示分页）
+function buildSw(trainIdx, i) {
+  const baseId = trainIdx * 100 + i
+  return {
+    id: baseId,
+    name: '',
+    type: '',
+    version: '',
+    status: '待发布',
+    scanned: true,
+  }
+}
 export const versionTrains = [
   {
     id: 'VT-2026-001',
@@ -57,14 +69,34 @@ export const versionTrains = [
     status: '待发车',
     createdAt: '2026-05-25',
     softwareList: [
-      { id: 1, name: 'Apache Kafka', version: '3.9.0', status: '待发布', scanned: true },
-      { id: 2, name: 'Elasticsearch', version: '8.15.0', status: '待发布', scanned: true },
-      { id: 3, name: 'Redis Stack', version: '7.4.0', status: '待发布', scanned: true },
-      { id: 4, name: 'Prometheus', version: '2.54.0', status: '待发布', scanned: true },
-      { id: 5, name: 'etcd', version: '3.5.15', status: '待发布', scanned: true },
-      { id: 6, name: 'Consul', version: '1.19.0', status: '待发布', scanned: true },
-      { id: 7, name: 'MinIO', version: 'RELEASE.2026-05', status: '待发布', scanned: true },
-      { id: 8, name: 'Apache Flink', version: '2.0.0', status: '待发布', scanned: true },
+      { id: 1, name: 'Apache Kafka', type: 'software', version: '3.9.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '成熟度较高，社区活跃', reviewedAt: '2026-05-20' },
+      { id: 2, name: 'Elasticsearch', type: 'software', version: '8.15.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '主流搜索引擎组件', reviewedAt: '2026-05-20' },
+      { id: 3, name: 'Redis Stack', type: 'software', version: '7.4.0', lang: 'C', license: 'BSD-3-Clause', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '需关注集群版许可限制', reviewedAt: '2026-05-20' },
+      { id: 4, name: 'Prometheus', type: 'software', version: '2.54.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控生态核心组件', reviewedAt: '2026-05-20' },
+      { id: 5, name: 'Grafana', type: 'software', version: '11.1.0', lang: 'TypeScript', license: 'AGPL-3.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '不通过', reviewOpinion: 'AGPL许可存在合规风险', reviewedAt: '2026-05-20' },
+      { id: 6, name: 'etcd', type: 'software', version: '3.5.15', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '分布式系统核心组件', reviewedAt: '2026-05-20' },
+      { id: 7, name: 'Consul', type: 'software', version: '1.19.0', lang: 'Go', license: 'MPL-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务网格基础组件', reviewedAt: '2026-05-20' },
+      { id: 8, name: 'RabbitMQ', type: 'software', version: '3.13.6', lang: 'Erlang', license: 'MPL-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '不通过', reviewOpinion: 'Erlang缺少维护者', reviewedAt: '2026-05-20' },
+      { id: 9, name: 'MinIO', type: 'software', version: 'RELEASE.2026-05', lang: 'Go', license: 'AGPL-3.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '对象存储场景刚需', reviewedAt: '2026-05-21' },
+      { id: 10, name: 'Apache Flink', type: 'software', version: '2.0.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '流式计算核心组件', reviewedAt: '2026-05-21' },
+      { id: 11, name: 'Nginx', type: 'software', version: '1.26.2', lang: 'C', license: 'BSD-2-Clause', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '反向代理核心组件', reviewedAt: '2026-05-21' },
+      { id: 12, name: 'PostgreSQL', type: 'software', version: '16.3', lang: 'C', license: 'PostgreSQL', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '关系型数据库核心组件', reviewedAt: '2026-05-21' },
+      { id: 13, name: 'MySQL', type: 'software', version: '8.4.0', lang: 'C++', license: 'GPL-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: 'GPL许可需法务确认', reviewedAt: '2026-05-21' },
+      { id: 14, name: 'MongoDB', type: 'software', version: '7.0.12', lang: 'C++', license: 'SSPL', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '不通过', reviewOpinion: 'SSPL存在较大法律风险', reviewedAt: '2026-05-21' },
+      { id: 15, name: 'Node.js', type: 'software', version: '22.3.0', lang: 'JavaScript', license: 'MIT', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '运行时核心依赖', reviewedAt: '2026-05-21' },
+      { id: 16, name: 'Spring Boot', type: 'software', version: '3.3.1', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '微服务基础框架', reviewedAt: '2026-05-22' },
+      { id: 17, name: 'Vue.js', type: 'software', version: '3.4.31', lang: 'TypeScript', license: 'MIT', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '前端框架核心组件', reviewedAt: '2026-05-22' },
+      // 组件数据
+      { id: 18, name: 'Vue.js / vue-router', type: 'component', version: '4.4.0', lang: 'TypeScript', license: 'MIT', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '路由组件', reviewedAt: '2026-05-22', software: 'Vue.js' },
+      { id: 19, name: 'Vue.js / pinia', type: 'component', version: '2.1.7', lang: 'TypeScript', license: 'MIT', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '状态管理组件', reviewedAt: '2026-05-22', software: 'Vue.js' },
+      { id: 20, name: 'Apache Kafka / kafka-clients', type: 'component', version: '3.9.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Java客户端库', reviewedAt: '2026-05-22', software: 'Apache Kafka' },
+      { id: 21, name: 'Spring Boot / spring-boot-starter-web', type: 'component', version: '3.3.1', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Web起步依赖', reviewedAt: '2026-05-22', software: 'Spring Boot' },
+      { id: 22, name: 'Spring Boot / spring-boot-starter-data-jpa', type: 'component', version: '3.3.1', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: 'JPA依赖需评估', reviewedAt: '2026-05-22', software: 'Spring Boot' },
+      { id: 23, name: 'Elasticsearch / elasticsearch-rest-client', type: 'component', version: '8.15.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'REST客户端', reviewedAt: '2026-05-22', software: 'Elasticsearch' },
+      { id: 24, name: 'Prometheus / prometheus-client', type: 'component', version: '1.2.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '指标暴露客户端', reviewedAt: '2026-05-22', software: 'Prometheus' },
+      { id: 25, name: 'Redis Stack / lettuce', type: 'component', version: '6.3.2', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Redis Java客户端', reviewedAt: '2026-05-23', software: 'Redis Stack' },
+      { id: 26, name: 'Nginx / nginx-module-vts', type: 'component', version: '0.2.2', lang: 'C', license: 'BSD-2-Clause', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: '流量监控模块', reviewedAt: '2026-05-23', software: 'Nginx' },
+      { id: 27, name: 'etcd / jetcd', type: 'component', version: '0.8.1', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'etcd Java客户端', reviewedAt: '2026-05-23', software: 'etcd' },
     ],
   },
   {
@@ -73,8 +105,107 @@ export const versionTrains = [
     status: '待发车',
     createdAt: '2026-05-24',
     softwareList: [
-      { id: 9, name: 'OpenSSL', version: '3.3.2', status: '待发布', scanned: true },
-      { id: 10, name: 'log4j-core', version: '2.24.0', status: '待发布', scanned: true },
+      { id: 51, name: 'OpenSSL', type: 'software', version: '3.3.2', lang: 'C', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '安全补丁版本', reviewedAt: '2026-05-24' },
+      { id: 52, name: 'log4j-core', type: 'software', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '漏洞修复版本', reviewedAt: '2026-05-24' },
+      { id: 53, name: 'Apache Tomcat', type: 'software', version: '10.1.26', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'CVE修复版本', reviewedAt: '2026-05-24' },
+      { id: 54, name: 'Jackson Databind', type: 'software', version: '2.17.2', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: '需验证兼容性', reviewedAt: '2026-05-24' },
+      { id: 55, name: 'Netty', type: 'software', version: '4.1.110', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '高危CVE修复', reviewedAt: '2026-05-24' },
+      // 组件
+      { id: 56, name: 'log4j-core / log4j-appserver', type: 'component', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '应用服务器适配', reviewedAt: '2026-05-24', software: 'log4j-core' },
+    ],
+  },
+  {
+    id: 'VT-2026-003',
+    name: '2026年Q3中间件升级包',
+    status: '待发车',
+    createdAt: '2026-06-10',
+    softwareList: [
+      { id: 61, name: 'Apache Dubbo', type: 'software', version: '3.3.2', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'RPC框架升级', reviewedAt: '2026-06-10' },
+      { id: 62, name: 'Nacos', type: 'software', version: '2.4.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务发现核心组件', reviewedAt: '2026-06-10' },
+      { id: 63, name: 'Sentinel', type: 'software', version: '1.8.8', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '流量管控组件', reviewedAt: '2026-06-10' },
+      { id: 64, name: 'Apache SkyWalking', type: 'software', version: '9.3.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: '需验证兼容性', reviewedAt: '2026-06-10' },
+      { id: 65, name: 'Zipkin', type: 'software', version: '3.4.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '链路追踪组件', reviewedAt: '2026-06-10' },
+      { id: 66, name: 'Jenkins', type: 'software', version: '2.462', lang: 'Java', license: 'MIT', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'CI/CD核心组件', reviewedAt: '2026-06-10' },
+      { id: 67, name: 'MyBatis', type: 'software', version: '3.5.16', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'ORM框架升级', reviewedAt: '2026-06-10' },
+      // 组件
+      { id: 68, name: 'Nacos / nacos-client', type: 'component', version: '2.4.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Java客户端', reviewedAt: '2026-06-10', software: 'Nacos' },
+      { id: 69, name: 'Apache Dubbo / dubbo-spring-boot-starter', type: 'component', version: '3.3.2', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Spring Boot集成', reviewedAt: '2026-06-10', software: 'Apache Dubbo' },
+    ],
+  },
+  {
+    id: 'VT-2026-004',
+    name: '2026年Q3容器平台更新',
+    status: '待发车',
+    createdAt: '2026-06-15',
+    softwareList: [
+      { id: 71, name: 'Kubernetes', type: 'software', version: '1.31.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '容器编排核心组件', reviewedAt: '2026-06-15' },
+      { id: 72, name: 'Docker', type: 'software', version: '27.0.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '容器运行时', reviewedAt: '2026-06-15' },
+      { id: 73, name: 'containerd', type: 'software', version: '2.0.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '容器运行时标准组件', reviewedAt: '2026-06-15' },
+      { id: 74, name: 'CoreDNS', type: 'software', version: '1.11.3', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'DNS服务组件', reviewedAt: '2026-06-15' },
+      { id: 75, name: 'Calico', type: 'software', version: '3.28.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: '需验证CNI兼容性', reviewedAt: '2026-06-15' },
+      { id: 76, name: 'Istio', type: 'software', version: '1.22.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务网格核心组件', reviewedAt: '2026-06-15' },
+      { id: 77, name: 'Envoy', type: 'software', version: '1.31.0', lang: 'C++', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '代理核心组件', reviewedAt: '2026-06-15' },
+      { id: 78, name: 'Harbor', type: 'software', version: '2.11.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '镜像仓库核心组件', reviewedAt: '2026-06-15' },
+      { id: 79, name: 'Prometheus', type: 'software', version: '2.55.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控核心组件升级', reviewedAt: '2026-06-15' },
+      { id: 80, name: 'Grafana', type: 'software', version: '11.2.0', lang: 'TypeScript', license: 'AGPL-3.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '不通过', reviewOpinion: 'AGPL许可合规问题', reviewedAt: '2026-06-15' },
+      // 组件
+      { id: 81, name: 'Kubernetes / client-java', type: 'component', version: '21.0.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'K8s Java客户端', reviewedAt: '2026-06-15', software: 'Kubernetes' },
+      { id: 82, name: 'Istio / istio-client', type: 'component', version: '1.22.0', lang: 'Go', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Istio客户端库', reviewedAt: '2026-06-15', software: 'Istio' },
+    ],
+  },
+  {
+    id: 'VT-2025-005',
+    name: '2025年Q4安全补丁包',
+    status: '已发车',
+    createdAt: '2025-11-01',
+    releasedVersion: 'v4.3.0',
+    releaseTime: '2025-12-01 10:00',
+    endTime: '2026-06-01 23:59',
+    remark: '本次发车包含4个高危CVE修复，涉及日志、协议、容器、序列化等领域。请各业务线在2026年6月前完成升级。',
+    softwareList: [
+      { id: 101, name: 'log4j-core', type: 'software', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '日志组件安全更新', reviewedAt: '2025-11-20', published: true },
+      { id: 102, name: 'OpenSSL', type: 'software', version: '3.3.2', lang: 'C', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '安全协议版本升级', reviewedAt: '2025-11-20', published: true },
+      { id: 103, name: 'Apache Tomcat', type: 'software', version: '9.0.95', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Servlet容器安全更新', reviewedAt: '2025-11-21', published: true },
+      { id: 104, name: 'Nginx', type: 'software', version: '1.26.2', lang: 'C', license: 'BSD-2-Clause', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '反向代理安全加固', reviewedAt: '2025-11-21', published: true },
+      { id: 105, name: 'Jackson-databind', type: 'software', version: '2.17.2', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'JSON库安全更新', reviewedAt: '2025-11-21', published: true },
+      { id: 106, name: 'Netty', type: 'software', version: '4.1.114', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '网络框架安全更新', reviewedAt: '2025-11-22', published: false },
+      { id: 107, name: 'SnakeYAML', type: 'software', version: '2.3', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'YAML解析安全更新', reviewedAt: '2025-11-22', published: false },
+    ],
+  },
+  {
+    id: 'VT-2025-006',
+    name: '2025年Q4框架升级包',
+    status: '已发车',
+    createdAt: '2025-12-10',
+    releasedVersion: 'v4.4.0',
+    releaseTime: '2025-12-20 10:00',
+    endTime: '2026-06-20 23:59',
+    remark: 'Spring Boot 3.2.3 及周边框架统一升级，兼容性已验证。Nacos客户端同步升级到2.4.0。',
+    softwareList: [
+      { id: 111, name: 'Spring Boot', type: 'software', version: '3.2.3', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '微服务框架升级', reviewedAt: '2025-12-15', published: true },
+      { id: 112, name: 'MyBatis', type: 'software', version: '3.5.16', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'ORM框架升级', reviewedAt: '2025-12-15', published: true },
+      { id: 113, name: 'Apache Dubbo', type: 'software', version: '3.3.2', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'RPC框架升级', reviewedAt: '2025-12-15', published: true },
+      { id: 114, name: 'Nacos', type: 'software', version: '2.4.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务发现组件', reviewedAt: '2025-12-15', published: true },
+      { id: 115, name: 'Sentinel', type: 'software', version: '1.8.8', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '流量管控组件', reviewedAt: '2025-12-15', published: true },
+      { id: 116, name: 'Apache Dubbo / dubbo-spring-boot-starter', type: 'component', version: '3.3.2', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Spring Boot集成', reviewedAt: '2025-12-15', published: false, software: 'Apache Dubbo' },
+      { id: 117, name: 'Nacos / nacos-client', type: 'component', version: '2.4.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Java客户端', reviewedAt: '2025-12-15', published: false, software: 'Nacos' },
+    ],
+  },
+  {
+    id: 'VT-2025-007',
+    name: '2025年Q4监控组件包',
+    status: '已发车',
+    createdAt: '2025-12-15',
+    releasedVersion: 'v4.5.0',
+    releaseTime: '2025-12-28 10:00',
+    endTime: '2026-06-28 23:59',
+    remark: 'Prometheus + Grafana 监控体系统一打包，AGPL许可组件已通过法务审批。',
+    softwareList: [
+      { id: 121, name: 'Prometheus', type: 'software', version: '2.55.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控核心组件', reviewedAt: '2025-12-20', published: true },
+      { id: 122, name: 'Grafana', type: 'software', version: '11.2.0', lang: 'TypeScript', license: 'AGPL-3.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控可视化', reviewedAt: '2025-12-20', published: true },
+      { id: 123, name: 'Alertmanager', type: 'software', version: '0.27.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '告警管理组件', reviewedAt: '2025-12-20', published: true },
+      { id: 124, name: 'Prometheus / prometheus-client', type: 'component', version: '1.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Java指标客户端', reviewedAt: '2025-12-20', published: true, software: 'Prometheus' },
+      { id: 125, name: 'Grafana / grafana-api-client', type: 'component', version: '0.5.0', lang: 'Java', license: 'AGPL-3.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'API客户端', reviewedAt: '2025-12-20', published: false, software: 'Grafana' },
     ],
   },
 ]
@@ -123,4 +254,72 @@ export const patchPlanCVEList = [
 export const patchNotificationHistory = [
   { id: 1, trainId: 'VT-2025-004', cveId: 'CVE-2025-49844', component: 'Redis', affectedVersions: '7.2.0', notifyTime: '2025-12-21 14:00:00', action: '下架通知已发送', status: '已完成' },
   { id: 2, trainId: 'VT-2025-003', cveId: 'CVE-2025-15467', component: 'OpenSSL', affectedVersions: '3.0.0-3.2.0', notifyTime: '2025-09-16 09:30:00', action: '补丁升级通知已发送', status: '已完成' },
+]
+
+// 6. 补丁计划列表
+export const patchPlans = [
+  {
+    id: 'PP-2026-001',
+    name: '2026年5月安全补丁',
+    status: '待处理',
+    trainId: 'VT-2026-001',
+    trainName: '2026年Q2首次发车',
+    createdAt: '2026-05-24',
+    updatedAt: '2026-05-24',
+    remark: '修复 OpenSSL 和 log4j-core 高危漏洞，涉及 2 个软件 3 个组件',
+    severity: '高危',
+    softwareList: [
+      { id: 301, name: 'OpenSSL', type: 'software', version: '3.3.1', lang: 'C', license: 'Apache-2.0', cveId: 'CVE-2026-28473', severity: '高危', trainVersion: '3.3.1', patchVersion: '3.3.2', shelfStatus: '已下架', patched: false, updatedAt: '2026-05-24' },
+      { id: 302, name: 'log4j-core', type: 'software', version: '2.23.1', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-27115', severity: '严重', trainVersion: '2.23.1', patchVersion: '2.24.0', shelfStatus: '已下架', patched: false, updatedAt: '2026-05-24' },
+      { id: 303, name: 'Spring Boot / spring-boot-starter-log4j2', type: 'component', version: '2.23.1', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-27115', severity: '严重', trainVersion: '2.23.1', patchVersion: '2.24.0', shelfStatus: '已下架', patched: false, software: 'log4j-core', updatedAt: '2026-05-24' },
+      { id: 304, name: 'OpenSSL / libssl-dev', type: 'component', version: '3.3.1', lang: 'C', license: 'Apache-2.0', cveId: 'CVE-2026-28473', severity: '高危', trainVersion: '3.3.1', patchVersion: '3.3.2', shelfStatus: '已下架', patched: false, software: 'OpenSSL', updatedAt: '2026-05-24' },
+      { id: 305, name: 'OpenSSL / openssl-utils', type: 'component', version: '3.3.1', lang: 'C', license: 'Apache-2.0', cveId: 'CVE-2026-28473', severity: '高危', trainVersion: '3.3.1', patchVersion: '3.3.2', shelfStatus: '上架中', patched: true, software: 'OpenSSL', updatedAt: '2026-05-24' },
+    ],
+  },
+  {
+    id: 'PP-2026-002',
+    name: '2026年Q2 Kafka 漏洞修复',
+    status: '处理中',
+    trainId: 'VT-2026-001',
+    trainName: '2026年Q2首次发车',
+    createdAt: '2026-05-22',
+    updatedAt: '2026-05-25',
+    remark: 'Apache Kafka KRaft 模式权限绕过漏洞修复',
+    severity: '高危',
+    softwareList: [
+      { id: 311, name: 'Apache Kafka', type: 'software', version: '3.8.0', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-25890', severity: '高危', trainVersion: '3.8.0', patchVersion: '3.9.0', shelfStatus: '上架中', patched: true, updatedAt: '2026-05-22' },
+      { id: 312, name: 'Apache Kafka / kafka-clients', type: 'component', version: '3.8.0', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-25890', severity: '高危', trainVersion: '3.8.0', patchVersion: '3.9.0', shelfStatus: '上架中', patched: true, software: 'Apache Kafka', updatedAt: '2026-05-22' },
+      { id: 313, name: 'Apache Kafka / kafka-streams', type: 'component', version: '3.8.0', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-25890', severity: '高危', trainVersion: '3.8.0', patchVersion: '3.9.0', shelfStatus: '待处理', patched: false, software: 'Apache Kafka', updatedAt: '2026-05-22' },
+    ],
+  },
+  {
+    id: 'PP-2026-003',
+    name: '2026年Q3 中间件例行更新',
+    status: '已完成',
+    trainId: 'VT-2026-003',
+    trainName: '2026年Q3中间件升级包',
+    createdAt: '2026-06-10',
+    updatedAt: '2026-06-18',
+    remark: 'Apache Dubbo、Nacos、Sentinel 例行版本升级，已全部完成补丁发布',
+    severity: '中危',
+    softwareList: [
+      { id: 321, name: 'Apache Dubbo', type: 'software', version: '3.3.2', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-24315', severity: '中危', trainVersion: '3.3.2', patchVersion: '3.3.3', shelfStatus: '上架中', patched: true, updatedAt: '2026-06-18' },
+      { id: 322, name: 'Nacos', type: 'software', version: '2.4.0', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-24711', severity: '中危', trainVersion: '2.4.0', patchVersion: '2.4.1', shelfStatus: '上架中', patched: true, updatedAt: '2026-06-18' },
+      { id: 323, name: 'Sentinel', type: 'software', version: '1.8.8', lang: 'Java', license: 'Apache-2.0', cveId: 'CVE-2026-24405', severity: '低危', trainVersion: '1.8.8', patchVersion: '1.8.9', shelfStatus: '上架中', patched: true, updatedAt: '2026-06-18' },
+    ],
+  },
+  {
+    id: 'PP-2026-004',
+    name: 'Redis Stack 内存泄漏修复',
+    status: '待处理',
+    trainId: 'VT-2026-001',
+    trainName: '2026年Q2首次发车',
+    createdAt: '2026-05-20',
+    updatedAt: '2026-05-20',
+    remark: 'Redis Stack 集群模式内存泄漏导致拒绝服务，评估中',
+    severity: '中危',
+    softwareList: [
+      { id: 331, name: 'Redis Stack', type: 'software', version: '7.2.0', lang: 'C', license: 'BSD-3-Clause', cveId: 'CVE-2026-24771', severity: '中危', trainVersion: '7.2.0', patchVersion: '7.4.0', shelfStatus: '待处理', patched: false, updatedAt: '2026-05-20' },
+    ],
+  },
 ]

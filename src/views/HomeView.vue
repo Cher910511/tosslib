@@ -59,8 +59,8 @@
               <CountryBar :data="developerCountryTop10" />
             </div>
             <div class="glow-card right-block bar-block">
-              <div class="panel-title">仓库所属国家 Top10</div>
-              <CountryBar :data="repoCountryTop10" />
+              <div class="panel-title">Scorecard / Criticality 评分分布</div>
+              <ScoreDistribution :scorecard="scorecardDistribution" :criticality="criticalityDistribution" />
             </div>
           </div>
 
@@ -94,6 +94,7 @@ import LicensePie from '../components/LicensePie.vue'
 import IndustryBar from '../components/IndustryBar.vue'
 import TagCloud from '../components/TagCloud.vue'
 import CountryBar from '../components/CountryBar.vue'
+import ScoreDistribution from '../components/ScoreDistribution.vue'
 import SecurityGovernance from '../components/SecurityGovernance.vue'
 import {
   platformOverview,
@@ -106,6 +107,8 @@ import {
   keyIndustries,
   developerCountryTop10,
   repoCountryTop10,
+  scorecardDistribution,
+  criticalityDistribution,
   securityGovernance,
 } from '../data/mockData.js'
 

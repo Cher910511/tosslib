@@ -7,12 +7,12 @@
         <CountUp :end="data.totalDetected" :duration="2500" class="value" />
       </div>
       <div class="metric">
-        <span class="label">未修复漏洞数</span>
-        <CountUp :end="data.unfixed" :duration="2200" class="value warn" />
+        <span class="label">高危漏洞数</span>
+        <CountUp :end="data.highCount" :duration="2200" class="value danger" />
       </div>
       <div class="metric">
-        <span class="label">漏洞修复率</span>
-        <CountUp :end="data.fixRate" :decimals="1" :duration="2000" suffix="%" class="value ok" :use-locale="true" />
+        <span class="label">恶意代码检出数</span>
+        <CountUp :end="data.maliciousCode" :duration="2000" class="value warn" />
       </div>
       <div class="metric">
         <span class="label">SBOM 覆盖率</span>

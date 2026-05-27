@@ -70,6 +70,34 @@
           <span class="nav-ico" aria-hidden="true">▤</span>
           需求反馈
         </a>
+        <!-- 后台管理（带二级菜单） -->
+        <div class="admin-nav-group">
+          <div
+            class="admin-nav-item admin-nav-item--group"
+            :class="{ 'is-open': versionTrainOpen }"
+            @click="versionTrainOpen = !versionTrainOpen"
+          >
+            <span class="nav-ico" aria-hidden="true">⚙️</span>
+            <span class="nav-label">后台管理</span>
+            <span class="nav-caret" aria-hidden="true">{{ versionTrainOpen ? '▾' : '▸' }}</span>
+          </div>
+          <div v-show="versionTrainOpen" class="admin-nav-submenu">
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/version-train-release"
+              active-class="is-active"
+            >
+              <span class="nav-label">版本火车</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/patch-plan"
+              active-class="is-active"
+            >
+              <span class="nav-label">补丁计划</span>
+            </RouterLink>
+          </div>
+        </div>
       </nav>
       <div class="admin-aside-footer">
         <a
@@ -144,6 +172,22 @@
             <RouterLink to="/software/manage">软件管理</RouterLink>
             <span class="sep">/</span>
             <span class="current">{{ route.name === 'software-scan' ? '软件扫描' : manageListCrumb }}</span>
+          </template>
+          <!-- 版本火车面包屑 -->
+          <template v-else-if="route.name === 'version-train-tree'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">版本火车信息树</span>
+          </template>
+          <template v-else-if="route.name === 'version-train-release'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">版本火车发车</span>
+          </template>
+          <template v-else-if="route.name === 'patch-plan'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">补丁计划</span>
           </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>
@@ -327,6 +371,9 @@ const router = useRouter()
 
 // 软件管理二级菜单展开状态
 const softwareManageOpen = ref(false)
+
+// 版本火车二级菜单展开状态
+const versionTrainOpen = ref(false)
 
 const componentDetailBreadcrumb = computed(() => {
   const id = route.params.id

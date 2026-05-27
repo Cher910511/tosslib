@@ -3,7 +3,7 @@
     <div class="panel-title panel-title-hero">平台规模概览</div>
     <div class="grid">
       <div class="item">
-        <span class="label">代码仓库数</span>
+        <span class="label">软件源码数</span>
         <CountUp :end="data.repoCount" :duration="2200" class="value" />
       </div>
       <div class="item">

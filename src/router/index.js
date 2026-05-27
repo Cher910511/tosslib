@@ -13,6 +13,9 @@ import SoftwareScanView from '../views/software/SoftwareScanView.vue'
 import ScanResultView from '../views/software/ScanResultView.vue'
 import SignatureVerifyView from '../views/software/SignatureVerifyView.vue'
 import DetectionReportView from '../views/software/DetectionReportView.vue'
+import VersionTrainTreeView from '../views/version-train/VersionTrainTreeView.vue'
+import VersionTrainReleaseView from '../views/version-train/VersionTrainReleaseView.vue'
+import PatchPlanView from '../views/version-train/PatchPlanView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
@@ -124,6 +127,25 @@ const routes = [
         name: 'detection-report',
         component: DetectionReportView,
         meta: { adminTitle: '检测报告' },
+      },
+      // ==================== 版本火车 ====================
+      {
+        path: 'version-train-tree',
+        name: 'version-train-tree',
+        component: VersionTrainTreeView,
+        meta: { adminTitle: '版本火车信息树' },
+      },
+      {
+        path: 'version-train-release',
+        name: 'version-train-release',
+        component: VersionTrainReleaseView,
+        meta: { adminTitle: '版本火车发车' },
+      },
+      {
+        path: 'patch-plan',
+        name: 'patch-plan',
+        component: PatchPlanView,
+        meta: { adminTitle: '补丁计划' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

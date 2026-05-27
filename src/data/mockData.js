@@ -130,6 +130,34 @@ export const developerCountryTop10 = [
   { name: '加拿大', value: 35000 },
 ]
 
+// Scorecard 评分分布（10 个分值区间）
+export const scorecardDistribution = [
+  { name: '0-1', value: 420 },
+  { name: '1-2', value: 680 },
+  { name: '2-3', value: 1120 },
+  { name: '3-4', value: 1580 },
+  { name: '4-5', value: 1850 },
+  { name: '5-6', value: 1620 },
+  { name: '6-7', value: 890 },
+  { name: '7-8', value: 350 },
+  { name: '8-9', value: 110 },
+  { name: '9-10', value: 30 },
+]
+
+// Criticality 评分分布（10 个分值区间，满分 1.0）
+export const criticalityDistribution = [
+  { name: '0-0.1', value: 380 },
+  { name: '0.1-0.2', value: 620 },
+  { name: '0.2-0.3', value: 1150 },
+  { name: '0.3-0.4', value: 1680 },
+  { name: '0.4-0.5', value: 1950 },
+  { name: '0.5-0.6', value: 1420 },
+  { name: '0.6-0.7', value: 850 },
+  { name: '0.7-0.8', value: 380 },
+  { name: '0.8-0.9', value: 160 },
+  { name: '0.9-1.0', value: 60 },
+]
+
 // 仓库所属国家 Top10
 export const repoCountryTop10 = [
   { name: '美国', value: 892000 },
@@ -211,8 +239,8 @@ export const securityNews = [
 // 安全与治理
 export const securityGovernance = {
   totalDetected: 285600,
-  unfixed: 12480,
-  fixRate: 95.6,
+  highCount: 1247,         // 高危漏洞数（替代未修复漏洞数）
+  maliciousCode: 86,       // 恶意代码检出数（替代漏洞修复率）
   sbomCoverage: 88.3,
   highRiskComponents: 3420,
 }
