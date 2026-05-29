@@ -1,959 +1,1366 @@
 <template>
-  <div class="pp-page">
-
-    <!-- ====== KPI 条 ====== -->
-    <div class="pp-kpi-row">
-      <div class="pp-kpi-item pp-kpi-item--danger">
-        <div class="pp-kpi-value pp-kpi-value--danger">{{ stats.highCriticalCve }}</div>
-        <div class="pp-kpi-label">高危漏洞</div>
-      </div>
-      <div class="pp-kpi-item pp-kpi-item--orange">
-        <div class="pp-kpi-value pp-kpi-value--orange">{{ stats.affectedTrains }}</div>
-        <div class="pp-kpi-label">影响版本火车</div>
-      </div>
-      <div class="pp-kpi-item pp-kpi-item--indigo">
-        <div class="pp-kpi-value pp-kpi-value--indigo">{{ stats.affectedComponents }}</div>
-        <div class="pp-kpi-label">影响组件</div>
-      </div>
-      <div class="pp-kpi-item pp-kpi-item--amber">
-        <div class="pp-kpi-value pp-kpi-value--amber">{{ stats.affectedSoftware }}</div>
-        <div class="pp-kpi-label">影响软件</div>
-      </div>
+  <div class="shelf-page">
+    <div class="shelf-tabs" role="tablist" aria-label="上下架类型">
+      <button
+        type="button"
+        role="tab"
+        class="shelf-tab"
+        :class="{ 'is-active': activeTab === 'software' }"
+        :aria-selected="activeTab === 'software'"
+        @click="setTab('software')"
+      >
+        软件
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="shelf-tab"
+        :class="{ 'is-active': activeTab === 'component' }"
+        :aria-selected="activeTab === 'component'"
+        @click="setTab('component')"
+      >
+        组件
+      </button>
     </div>
 
-    <!-- ====== 漏洞预警信息模块 ====== -->
-    <section class="pp-section pp-cve-section">
-      <div class="pp-section-header">
-        <h3 class="pp-section-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          漏洞预警信息
-        </h3>
-        <div class="pp-section-actions">
-          <div class="pp-cve-search">
-            <svg class="pp-cve-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input v-model="cveSearch" type="text" class="pp-cve-input" placeholder="搜索 CVE 编号或组件名..." />
+    <!-- 筛选信息 -->
+    <section class="shelf-card shelf-filter-card">
+      <header class="shelf-card-head">
+        <button
+          type="button"
+          class="shelf-card-title-btn"
+          :aria-expanded="filterOpen"
+          @click="filterOpen = !filterOpen"
+        >
+          <span class="shelf-card-caret" :class="{ 'is-open': filterOpen }" aria-hidden="true" />
+          <span class="shelf-card-title">筛选信息</span>
+        </button>
+        <div class="shelf-card-actions">
+          <button
+            type="button"
+            class="shelf-btn shelf-btn--ghost"
+            :disabled="!selectedIds.length"
+            @click="batchShelf('上架中')"
+          >
+            批量上架
+          </button>
+          <button
+            type="button"
+            class="shelf-btn shelf-btn--ghost"
+            :disabled="!selectedIds.length"
+            @click="batchShelf('已下架')"
+          >
+            批量下架
+          </button>
+          <button type="button" class="shelf-btn shelf-btn--outline" @click="clearFilter">清空</button>
+          <button type="button" class="shelf-btn shelf-btn--primary" @click="doFilter">筛选</button>
+        </div>
+      </header>
+      <div v-show="filterOpen" class="shelf-filter-body">
+        <!-- 软件筛选 -->
+        <div v-if="activeTab === 'software'" class="shelf-filter-grid shelf-filter-grid--software">
+          <div class="shelf-field">
+            <label class="shelf-label">软件名称</label>
+            <input
+              v-model="swFilters.name"
+              type="text"
+              class="shelf-input"
+              placeholder="请输入内容"
+              @keyup.enter="doFilter"
+            >
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">软件版本</label>
+            <input
+              v-model="swFilters.version"
+              type="text"
+              class="shelf-input"
+              placeholder="请输入软件版本"
+              @keyup.enter="doFilter"
+            >
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">编程语言</label>
+            <select v-model="swFilters.lang" class="shelf-select">
+              <option value="">请输入</option>
+              <option v-for="lang in langOptions" :key="lang" :value="lang">{{ lang }}</option>
+            </select>
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">有无漏洞</label>
+            <select v-model="swFilters.vuln" class="shelf-select">
+              <option value="">请输入</option>
+              <option value="yes">有漏洞</option>
+              <option value="no">无漏洞</option>
+            </select>
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">行业分类</label>
+            <select v-model="swFilters.industry" class="shelf-select">
+              <option value="">请输入</option>
+              <option v-for="ind in industryOptions" :key="ind" :value="ind">{{ ind }}</option>
+            </select>
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">上架状态</label>
+            <select v-model="swFilters.shelf" class="shelf-select">
+              <option value="">请选择</option>
+              <option value="online">已上架</option>
+              <option value="offline">已下架</option>
+            </select>
           </div>
         </div>
-      </div>
-      <div class="pp-cve-table-wrap">
-        <div v-if="selectedCveIds.length > 0" class="pp-batch-bar">
-          <span class="pp-batch-count">已选 {{ selectedCveIds.length }} 项</span>
-          <div class="pp-batch-actions">
-            <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchCveShelf(true)">批量上架</button>
-            <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchCveShelf(false)">批量下架</button>
+        <!-- 组件筛选 -->
+        <div v-else class="shelf-filter-grid shelf-filter-grid--component">
+          <div class="shelf-field">
+            <label class="shelf-label">组件名称</label>
+            <input
+              v-model="compFilters.name"
+              type="text"
+              class="shelf-input"
+              placeholder="请输入"
+              @keyup.enter="doFilter"
+            >
           </div>
-          <button type="button" class="pp-btn pp-btn-ghost pp-btn-xs" @click="selectedCveIds = []">取消选择</button>
-        </div>
-        <table class="pp-cve-table">
-          <thead>
-            <tr>
-              <th class="pp-th-check">
-                <input type="checkbox" :checked="isAllCveSelected" :indeterminate="isCveIndeterminate" @change="toggleAllCve" />
-              </th>
-              <th>CVE 编号</th>
-              <th>严重级别</th>
-              <th>影响组件</th>
-              <th>影响版本</th>
-              <th>发布时间</th>
-              <th>漏洞描述</th>
-              <th>影响状态</th>
-              <th class="pp-th-op">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cve in paginatedCveList" :key="cve.id" :class="{ 'pp-cve-row--affected': cve.affected, 'pp-cve-row--resolved': !cve.affected }">
-              <td class="pp-td-check">
-                <input type="checkbox" :checked="selectedCveIds.includes(cve.id)" @change="toggleCve(cve.id)" />
-              </td>
-              <td><span class="pp-code">{{ cve.cveId }}</span></td>
-              <td>
-                <span class="pp-level" :class="'pp-level--' + levelClass(cve.level)">{{ cve.level }}</span>
-              </td>
-              <td>{{ cve.component }}</td>
-              <td><span class="pp-code">{{ cve.version }}</span></td>
-              <td class="pp-text-muted">{{ cve.publishTime }}</td>
-              <td class="pp-cve-desc">{{ cve.description }}</td>
-              <td>
-                <span class="pp-badge" :class="cve.affected ? 'pp-badge--danger' : 'pp-badge--muted'">
-                  {{ cve.affected ? '受影响' : '已处理' }}
-                </span>
-              </td>
-              <td class="pp-td-op">
-                <template v-if="!cve.affected">
-                  <button type="button" class="pp-linkish" @click="shelfCve(cve, true)">重新上架</button>
-                </template>
-                <template v-else>
-                  <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfCve(cve, false)">下架</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pp-pagination" v-if="filteredCveList.length > 0">
-          <button class="pp-page-btn" :disabled="cvePage <= 1" @click="cvePage = 1">«</button>
-          <button class="pp-page-btn" :disabled="cvePage <= 1" @click="cvePage--">‹</button>
-          <button v-for="p in cvePageNumbers" :key="p" class="pp-page-btn" :class="{ 'pp-page-btn--active': p === cvePage }" @click="cvePage = p">{{ p }}</button>
-          <button class="pp-page-btn" :disabled="cvePage >= cveTotalPages" @click="cvePage++">›</button>
-          <button class="pp-page-btn" :disabled="cvePage >= cveTotalPages" @click="cvePage = cveTotalPages">»</button>
+          <div class="shelf-field">
+            <label class="shelf-label">组件版本</label>
+            <input
+              v-model="compFilters.version"
+              type="text"
+              class="shelf-input"
+              placeholder="请输入"
+              @keyup.enter="doFilter"
+            >
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">编程语言</label>
+            <select v-model="compFilters.lang" class="shelf-select">
+              <option value="">请选择</option>
+              <option v-for="lang in langOptions" :key="lang" :value="lang">{{ lang }}</option>
+            </select>
+          </div>
+          <div class="shelf-field">
+            <label class="shelf-label">上架状态</label>
+            <select v-model="compFilters.shelf" class="shelf-select">
+              <option value="">请选择</option>
+              <option value="online">已上架</option>
+              <option value="offline">已下架</option>
+            </select>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ====== 底部左右分栏：版本火车 + 软件上下架 ====== -->
-    <div class="pp-bottom-layout">
-      <!-- 左侧：版本火车列表 -->
-      <aside class="pp-train-sidebar">
-        <div class="pp-train-sidebar-header">
-          <h4 class="pp-train-sidebar-title">版本火车</h4>
-          <div class="pp-sidebar-search">
-            <svg class="pp-sidebar-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input v-model="trainSearch" type="text" class="pp-sidebar-input" placeholder="搜索火车号或名称..." />
-          </div>
-        </div>
-        <div class="pp-train-sidebar-list">
+    <!-- 列表 -->
+    <section class="shelf-card shelf-table-card">
+      <header class="shelf-card-head shelf-card-head--table">
+        <h2 class="shelf-card-title shelf-card-title--static">{{ listTitle }}</h2>
+      </header>
+      <div class="shelf-table-wrap">
+        <!-- 软件表 -->
+        <table v-if="activeTab === 'software'" class="shelf-table">
+          <thead>
+            <tr>
+              <th class="shelf-th-chk">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  :indeterminate.prop="isIndeterminate"
+                  aria-label="全选当前页"
+                  @change="toggleAll"
+                >
+              </th>
+              <th>软件名称</th>
+              <th>最新版本评分</th>
+              <th>版本发布时间</th>
+              <th>行业分类</th>
+              <th>最新版本漏洞数</th>
+              <th>开发商</th>
+              <th>编程语言</th>
+              <th>上架状态</th>
+              <th class="shelf-th-op">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in paginatedList" :key="row.id">
+              <td class="shelf-td-chk">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.includes(row.id)"
+                  :aria-label="`选择 ${row.name}`"
+                  @change="toggleItem(row.id)"
+                >
+              </td>
+              <td>
+                <button type="button" class="shelf-name-link" @click="onSoftwareClick(row)">
+                  {{ row.name }}
+                </button>
+              </td>
+              <td>
+                <span v-if="row.score != null" class="shelf-score">
+                  <span class="shelf-score-gauge" aria-hidden="true" />
+                  {{ row.score }}
+                </span>
+                <span v-else class="shelf-score shelf-score--empty">--</span>
+              </td>
+              <td class="shelf-muted">{{ row.publishTime }}</td>
+              <td>{{ row.industry }}</td>
+              <td>
+                <span
+                  class="shelf-vuln"
+                  :class="{ 'shelf-vuln--zero': row.vulnCount === 0, 'shelf-vuln--risk': row.vulnCount > 0 }"
+                >
+                  {{ row.vulnCount }}
+                </span>
+              </td>
+              <td class="shelf-dev" :title="row.developer">{{ row.developer }}</td>
+              <td><span class="shelf-lang">{{ row.lang }}</span></td>
+              <td>
+                <span
+                  class="shelf-status-tag"
+                  :class="isShelfOnline(row) ? 'shelf-status-tag--online' : 'shelf-status-tag--offline'"
+                >
+                  {{ getShelfLabel(row) }}
+                </span>
+              </td>
+              <td class="shelf-td-op">
+                <button
+                  type="button"
+                  class="shelf-op"
+                  :class="{ 'shelf-op--off': isShelfOnline(row) }"
+                  @click="toggleShelf(row)"
+                >
+                  {{ shelfActionLabel(row) }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 组件表 -->
+        <table v-else class="shelf-table">
+          <thead>
+            <tr>
+              <th class="shelf-th-chk">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  :indeterminate.prop="isIndeterminate"
+                  aria-label="全选当前页"
+                  @change="toggleAll"
+                >
+              </th>
+              <th>组件名称</th>
+              <th>组件版本</th>
+              <th>groupId</th>
+              <th>编程语言</th>
+              <th>开源许可证</th>
+              <th>上架状态</th>
+              <th class="shelf-th-op">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in paginatedList" :key="row.id">
+              <td class="shelf-td-chk">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.includes(row.id)"
+                  :aria-label="`选择 ${row.name}`"
+                  @change="toggleItem(row.id)"
+                >
+              </td>
+              <td class="shelf-comp-name">{{ row.name }}</td>
+              <td>
+                <button type="button" class="shelf-ver-link" @click="onComponentVersionClick(row)">
+                  {{ row.version }}
+                </button>
+              </td>
+              <td class="shelf-group">{{ row.groupId }}</td>
+              <td><span class="shelf-lang-badge">{{ row.lang }}</span></td>
+              <td>{{ row.license }}</td>
+              <td>
+                <span
+                  class="shelf-status-tag"
+                  :class="isShelfOnline(row) ? 'shelf-status-tag--online' : 'shelf-status-tag--offline'"
+                >
+                  {{ getShelfLabel(row) }}
+                </span>
+              </td>
+              <td class="shelf-td-op">
+                <button
+                  type="button"
+                  class="shelf-op"
+                  :class="{ 'shelf-op--off': isShelfOnline(row) }"
+                  @click="toggleShelf(row)"
+                >
+                  {{ shelfActionLabel(row) }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="shelf-footer">
+        <span class="shelf-total">共计{{ filteredList.length }}条</span>
+        <div class="shelf-pager">
           <button
-            v-for="train in filteredTrains"
-            :key="train.id"
             type="button"
-            class="pp-train-item"
-            :class="{ 'pp-train-item--active': activeTrainId === train.id }"
-            @click="activeTrainId = train.id"
+            class="shelf-page-btn"
+            :disabled="page <= 1"
+            aria-label="上一页"
+            @click="page = Math.max(1, page - 1)"
           >
-            <div class="pp-train-item-main">
-              <span class="pp-train-name">{{ train.name }}</span>
-              <span v-if="trainHasUnresolvedAffected(train)" class="pp-red-dot" title="有受影响软件未处理"></span>
-              <span class="pp-train-badge">{{ train.softwareList.length }}</span>
-            </div>
-            <div class="pp-train-item-meta">
-              <span class="pp-train-status" :class="'pp-train-status--' + (train.status === '待发车' ? 'pending' : 'released')">{{ train.status }}</span>
-              <span class="pp-train-id">{{ train.id }}</span>
-            </div>
+            ‹
           </button>
-        </div>
-        <div v-if="filteredTrains.length === 0" class="pp-train-sidebar-empty">
-          <span class="pp-text-muted">没有匹配的版本火车</span>
-        </div>
-      </aside>
-
-      <!-- 右侧：软件上下架列表 -->
-      <main class="pp-sw-main">
-        <section class="pp-sw-section">
-          <!-- 头部 -->
-          <div class="pp-sw-header" v-if="activeTrain">
-            <div class="pp-sw-header-row">
-              <div class="pp-sw-header-info">
-                <h3 class="pp-sw-title">{{ activeTrain.id }} — {{ activeTrain.name }}</h3>
-                <span class="pp-sw-header-meta">共 {{ activeTrain.softwareList.length }} 个软件/组件</span>
-                <span class="pp-sw-header-meta pp-sw-header-meta--affected" v-if="affectedSwCount > 0">{{ affectedSwCount }} 个受影响</span>
-              </div>
-              <div class="pp-sw-header-actions">
-                <div class="pp-sw-search">
-                  <svg class="pp-sw-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input v-model="swNameSearch" type="text" class="pp-sw-input" placeholder="搜索名称..." />
-                </div>
-                <div class="pp-sw-search">
-                  <svg class="pp-sw-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input v-model="swVerSearch" type="text" class="pp-sw-input" placeholder="搜索版本..." />
-                </div>
-              </div>
-            </div>
-            <!-- 批量操作栏 -->
-            <div v-if="selectedSwBatch.length > 0" class="pp-batch-bar">
-              <span class="pp-batch-count">已选 {{ selectedSwBatch.length }} 项</span>
-              <div class="pp-batch-actions">
-                <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchShelf('上架中')">批量上架</button>
-                <button type="button" class="pp-btn pp-btn-outline pp-btn-xs" @click="batchShelf('已下架')">批量下架</button>
-              </div>
-              <button type="button" class="pp-linkish pp-linkish--muted" @click="selectedSwBatch = []">取消选择</button>
-            </div>
-          </div>
-          <div class="pp-sw-empty" v-if="!activeTrain">
-            <div class="pp-empty-msg">请从左侧列表选择一个版本火车</div>
-          </div>
-
-          <!-- 受影响软件表（标红） -->
-          <template v-if="activeTrain && affectedSwList.length > 0">
-            <div class="pp-sw-subtitle">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              受影响软件/组件
-            </div>
-            <div class="pp-sw-table-wrap">
-              <table class="pp-sw-table">
-                <thead>
-                  <tr>
-                    <th class="pp-th-chk"><input type="checkbox" :checked="isAffectedAllSelected" :indeterminate.prop="isAffectedIndeterminate" @change="toggleAffectedAll"></th>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>版本号</th>
-                    <th>关联 CVE</th>
-                    <th>严重级别</th>
-                    <th class="pp-th-shelf">上架状态</th>
-                    <th class="pp-th-op">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="sw in paginatedAffectedSw" :key="sw.id" class="pp-sw-row--affected">
-                    <td class="pp-td-chk"><input type="checkbox" :checked="selectedSwBatch.includes(swKey(sw))" @change="toggleSw(sw)"></td>
-                    <td><span class="pp-sw-name-affected">{{ sw.name }}</span></td>
-                    <td><span class="pp-badge" :class="sw.type === 'component' ? 'pp-badge--muted' : 'pp-badge--primary'">{{ sw.type === 'component' ? '组件' : '软件' }}</span></td>
-                    <td><span class="pp-code">{{ sw.version }}</span></td>
-                    <td><span class="pp-code">{{ sw.relatedCve || '--' }}</span></td>
-                    <td><span class="pp-level" :class="'pp-level--' + levelClass(sw.severity || '中危')">{{ sw.severity || '--' }}</span></td>
-                    <td class="pp-td-shelf">
-                      <template v-if="activeTrain.status === '已发车' || activeTrain.status === '已结束'">
-                        <span class="pp-badge" :class="getShelfClass(sw)">{{ getShelfLabel(sw) }}</span>
-                      </template>
-                      <template v-else>
-                        <span class="pp-text-muted">--</span>
-                      </template>
-                    </td>
-                    <td class="pp-td-op">
-                      <template v-if="activeTrain.status === '待发车'">
-                        <button type="button" class="pp-linkish pp-linkish--danger" @click="removeSw(sw)">移除</button>
-                      </template>
-                      <template v-else-if="activeTrain.status === '已发车'">
-                        <template v-if="getShelfStatus(sw) === '已下架'">
-                          <button type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">重新上架</button>
-                        </template>
-                        <template v-else>
-                          <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
-                        </template>
-                      </template>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-if="affectedSwList.length > affectedPageSize" class="pp-pagination">
-                <button class="pp-page-btn" :disabled="affectedPage <= 1" @click="affectedPage--">‹</button>
-                <span class="pp-page-info">{{ affectedPage }} / {{ affectedTotalPages }}</span>
-                <button class="pp-page-btn" :disabled="affectedPage >= affectedTotalPages" @click="affectedPage++">›</button>
-              </div>
-            </div>
+          <template v-for="(p, idx) in pageItems" :key="`${p}-${idx}`">
+            <span v-if="p === '…'" class="shelf-page-ellipsis">…</span>
+            <button
+              v-else
+              type="button"
+              class="shelf-page-btn"
+              :class="{ 'is-active': p === page }"
+              @click="page = p"
+            >
+              {{ p }}
+            </button>
           </template>
+          <button
+            type="button"
+            class="shelf-page-btn"
+            :disabled="page >= totalPages"
+            aria-label="下一页"
+            @click="page = Math.min(totalPages, page + 1)"
+          >
+            ›
+          </button>
+          <label class="shelf-page-size">
+            <span class="visually-hidden">每页条数</span>
+            <select v-model.number="pageSize" class="shelf-page-select">
+              <option :value="10">10条/页</option>
+              <option :value="20">20条/页</option>
+              <option :value="50">50条/页</option>
+            </select>
+          </label>
+        </div>
+      </footer>
+    </section>
 
-          <!-- 其他软件/组件 -->
-          <template v-if="activeTrain">
-            <div class="pp-sw-subtitle pp-sw-subtitle--other">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-              其他软件/组件
-            </div>
-            <div class="pp-sw-table-wrap">
-              <table class="pp-sw-table">
-                <thead>
-                  <tr>
-                    <th class="pp-th-chk"><input type="checkbox" :checked="isOtherAllSelected" :indeterminate.prop="isOtherIndeterminate" @change="toggleOtherAll"></th>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>版本号</th>
-                    <th>编程语言</th>
-                    <th>开源许可证</th>
-                    <th class="pp-th-shelf">上架状态</th>
-                    <th class="pp-th-op">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="sw in paginatedOtherSw" :key="sw.id">
-                    <td class="pp-td-chk"><input type="checkbox" :checked="selectedSwBatch.includes(swKey(sw))" @change="toggleSw(sw)"></td>
-                    <td>{{ sw.name }}</td>
-                    <td><span class="pp-badge" :class="sw.type === 'component' ? 'pp-badge--muted' : 'pp-badge--primary'">{{ sw.type === 'component' ? '组件' : '软件' }}</span></td>
-                    <td><span class="pp-code">{{ sw.version }}</span></td>
-                    <td>{{ sw.lang || '--' }}</td>
-                    <td>{{ sw.license || '--' }}</td>
-                    <td class="pp-td-shelf">
-                      <template v-if="activeTrain.status === '已发车' || activeTrain.status === '已结束'">
-                        <span class="pp-badge" :class="getShelfClass(sw)">{{ getShelfLabel(sw) }}</span>
-                      </template>
-                      <template v-else>
-                        <span class="pp-text-muted">--</span>
-                      </template>
-                    </td>
-                    <td class="pp-td-op">
-                      <template v-if="activeTrain.status === '待发车'">
-                        <button type="button" class="pp-linkish pp-linkish--danger" @click="removeSw(sw)">移除</button>
-                      </template>
-                      <template v-else-if="activeTrain.status === '已发车'">
-                        <template v-if="getShelfStatus(sw) === '已下架'">
-                          <button type="button" class="pp-linkish" @click="shelfSw(sw, '上架中')">重新上架</button>
-                        </template>
-                        <template v-else>
-                          <button type="button" class="pp-linkish pp-linkish--danger" @click="shelfSw(sw, '已下架')">下架</button>
-                        </template>
-                      </template>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-if="otherSwList.length > otherPageSize" class="pp-pagination">
-                <button class="pp-page-btn" :disabled="otherPage <= 1" @click="otherPage--">‹</button>
-                <span class="pp-page-info">{{ otherPage }} / {{ otherTotalPages }}</span>
-                <button class="pp-page-btn" :disabled="otherPage >= otherTotalPages" @click="otherPage++">›</button>
-              </div>
-            </div>
-          </template>
-
-          <!-- 空状态 -->
-          <div v-if="activeTrain && fullFilteredList.length === 0" class="pp-sw-empty">
-            <div class="pp-empty-msg">没有匹配的软件/组件</div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <!-- Toast -->
-    <div v-if="toastMsg" class="pp-toast" :class="toastType">
-      <span>{{ toastMsg }}</span>
+    <div v-if="toastMsg" class="shelf-toast" :class="toastType" role="status">
+      {{ toastMsg }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
-import { versionTrains as _versionTrains, patchPlanCVEList } from '../../data/versionTrainData.js'
+import { ref, computed, reactive, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { reviewResults, versionTrains } from '../../data/versionTrainData.js'
 
-const versionTrains = reactive(_versionTrains)
+const route = useRoute()
+const router = useRouter()
+const filterOpen = ref(true)
+const activeTab = ref(route.query.tab === 'component' ? 'component' : 'software')
 
-// ============================
-// KPI 统计
-// ============================
-const stats = computed(() => {
-  const highCritical = patchPlanCVEList.filter(c => (c.level === '严重' || c.level === '高危') && c.affected)
-  // 受影响的组件名集合
-  const affectedCompNames = new Set(patchPlanCVEList.filter(c => c.affected).map(c => c.component))
-  const affectedTrainSet = new Set()
-  let compCount = 0
-  let swCount = 0
-  versionTrains.forEach(t => {
-    t.softwareList.forEach(sw => {
-      if (affectedCompNames.has(sw.name)) {
-        affectedTrainSet.add(t.id)
-        if (sw.type === 'component') compCount++
-        else swCount++
-      }
+const langOptions = ['Java', 'Python', 'JavaScript', 'Go', 'C', 'C++', 'TypeScript', 'Rust', 'Scala', 'Erlang']
+const industryOptions = ['工业', '通信', '金融', '医疗', '教育', '互联网']
+
+const listTitle = computed(() => (activeTab.value === 'software' ? '软件列表' : '组件列表'))
+
+// —— 软件数据 ——
+const SEED_SW = [
+  {
+    id: 'sw-1',
+    name: 'requests',
+    version: '2.32.3',
+    score: 8.4,
+    publishTime: '2026-03-26',
+    industry: '通信,工业',
+    vulnCount: 0,
+    developer: 'Python Software Foundation',
+    lang: 'Python',
+    shelfStatus: '上架中',
+  },
+  {
+    id: 'sw-2',
+    name: 'protobuf-java',
+    version: '4.28.2',
+    score: 7.6,
+    publishTime: '2026-03-25',
+    industry: '工业',
+    vulnCount: 3,
+    developer: 'Protocol Buffers',
+    lang: 'Java',
+    shelfStatus: '上架中',
+  },
+  {
+    id: 'sw-3',
+    name: 'openclaw',
+    version: '0.1.0',
+    score: null,
+    publishTime: '2026-03-20',
+    industry: '互联网',
+    vulnCount: 16,
+    developer: 'OpenClaw Contributors',
+    lang: 'JavaScript',
+    shelfStatus: '已下架',
+  },
+]
+
+function industriesForId(id) {
+  const a = industryOptions[id % industryOptions.length]
+  const b = industryOptions[(id + 2) % industryOptions.length]
+  return id % 2 === 0 ? `${a},${b}` : a
+}
+
+function generateSoftwareData() {
+  const list = [...SEED_SW]
+  const usedNames = new Set(SEED_SW.map((s) => s.name))
+  let seq = list.length
+
+  for (const base of reviewResults) {
+    if (usedNames.has(base.name)) continue
+    usedNames.add(base.name)
+    seq += 1
+    const month = 1 + (seq % 6)
+    const day = 1 + (seq % 28)
+    list.push({
+      id: `sw-${seq}`,
+      name: base.name,
+      version: base.version,
+      score: Math.round((6 + (base.stars % 3000) / 1000) * 10) / 10,
+      publishTime: `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      industry: industriesForId(seq),
+      vulnCount: base.vulnCount,
+      developer: base.developer,
+      lang: base.lang,
+      shelfStatus: seq % 5 === 0 ? '已下架' : '上架中',
     })
-  })
-  return {
-    highCriticalCve: highCritical.length,
-    affectedTrains: affectedTrainSet.size,
-    affectedComponents: compCount,
-    affectedSoftware: swCount,
   }
-})
 
-// ============================
-// 漏洞预警
-// ============================
-const cveSearch = ref('')
-const filteredCveList = computed(() => {
-  const q = cveSearch.value.trim().toLowerCase()
-  if (!q) return patchPlanCVEList
-  return patchPlanCVEList.filter(c =>
-    c.cveId.toLowerCase().includes(q) || c.component.toLowerCase().includes(q)
-  )
-})
-
-// CVE 列表分页（每页5条）
-const cvePage = ref(1)
-const cvePageSize = 5
-const cveTotalPages = computed(() => Math.max(1, Math.ceil(filteredCveList.value.length / cvePageSize)))
-const cvePageNumbers = computed(() => {
-  const total = cveTotalPages.value
-  const cur = cvePage.value
-  const pages = []
-  let start = Math.max(1, cur - 2)
-  let end = Math.min(total, cur + 2)
-  if (end - start < 4) {
-    if (start === 1) end = Math.min(total, start + 4)
-    else start = Math.max(1, end - 4)
+  while (list.length < 5075) {
+    const base = reviewResults[(list.length - 1) % reviewResults.length]
+    seq += 1
+    const suffix = Math.floor(list.length / reviewResults.length)
+    list.push({
+      id: `sw-${seq}`,
+      name: suffix > 0 ? `${base.name}-${suffix}` : base.name,
+      version: base.version,
+      score: Math.round((5 + ((seq * 7) % 40) / 10) * 10) / 10,
+      publishTime: `2026-0${1 + (seq % 6)}-${String(1 + (seq % 28)).padStart(2, '0')}`,
+      industry: industryOptions[seq % industryOptions.length] + (seq % 3 === 0 ? ',通信' : ''),
+      vulnCount: Math.max(0, base.vulnCount + (seq % 4) - 1),
+      developer: base.developer,
+      lang: base.lang,
+      shelfStatus: seq % 6 === 0 ? '已下架' : '上架中',
+    })
   }
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
-const paginatedCveList = computed(() => {
-  const start = (cvePage.value - 1) * cvePageSize
-  return filteredCveList.value.slice(start, start + cvePageSize)
-})
-
-// ============================
-// CVE 选择 & 上下架
-// ============================
-const selectedCveIds = ref([])
-
-const isAllCveSelected = computed(() => {
-  const list = paginatedCveList.value
-  return list.length > 0 && list.every(c => selectedCveIds.value.includes(c.id))
-})
-const isCveIndeterminate = computed(() => {
-  const list = paginatedCveList.value
-  const selected = list.filter(c => selectedCveIds.value.includes(c.id))
-  return selected.length > 0 && selected.length < list.length
-})
-function toggleAllCve(e) {
-  if (e.target.checked) {
-    const ids = paginatedCveList.value.map(c => c.id)
-    selectedCveIds.value = [...new Set([...selectedCveIds.value, ...ids])]
-  } else {
-    const pageIds = new Set(paginatedCveList.value.map(c => c.id))
-    selectedCveIds.value = selectedCveIds.value.filter(id => !pageIds.has(id))
-  }
-}
-function toggleCve(id) {
-  const idx = selectedCveIds.value.indexOf(id)
-  if (idx === -1) selectedCveIds.value.push(id)
-  else selectedCveIds.value.splice(idx, 1)
+  return list
 }
 
-function shelfCve(cve, affected) {
-  cve.affected = affected
-  cve.action = affected ? '待处理' : '已下架'
-  addLog(affected ? '上架' : '下架', `${cve.cveId} ${cve.component}`)
-  showToast(`${affected ? '已上架' : '已下架'} ${cve.cveId}`, 'success')
+// —— 组件数据 ——
+const COMP_SEED = [
+  {
+    id: 'comp-1',
+    name: 'spring-cloud-openfeign-docs',
+    version: '4.2.0',
+    groupId: 'org.springframework.cloud',
+    lang: 'Java',
+    license: 'Apache License V2.0',
+    shelfStatus: '上架中',
+  },
+  {
+    id: 'comp-2',
+    name: 'spring-cloud-starter-huawei-nacos',
+    version: '1.10.13-2021.0.x',
+    groupId: 'com.huaweicloud',
+    lang: 'Java',
+    license: 'Apache License V2.0',
+    shelfStatus: '上架中',
+  },
+  {
+    id: 'comp-3',
+    name: 'spring-cloud-starter-alibaba-nacos-discovery',
+    version: '2023.0.1.0',
+    groupId: 'com.alibaba.cloud',
+    lang: 'Java',
+    license: 'Apache License V2.0',
+    shelfStatus: '上架中',
+  },
+]
+
+function formatLicense(lic) {
+  if (!lic) return 'Apache License V2.0'
+  if (lic === 'Apache-2.0') return 'Apache License V2.0'
+  if (lic === 'MIT') return 'MIT License'
+  if (lic === 'BSD-2-Clause' || lic === 'BSD-3-Clause') return 'BSD License'
+  return lic
 }
 
-function batchCveShelf(affected) {
-  const label = affected ? '上架' : '下架'
-  let count = 0
-  selectedCveIds.value.forEach(id => {
-    const cve = patchPlanCVEList.find(c => c.id === id)
-    if (cve) {
-      cve.affected = affected
-      cve.action = affected ? '待处理' : '已下架'
-      count++
+function inferGroupId(software, name) {
+  const map = {
+    'Spring Boot': 'org.springframework.boot',
+    'Apache Kafka': 'org.apache.kafka',
+    Elasticsearch: 'org.elasticsearch',
+    'Vue.js': 'org.vuejs',
+    Nacos: 'com.alibaba.cloud',
+    Consul: 'com.ecwid.consul',
+  }
+  if (map[software]) return map[software]
+  const slug = (software || 'lib').toLowerCase().replace(/[^a-z0-9]+/g, '')
+  return `com.${slug}.${name.replace(/[^a-z0-9.-]+/gi, '').slice(0, 12) || 'core'}`
+}
+
+function collectComponentTemplates() {
+  const templates = []
+  const seen = new Set()
+  for (const train of versionTrains) {
+    for (const item of train.softwareList || []) {
+      if (item.type !== 'component') continue
+      const shortName = item.name.includes(' / ') ? item.name.split(' / ').pop() : item.name
+      const key = `${shortName}::${item.version}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      templates.push({
+        name: shortName,
+        version: item.version,
+        groupId: inferGroupId(item.software, shortName),
+        lang: item.lang,
+        license: formatLicense(item.license),
+      })
     }
-  })
-  addLog(`批量${label}`, `共 ${count} 项 CVE`)
-  showToast(`批量${label}完成：${count} 项`, 'success')
-  selectedCveIds.value = []
+  }
+  return templates
 }
 
-// ============================
-// 版本火车侧边栏
-// ============================
-const trainSearch = ref('')
-const activeTrainId = ref(versionTrains[0]?.id || '')
+function generateComponentData() {
+  const list = COMP_SEED.map((r) => ({ ...r }))
+  const templates = collectComponentTemplates()
+  let seq = list.length
 
-const filteredTrains = computed(() => {
-  const q = trainSearch.value.trim().toLowerCase()
-  if (!q) return versionTrains
-  return versionTrains.filter(t =>
-    t.id.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
-  )
-})
+  for (const t of templates) {
+    if (list.some((r) => r.name === t.name && r.version === t.version)) continue
+    seq += 1
+    list.push({
+      id: `comp-${seq}`,
+      ...t,
+      shelfStatus: seq % 7 === 0 ? '已下架' : '上架中',
+    })
+  }
 
-const activeTrain = computed(() =>
-  versionTrains.find(t => t.id === activeTrainId.value) || null
+  const TARGET = 19862
+  let ti = 0
+  while (list.length < TARGET) {
+    const t = templates[ti % templates.length] || {
+      name: 'spring-cloud-commons',
+      version: '4.1.0',
+      groupId: 'org.springframework.cloud',
+      lang: 'Java',
+      license: 'Apache License V2.0',
+    }
+    ti += 1
+    seq += 1
+    const patch = Math.floor(list.length / Math.max(templates.length, 1))
+    list.push({
+      id: `comp-${seq}`,
+      name: patch > 0 ? `${t.name}-${patch}` : t.name,
+      version: t.version,
+      groupId: t.groupId,
+      lang: t.lang,
+      license: t.license,
+      shelfStatus: seq % 8 === 0 ? '已下架' : '上架中',
+    })
+  }
+  return list
+}
+
+const allSw = ref(generateSoftwareData())
+let allCompCache = null
+const allComp = ref([])
+
+function ensureCompData() {
+  if (!allCompCache) {
+    allCompCache = generateComponentData()
+    allComp.value = allCompCache
+  }
+}
+
+const swFilters = reactive({ name: '', version: '', lang: '', vuln: '', industry: '', shelf: '' })
+const compFilters = reactive({ name: '', version: '', lang: '', shelf: '' })
+
+const filteredSw = ref(allSw.value)
+const filteredComp = ref([])
+
+const filteredList = computed(() =>
+  activeTab.value === 'software' ? filteredSw.value : filteredComp.value,
 )
 
-/**
- * 判断火车是否有未处理的受影响软件（用于侧边栏红点提示）
- * 待发车：受影响软件未被移除（还在 softwareList 中）
- * 已发车/已结束：受影响软件未下架
- */
-function trainHasUnresolvedAffected(train) {
-  const affectedNames = new Set(patchPlanCVEList.filter(c => c.affected).map(c => c.component))
-  const affectedItems = train.softwareList.filter(sw => affectedNames.has(sw.name))
-  if (affectedItems.length === 0) return false
-  if (train.status === '待发车') {
-    // 待发车：有受影响软件且未被"移除"就算
-    return true
-  }
-  // 已发车/已结束：检查是否有未下架的
-  return affectedItems.some(sw => {
-    const k = train.id + '-' + sw.id
-    const status = shelfStatusMap.get(k)
-    return status !== '已下架'
-  })
+const page = ref(1)
+const pageSize = ref(10)
+const selectedIds = ref([])
+
+function filterSoftware() {
+  let list = allSw.value
+  const n = swFilters.name.trim().toLowerCase()
+  const v = swFilters.version.trim().toLowerCase()
+  if (n) list = list.filter((s) => s.name.toLowerCase().includes(n))
+  if (v) list = list.filter((s) => s.version.toLowerCase().includes(v))
+  if (swFilters.lang) list = list.filter((s) => s.lang === swFilters.lang)
+  if (swFilters.vuln === 'yes') list = list.filter((s) => s.vulnCount > 0)
+  else if (swFilters.vuln === 'no') list = list.filter((s) => s.vulnCount === 0)
+  if (swFilters.industry) list = list.filter((s) => s.industry.includes(swFilters.industry))
+  list = applyShelfFilter(list, swFilters.shelf)
+  filteredSw.value = list
 }
 
-// ============================
-// 上架状态追踪（key = trainId-swId）
-// ============================
-const shelfStatusMap = reactive(new Map())
-
-function swKey(sw) {
-  return activeTrainId.value + '-' + sw.id
+function filterComponent() {
+  ensureCompData()
+  let list = allComp.value
+  const n = compFilters.name.trim().toLowerCase()
+  const v = compFilters.version.trim().toLowerCase()
+  if (n) list = list.filter((s) => s.name.toLowerCase().includes(n))
+  if (v) list = list.filter((s) => s.version.toLowerCase().includes(v))
+  if (compFilters.lang) list = list.filter((s) => s.lang === compFilters.lang)
+  list = applyShelfFilter(list, compFilters.shelf)
+  filteredComp.value = list
 }
 
-function getShelfStatus(sw) {
-  const k = swKey(sw)
-  return shelfStatusMap.get(k) || '待处理'
+function doFilter() {
+  if (activeTab.value === 'software') filterSoftware()
+  else filterComponent()
+  page.value = 1
+  selectedIds.value = []
 }
 
-function getShelfLabel(sw) {
-  const s = getShelfStatus(sw)
-  return s === '上架中' ? '已上架' : s === '已下架' ? '已下架' : '待处理'
-}
-
-function getShelfClass(sw) {
-  const s = getShelfStatus(sw)
-  if (s === '上架中') return 'pp-badge--success'
-  if (s === '已下架') return 'pp-badge--danger'
-  return 'pp-badge--muted'
-}
-
-function setShelfStatus(sw, status) {
-  shelfStatusMap.set(swKey(sw), status)
-}
-
-// ============================
-// 匹配受影响的软件（关联 CVE）
-// ============================
-const cveComponentSet = computed(() => {
-  const map = new Map()
-  patchPlanCVEList.filter(c => c.affected).forEach(c => {
-    map.set(c.component, { cveId: c.cveId, severity: c.level })
-  })
-  return map
-})
-
-// 软件搜索
-const swNameSearch = ref('')
-const swVerSearch = ref('')
-
-const fullFilteredList = computed(() => {
-  if (!activeTrain.value) return []
-  let list = activeTrain.value.softwareList
-  const ns = swNameSearch.value.trim().toLowerCase()
-  const vs = swVerSearch.value.trim().toLowerCase()
-  if (ns) list = list.filter(sw => sw.name.toLowerCase().includes(ns))
-  if (vs) list = list.filter(sw => sw.version.toLowerCase().includes(vs))
-  return list
-})
-
-// 受影响的软件（关联 CVE 的放到最上面）
-const affectedSwList = computed(() => {
-  let list = fullFilteredList.value.filter(sw => cveComponentSet.value.has(sw.name))
-    .map(sw => {
-      const cveInfo = cveComponentSet.value.get(sw.name)
-      return { ...sw, relatedCve: cveInfo?.cveId || '--', severity: cveInfo?.severity || '--' }
-    })
-  // 已发车/已结束状态下，已下架的软件不展示在受影响列表中
-  if (activeTrain.value && (activeTrain.value.status === '已发车' || activeTrain.value.status === '已结束')) {
-    list = list.filter(sw => getShelfStatus(sw) !== '已下架')
-  }
-  return list
-})
-
-const affectedSwCount = computed(() => affectedSwList.value.length)
-
-const otherSwList = computed(() => {
-  const affectedNames = new Set(affectedSwList.value.map(sw => swKey(sw)))
-  return fullFilteredList.value.filter(sw => !affectedNames.has(swKey(sw)))
-})
-
-// ============================
-// 受影响列表分页
-// ============================
-const affectedPage = ref(1)
-const affectedPageSize = 10
-const affectedTotalPages = computed(() => Math.max(1, Math.ceil(affectedSwList.value.length / affectedPageSize)))
-const paginatedAffectedSw = computed(() => {
-  const start = (affectedPage.value - 1) * affectedPageSize
-  return affectedSwList.value.slice(start, start + affectedPageSize)
-})
-
-// 其他列表分页
-const otherPage = ref(1)
-const otherPageSize = 15
-const otherTotalPages = computed(() => Math.max(1, Math.ceil(otherSwList.value.length / otherPageSize)))
-const paginatedOtherSw = computed(() => {
-  const start = (otherPage.value - 1) * otherPageSize
-  return otherSwList.value.slice(start, start + otherPageSize)
-})
-
-// 切换火车或搜索时重置分页
-import { watch } from 'vue'
-watch([activeTrainId, swNameSearch, swVerSearch], () => {
-  affectedPage.value = 1
-  otherPage.value = 1
-})
-
-watch(cveSearch, () => { cvePage.value = 1 })
-
-// ============================
-// 批量选择
-// ============================
-const selectedSwBatch = ref([])
-
-// 受影响全选
-const isAffectedAllSelected = computed(() => {
-  const list = paginatedAffectedSw.value
-  return list.length > 0 && list.every(sw => selectedSwBatch.value.includes(swKey(sw)))
-})
-const isAffectedIndeterminate = computed(() => {
-  const list = paginatedAffectedSw.value
-  const selected = list.filter(sw => selectedSwBatch.value.includes(swKey(sw)))
-  return selected.length > 0 && selected.length < list.length
-})
-function toggleAffectedAll(e) {
-  if (e.target.checked) {
-    const ids = paginatedAffectedSw.value.map(sw => swKey(sw))
-    selectedSwBatch.value = [...new Set([...selectedSwBatch.value, ...ids])]
+function clearFilter() {
+  if (activeTab.value === 'software') {
+    swFilters.name = ''
+    swFilters.version = ''
+    swFilters.lang = ''
+    swFilters.vuln = ''
+    swFilters.industry = ''
+    swFilters.shelf = ''
   } else {
-    const pageKeys = new Set(paginatedAffectedSw.value.map(sw => swKey(sw)))
-    selectedSwBatch.value = selectedSwBatch.value.filter(k => !pageKeys.has(k))
+    compFilters.name = ''
+    compFilters.version = ''
+    compFilters.lang = ''
+    compFilters.shelf = ''
   }
+  doFilter()
 }
 
-// 其他全选
-const isOtherAllSelected = computed(() => {
-  const list = paginatedOtherSw.value
-  return list.length > 0 && list.every(sw => selectedSwBatch.value.includes(swKey(sw)))
+filterSoftware()
+if (activeTab.value === 'component') {
+  ensureCompData()
+  filterComponent()
+}
+
+function getShelfStatus(row) {
+  return row.shelfStatus || '上架中'
+}
+
+function isShelfOnline(row) {
+  return getShelfStatus(row) === '上架中'
+}
+
+function getShelfLabel(row) {
+  return isShelfOnline(row) ? '已上架' : '已下架'
+}
+
+function shelfActionLabel(row) {
+  return isShelfOnline(row) ? '下架' : '上架'
+}
+
+function applyShelfFilter(list, shelf) {
+  if (shelf === 'online') return list.filter((s) => isShelfOnline(s))
+  if (shelf === 'offline') return list.filter((s) => !isShelfOnline(s))
+  return list
+}
+
+function toggleShelf(row) {
+  shelfRow(row, isShelfOnline(row) ? '已下架' : '上架中')
+}
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / pageSize.value)))
+
+const paginatedList = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredList.value.slice(start, start + pageSize.value)
 })
-const isOtherIndeterminate = computed(() => {
-  const list = paginatedOtherSw.value
-  const selected = list.filter(sw => selectedSwBatch.value.includes(swKey(sw)))
-  return selected.length > 0 && selected.length < list.length
+
+const pageItems = computed(() => {
+  const total = totalPages.value
+  const cur = page.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const items = [1]
+  if (cur > 3) items.push('…')
+  const start = Math.max(2, cur - 1)
+  const end = Math.min(total - 1, cur + 1)
+  for (let i = start; i <= end; i++) items.push(i)
+  if (cur < total - 2) items.push('…')
+  items.push(total)
+  return items
 })
-function toggleOtherAll(e) {
+
+watch(pageSize, () => {
+  page.value = 1
+})
+
+watch(
+  () => route.query.tab,
+  (t) => {
+    const next = t === 'component' ? 'component' : 'software'
+    if (next !== activeTab.value) {
+      activeTab.value = next
+      page.value = 1
+      selectedIds.value = []
+      doFilter()
+    }
+  },
+)
+
+function setTab(next) {
+  if (activeTab.value === next) return
+  activeTab.value = next
+  page.value = 1
+  selectedIds.value = []
+  router.replace({
+    name: 'patch-plan',
+    query: next === 'component' ? { tab: 'component' } : {},
+  })
+  doFilter()
+}
+
+const isAllSelected = computed(() => {
+  const list = paginatedList.value
+  return list.length > 0 && list.every((s) => selectedIds.value.includes(s.id))
+})
+
+const isIndeterminate = computed(() => {
+  const list = paginatedList.value
+  const sel = list.filter((s) => selectedIds.value.includes(s.id))
+  return sel.length > 0 && sel.length < list.length
+})
+
+function toggleAll(e) {
   if (e.target.checked) {
-    const ids = paginatedOtherSw.value.map(sw => swKey(sw))
-    selectedSwBatch.value = [...new Set([...selectedSwBatch.value, ...ids])]
+    const ids = paginatedList.value.map((s) => s.id)
+    selectedIds.value = [...new Set([...selectedIds.value, ...ids])]
   } else {
-    const pageKeys = new Set(paginatedOtherSw.value.map(sw => swKey(sw)))
-    selectedSwBatch.value = selectedSwBatch.value.filter(k => !pageKeys.has(k))
+    const pageIds = new Set(paginatedList.value.map((s) => s.id))
+    selectedIds.value = selectedIds.value.filter((id) => !pageIds.has(id))
   }
 }
 
-// 单个切换
-function toggleSw(sw) {
-  const k = swKey(sw)
-  const idx = selectedSwBatch.value.indexOf(k)
-  if (idx === -1) selectedSwBatch.value.push(k)
-  else selectedSwBatch.value.splice(idx, 1)
+function toggleItem(id) {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx === -1) selectedIds.value.push(id)
+  else selectedIds.value.splice(idx, 1)
 }
 
-// ============================
-// 上下架操作
-// ============================
-function shelfSw(sw, status) {
-  setShelfStatus(sw, status)
-  addLog(status === '上架中' ? '上架' : '下架', `${sw.name} v${sw.version}`)
-  showToast(`${status === '上架中' ? '已上架' : '已下架'} ${sw.name}`, 'success')
-}
-
-function removeSw(sw) {
-  if (!activeTrain.value) return
-  const idx = activeTrain.value.softwareList.indexOf(sw)
-  if (idx !== -1) {
-    activeTrain.value.softwareList.splice(idx, 1)
-    addLog('移除', `${sw.name} v${sw.version}`)
-    showToast(`已移除 ${sw.name}`, 'info')
-  }
+function shelfRow(row, status) {
+  row.shelfStatus = status
+  const label = status === '上架中' ? '上架' : '下架'
+  const kind = activeTab.value === 'software' ? '软件' : '组件'
+  showToast(`已${label}${kind}「${row.name}」`, 'success')
 }
 
 function batchShelf(status) {
+  if (!selectedIds.value.length) return
+  if (activeTab.value === 'component') ensureCompData()
   const label = status === '上架中' ? '上架' : '下架'
+  const source = activeTab.value === 'software' ? allSw.value : allComp.value
   let count = 0
-  selectedSwBatch.value.forEach(key => {
-    const [trainId, swId] = key.split('-')
-    const train = versionTrains.find(t => t.id === trainId)
-    if (train) {
-      const sw = train.softwareList.find(s => s.id === Number(swId))
-      if (sw) {
-        shelfStatusMap.set(key, status)
-        count++
-      }
+  selectedIds.value.forEach((id) => {
+    const row = source.find((s) => s.id === id)
+    if (row) {
+      row.shelfStatus = status
+      count++
     }
   })
-  addLog(`批量${label}`, `共 ${count} 项`)
-  showToast(`批量${label}完成：${count} 项`, 'success')
-  selectedSwBatch.value = []
+  const kind = activeTab.value === 'software' ? '软件' : '组件'
+  showToast(`批量${label}${kind}完成，共 ${count} 项`, 'success')
+  selectedIds.value = []
 }
 
-// ============================
-// 操作记录
-// ============================
-const operationLogs = ref([])
-const showLogModal = ref(false)
+function onSoftwareClick(row) {
+  router.push({ name: 'software-library', query: { q: row.name } })
+}
 
-function addLog(type, detail) {
-  operationLogs.value.unshift({
-    id: Date.now() + Math.random(),
-    time: new Date().toLocaleString('zh-CN'),
-    type,
-    detail,
+function onComponentVersionClick(row) {
+  router.push({
+    name: 'component-library',
+    query: { q: row.name },
   })
 }
 
-// ============================
-// Toast
-// ============================
 const toastMsg = ref('')
 const toastType = ref('info')
+
 function showToast(msg, type = 'info') {
   toastMsg.value = msg
   toastType.value = type
-  setTimeout(() => { toastMsg.value = '' }, 2500)
-}
-
-// ============================
-// 工具函数
-// ============================
-function levelClass(level) {
-  if (level === '严重') return 'critical'
-  if (level === '高危') return 'high'
-  if (level === '中危') return 'medium'
-  if (level === '低危') return 'low'
-  return 'muted'
+  setTimeout(() => {
+    toastMsg.value = ''
+  }, 2500)
 }
 </script>
 
 <style scoped>
-.pp-page { padding: 24px; min-height: 100%; }
-
-/* ====== KPI ====== */
-.pp-kpi-row {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-  margin-bottom: 20px;
-}
-.pp-kpi-item {
-  border-radius: 10px;
-  padding: 18px 20px; text-align: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-.pp-kpi-item--danger { background: #fef2f2; border: 1px solid #fecaca; }
-.pp-kpi-item--orange { background: #fff7ed; border: 1px solid #fed7aa; }
-.pp-kpi-item--amber  { background: #fffbeb; border: 1px solid #fde68a; }
-.pp-kpi-item--gray   { background: #f3f4f6; border: 1px solid #e5e7eb; }
-.pp-kpi-item--indigo { background: #eef2ff; border: 1px solid #c7d2fe; }
-.pp-kpi-value {
-  font-size: 32px; font-weight: 700; line-height: 1.2;
-  margin-bottom: 4px;
-}
-.pp-kpi-value--danger { color: #dc2626; }
-.pp-kpi-value--orange { color: #ea580c; }
-.pp-kpi-value--amber  { color: #d97706; }
-.pp-kpi-value--gray   { color: #6b7280; }
-.pp-kpi-value--indigo { color: #4f46e5; }
-.pp-kpi-label { font-size: 13px; color: #6b7280; }
-
-/* ====== 通用 section ====== */
-.pp-section {
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
-  margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  overflow: hidden;
-}
-.pp-section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px; border-bottom: 1px solid #e5e7eb;
-}
-.pp-section-title {
-  font-size: 15px; font-weight: 700; color: #111827; margin: 0;
-  display: flex; align-items: center; gap: 8px;
-}
-.pp-section-actions { display: flex; align-items: center; gap: 10px; }
-
-/* ====== CVE 预警表 ====== */
-.pp-cve-table-wrap { overflow-x: auto; }
-.pp-cve-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.pp-cve-table th, .pp-cve-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
-.pp-cve-table th { font-weight: 600; color: #374151; background: #f9fafb; font-size: 12px; }
-.pp-cve-table tbody tr:hover { background: #f9fafb; }
-.pp-cve-row--affected { background: #fff; }
-.pp-cve-row--resolved td { color: #9ca3af; }
-.pp-cve-desc { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; }
-.pp-th-check, .pp-td-check { width: 40px; text-align: center; }
-.pp-th-check input[type=checkbox], .pp-td-check input[type=checkbox] { accent-color: #4f46e5; }
-.pp-cve-search { position: relative; }
-.pp-cve-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
-.pp-cve-input {
-  padding: 7px 12px 7px 30px; border: 1px solid #e5e7eb; border-radius: 5px;
-  font-family: inherit; font-size: 13px; color: #374151; outline: none; width: 220px;
-  background: #f9fafb; transition: all 0.2s;
-}
-.pp-cve-input:focus { border-color: #da203e; background: #fff; box-shadow: 0 0 0 2px rgba(218,32,62,0.1); }
-
-/* ====== 底部左右分栏 ====== */
-.pp-bottom-layout {
-  display: flex; gap: 20px; align-items: stretch;
+.shelf-page {
+  padding: 0;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
 }
 
-/* ====== 版本火车侧边栏 ====== */
-.pp-train-sidebar {
-  width: 300px; min-width: 260px;
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  display: flex; flex-direction: column;
-  overflow: hidden;
+.shelf-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: transparent;
+  padding: 0;
 }
-.pp-train-sidebar-header {
-  padding: 14px 16px 10px; border-bottom: 1px solid #e5e7eb;
+
+.shelf-tab {
+  position: relative;
+  padding: 12px 24px 14px;
+  margin-bottom: -1px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.shelf-tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: #e5e7eb;
+}
+
+.shelf-tabs .shelf-tab:last-child::after {
+  display: none;
+}
+
+.shelf-tab.is-active {
+  color: #da203e;
+}
+
+.shelf-tab.is-active::after {
+  display: none;
+}
+
+.shelf-tab.is-active::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: #da203e;
+}
+
+.shelf-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16px;
+}
+
+.shelf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.shelf-card-head--table {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.shelf-card-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  color: #111827;
+}
+
+.shelf-card-caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #6b7280;
+  transition: transform 0.2s;
+}
+
+.shelf-card-caret.is-open {
+  transform: rotate(180deg);
+}
+
+.shelf-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shelf-card-title--static {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.shelf-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shelf-filter-body {
+  padding: 16px 20px 20px;
+}
+
+.shelf-filter-grid {
+  display: grid;
+  gap: 16px 20px;
+}
+
+.shelf-filter-grid--software {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shelf-filter-grid--component {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shelf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shelf-label {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.shelf-input,
+.shelf-select {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #111827;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.shelf-input::placeholder {
+  color: #9ca3af;
+}
+
+.shelf-input:focus,
+.shelf-select:focus {
+  border-color: #da203e;
+  box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.12);
+}
+
+.shelf-select {
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.shelf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.shelf-btn--primary {
+  background: #da203e;
+  color: #fff;
+  border-color: #da203e;
+}
+
+.shelf-btn--primary:hover {
+  background: #c41c37;
+  border-color: #c41c37;
+}
+
+.shelf-btn--outline {
+  background: #fff;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.shelf-btn--outline:hover {
+  border-color: #da203e;
+  color: #da203e;
+}
+
+.shelf-btn--ghost {
+  background: #fff;
+  color: #da203e;
+  border-color: #da203e;
+}
+
+.shelf-btn--ghost:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.shelf-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shelf-table-wrap {
+  overflow-x: auto;
+  padding: 0 20px;
+}
+
+.shelf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.shelf-table th,
+.shelf-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.shelf-table th {
+  font-weight: 500;
+  color: #6b7280;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.shelf-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.shelf-th-chk,
+.shelf-td-chk {
+  width: 44px;
+  text-align: center;
+}
+
+.shelf-th-chk input,
+.shelf-td-chk input {
+  width: 16px;
+  height: 16px;
+  accent-color: #da203e;
+  cursor: pointer;
+}
+
+.shelf-th-op,
+.shelf-td-op {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.shelf-name-link,
+.shelf-ver-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.shelf-name-link:hover,
+.shelf-ver-link:hover {
+  text-decoration: underline;
+}
+
+.shelf-comp-name {
+  color: #111827;
+  font-weight: 500;
+}
+
+.shelf-group {
+  color: #374151;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.shelf-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shelf-score-gauge {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #da203e;
+  box-shadow: inset 0 0 0 2px #fff;
   flex-shrink: 0;
 }
-.pp-train-sidebar-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 10px 0; }
-.pp-sidebar-search { position: relative; }
-.pp-sidebar-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
-.pp-sidebar-input {
-  width: 100%; padding: 7px 12px 7px 30px; border: 1px solid #e5e7eb; border-radius: 5px;
-  font-family: inherit; font-size: 13px; color: #374151; outline: none;
-  background: #f9fafb; transition: all 0.2s;
+
+.shelf-score--empty {
+  color: #9ca3af;
+  font-weight: 400;
 }
-.pp-sidebar-input:focus { border-color: #da203e; background: #fff; box-shadow: 0 0 0 2px rgba(218,32,62,0.1); }
-.pp-train-sidebar-list { flex: 1; overflow-y: auto; padding: 6px 0; }
-.pp-train-item {
-  display: flex; flex-direction: column; gap: 3px;
-  width: 100%; padding: 11px 16px; border: none; border-left: 3px solid transparent;
-  background: transparent; cursor: pointer; text-align: left; font-family: inherit;
-  transition: all 0.12s;
-  position: relative;
+
+.shelf-muted {
+  color: #374151;
 }
-.pp-train-item:hover { background: #f9fafb; }
-.pp-train-item--active { background: #fef2f2; border-left-color: #da203e; }
-.pp-train-item-main { display: flex; align-items: center; justify-content: space-between; }
-.pp-train-name { font-size: 14px; font-weight: 600; color: #111827; }
-.pp-red-dot {
+
+.shelf-dev {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+}
+
+.shelf-vuln {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.shelf-vuln--zero {
+  color: #16a34a;
+}
+
+.shelf-vuln--risk {
+  color: #da203e;
+}
+
+.shelf-lang {
+  color: #2563eb;
+}
+
+.shelf-lang-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.shelf-status-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.shelf-status-tag--online {
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.shelf-status-tag--offline {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.shelf-op {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: #da203e;
+  cursor: pointer;
+}
+
+.shelf-op:hover {
+  text-decoration: underline;
+}
+
+.shelf-op--off {
+  color: #6b7280;
+}
+
+.shelf-op--off:hover {
+  color: #da203e;
+}
+
+.shelf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 20px 16px;
+}
+
+.shelf-total {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.shelf-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shelf-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.shelf-page-btn:hover:not(:disabled):not(.is-active) {
+  border-color: #da203e;
+  color: #da203e;
+}
+
+.shelf-page-btn.is-active {
+  background: #da203e;
+  border-color: #da203e;
+  color: #fff;
+}
+
+.shelf-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.shelf-page-ellipsis {
+  padding: 0 4px;
+  color: #9ca3af;
+  font-size: 13px;
+  user-select: none;
+}
+
+.shelf-page-size {
+  margin-left: 4px;
+}
+
+.shelf-page-select {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.shelf-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 2000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  animation: shelfToastIn 0.25s ease;
+}
+
+.shelf-toast.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+@keyframes shelfToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.visually-hidden {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #dc2626;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
-.pp-train-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px;
-  font-size: 11px; font-weight: 600; background: #f3f4f6; color: #6b7280;
-  border: 1px solid #e5e7eb; flex-shrink: 0;
-  margin-top: 6px;
+
+@media (max-width: 1100px) {
+  .shelf-filter-grid--software,
+  .shelf-filter-grid--component {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.pp-train-item-meta { display: flex; align-items: center; gap: 8px; }
-.pp-train-status { font-size: 11px; padding: 1px 8px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
-.pp-train-status--pending { background: #f0fdf4; color: #16a34a; }
-.pp-train-status--released { background: #eef2ff; color: #4f46e5; }
-.pp-train-id { font-size: 11px; color: #9ca3af; font-family: monospace; }
-.pp-train-sidebar-empty { padding: 40px 16px; text-align: center; }
-.pp-text-muted { color: #9ca3af; font-size: 13px; }
 
-/* ====== 右侧软件主区 ====== */
-.pp-sw-main { flex: 1; min-width: 0; }
-.pp-sw-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+@media (max-width: 640px) {
+  .shelf-filter-grid--software,
+  .shelf-filter-grid--component {
+    grid-template-columns: 1fr;
+  }
 
-/* Header */
-.pp-sw-header { border-bottom: 1px solid #e5e7eb; }
-.pp-sw-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px; flex-wrap: wrap; gap: 10px;
-}
-.pp-sw-header-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pp-sw-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
-.pp-sw-header-meta { font-size: 12px; color: #9ca3af; }
-.pp-sw-header-meta--affected { color: #dc2626; font-weight: 600; }
-.pp-sw-header-actions { display: flex; align-items: center; gap: 10px; }
-.pp-sw-search { position: relative; }
-.pp-sw-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
-.pp-sw-input {
-  padding: 6px 10px 6px 28px; border: 1px solid #e5e7eb; border-radius: 5px;
-  font-family: inherit; font-size: 13px; color: #374151; outline: none; width: 160px;
-  background: #f9fafb; transition: all 0.2s;
-}
-.pp-sw-input:focus { border-color: #da203e; background: #fff; box-shadow: 0 0 0 2px rgba(218,32,62,0.1); }
-
-/* Batch bar */
-.pp-batch-bar {
-  display: flex; align-items: center; gap: 10px;
-  background: #fef2f2; padding: 7px 20px; border-top: 1px solid #fecaca;
-}
-.pp-batch-count { font-size: 13px; font-weight: 600; color: #da203e; white-space: nowrap; }
-.pp-batch-actions { display: flex; gap: 6px; }
-
-/* 子标题 */
-.pp-sw-subtitle {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 20px 6px; font-size: 13px; font-weight: 600;
-  color: #dc2626; border-bottom: 1px solid #f3f4f6;
-}
-.pp-sw-subtitle--other { color: #6b7280; border-top: 1px solid #e5e7eb; }
-
-/* 表格 */
-.pp-sw-table-wrap { overflow-x: auto; }
-.pp-sw-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.pp-sw-table th, .pp-sw-table td { padding: 9px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
-.pp-sw-table th { font-weight: 600; color: #374151; background: #f9fafb; font-size: 12px; }
-.pp-sw-table tbody tr:hover { background: #f9fafb; }
-.pp-sw-row--affected { background: #fef2f2; }
-.pp-sw-row--affected:hover { background: #fee2e2 !important; }
-.pp-sw-name-affected { color: #dc2626; font-weight: 600; }
-.pp-th-chk { width: 36px; text-align: center; }
-.pp-td-chk { text-align: center; }
-.pp-th-shelf { text-align: center; }
-.pp-td-shelf { text-align: center; }
-.pp-th-op { text-align: right; }
-.pp-td-op { text-align: right; white-space: nowrap; }
-
-/* 空状态 */
-.pp-sw-empty { padding: 40px 20px; text-align: center; }
-.pp-empty-msg { color: #9ca3af; font-size: 14px; }
-
-/* ====== 公共组件 ====== */
-.pp-code { font-size: 12px; color: #da203e; font-weight: 600; font-family: monospace; }
-.pp-badge {
-  display: inline-block; padding: 2px 10px; border-radius: 10px;
-  font-size: 12px; font-weight: 500; white-space: nowrap;
-}
-.pp-badge--success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.pp-badge--danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.pp-badge--muted { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
-.pp-badge--primary { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
-.pp-level {
-  display: inline-block; padding: 1px 8px; border-radius: 3px;
-  font-size: 11px; font-weight: 600;
-}
-.pp-level--critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.pp-level--high { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-.pp-level--medium { background: #eef2ff; color: #2563eb; border: 1px solid #c7d2fe; }
-.pp-level--low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.pp-level--muted { background: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
-
-.pp-text-muted { color: #9ca3af; font-size: 12px; }
-
-.pp-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 18px; border: 1px solid #d1d5db; border-radius: 6px;
-  font-family: inherit; font-size: 14px; cursor: pointer;
-  transition: all 0.15s; background: #fff; color: #374151; line-height: 1.4;
-}
-.pp-btn:hover { border-color: #da203e; color: #da203e; }
-.pp-btn-xs { padding: 5px 14px; font-size: 13px; }
-.pp-btn-outline { background: transparent; color: #da203e; border-color: #da203e; }
-.pp-btn-outline:hover { background: #fef2f2; color: #b91c1c; }
-
-.pp-linkish { padding: 0; border: none; background: none; font-family: inherit; font-size: 13px; color: #da203e; cursor: pointer; }
-.pp-linkish:hover { text-decoration: underline; }
-.pp-linkish--muted { color: #9ca3af; }
-.pp-linkish--muted:hover { color: #6b7280; }
-.pp-linkish--danger { color: #dc2626; }
-.pp-linkish--danger:hover { color: #b91c1c; }
-
-/* 分页 */
-.pp-pagination {
-  display: flex; align-items: center; justify-content: center;
-  gap: 8px; padding: 12px 20px; border-top: 1px solid #e5e7eb;
-}
-.pp-page-btn {
-  min-width: 30px; height: 30px; padding: 0 8px;
-  border: 1px solid #e5e7eb; border-radius: 5px; background: #fff;
-  color: #374151; cursor: pointer; font-size: 14px;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; font-family: inherit;
-}
-.pp-page-btn:hover:not(:disabled) { border-color: #da203e; color: #da203e; }
-.pp-page-btn:disabled { opacity: 0.35; cursor: default; }
-.pp-page-btn--active { background: #da203e; color: #fff; border-color: #da203e; }
-.pp-page-btn--active:hover { background: #b91c1c; }
-.pp-page-info { font-size: 13px; color: #6b7280; min-width: 36px; text-align: center; }
-
-/* Toast */
-.pp-toast {
-  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
-  padding: 12px 24px; border-radius: 8px;
-  font-size: 14px; z-index: 2000;
-  animation: ppToastIn 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-}
-.pp-toast.info { background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; }
-.pp-toast.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
-@keyframes ppToastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .shelf-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

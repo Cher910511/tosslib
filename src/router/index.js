@@ -13,6 +13,7 @@ import SoftwareScanView from '../views/software/SoftwareScanView.vue'
 import ScanResultView from '../views/software/ScanResultView.vue'
 import SignatureVerifyView from '../views/software/SignatureVerifyView.vue'
 import DetectionReportView from '../views/software/DetectionReportView.vue'
+import SoftwareApprovalView from '../views/software/SoftwareApprovalView.vue'
 import VersionTrainTreeView from '../views/version-train/VersionTrainTreeView.vue'
 import VersionTrainReleaseView from '../views/version-train/VersionTrainReleaseView.vue'
 import PatchPlanView from '../views/version-train/PatchPlanView.vue'
@@ -20,6 +21,8 @@ import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vu
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
+import OrgListView from '../views/org/OrgListView.vue'
+import OrgDetailView from '../views/org/OrgDetailView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
 
 const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
@@ -128,6 +131,25 @@ const routes = [
         component: DetectionReportView,
         meta: { adminTitle: '检测报告' },
       },
+      {
+        path: 'manage/approval',
+        name: 'software-approval',
+        component: SoftwareApprovalView,
+        meta: { adminTitle: '软件上下架' },
+      },
+      // ==================== 组织管理 ====================
+      {
+        path: 'org',
+        name: 'org-list',
+        component: OrgListView,
+        meta: { adminTitle: '组织管理' },
+      },
+      {
+        path: 'org/:orgId',
+        name: 'org-detail',
+        component: OrgDetailView,
+        meta: { adminTitle: '组织详情' },
+      },
       // ==================== 版本火车 ====================
       {
         path: 'version-train-tree',
@@ -145,7 +167,7 @@ const routes = [
         path: 'patch-plan',
         name: 'patch-plan',
         component: PatchPlanView,
-        meta: { adminTitle: '补丁计划' },
+        meta: { adminTitle: '软件上下架' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

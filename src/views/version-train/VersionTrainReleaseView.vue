@@ -180,8 +180,7 @@
                   </th>
                   <th>名称</th>
                   <th>类型</th>
-                  <th>版本号</th>
-                  <th>扫描状态</th>
+                  <th>版本火车号</th>
                   <th>评审结果</th>
                   <th>审核意见</th>
                   <th>导入日期</th>
@@ -318,9 +317,6 @@
             </div>
           </div>
         </div>
-        <div class="vt-modal-footer">
-          <button type="button" class="vt-btn vt-btn-outline" @click="showHistory = false">关闭</button>
-        </div>
       </div>
     </div>
 
@@ -392,7 +388,7 @@
                   <thead>
                     <tr>
                       <th>软件名称</th>
-                      <th>版本号</th>
+                      <th>版本火车号</th>
                       <th>编程语言</th>
                       <th>开源许可证</th>
                     </tr>
@@ -478,7 +474,6 @@
                       <th>版本</th>
                       <th>编程语言</th>
                       <th>开源许可证</th>
-                      <th>扫描状态</th>
                       <th>漏洞数</th>
                     </tr>
                   </thead>
@@ -519,7 +514,6 @@
                       <th>组件版本</th>
                       <th>编程语言</th>
                       <th>开源许可证</th>
-                      <th>扫描状态</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -627,7 +621,7 @@
                 <input v-model="newTrainForm.trainId" type="text" class="vt-input" placeholder="例如 VT-2026-005" />
               </div>
               <div class="vt-form-group">
-                <label class="vt-form-label">火车名称 <span class="vt-form-required">*</span></label>
+                <label class="vt-form-label">版本火车名 <span class="vt-form-required">*</span></label>
                 <input v-model="newTrainForm.name" type="text" class="vt-input" placeholder="例如 2026年Q3框架升级包" />
               </div>
             </div>
