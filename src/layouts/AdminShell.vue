@@ -87,7 +87,7 @@
               to="/software/patch-plan"
               active-class="is-active"
             >
-              <span class="nav-label">软件上下架</span>
+              <span class="nav-label">软件出入库</span>
             </RouterLink>
           </div>
         </div>
@@ -180,7 +180,7 @@
           <template v-else-if="route.name === 'patch-plan'">
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
-            <span class="current">软件上下架</span>
+            <span class="current">软件出入库</span>
           </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>

@@ -1,6 +1,6 @@
 <template>
   <div class="shelf-page">
-    <div class="shelf-tabs" role="tablist" aria-label="上下架类型">
+    <div class="shelf-tabs" role="tablist" aria-label="出入库类型">
       <button
         type="button"
         role="tab"
@@ -40,17 +40,17 @@
             type="button"
             class="shelf-btn shelf-btn--ghost"
             :disabled="!selectedIds.length"
-            @click="batchShelf('上架中')"
+            @click="openBatchShelfDialog('已入库')"
           >
-            批量上架
+            批量入库
           </button>
           <button
             type="button"
             class="shelf-btn shelf-btn--ghost"
             :disabled="!selectedIds.length"
-            @click="batchShelf('已下架')"
+            @click="openBatchShelfDialog('已出库')"
           >
-            批量下架
+            批量出库
           </button>
           <button type="button" class="shelf-btn shelf-btn--outline" @click="clearFilter">清空</button>
           <button type="button" class="shelf-btn shelf-btn--primary" @click="doFilter">筛选</button>
@@ -102,11 +102,11 @@
             </select>
           </div>
           <div class="shelf-field">
-            <label class="shelf-label">上架状态</label>
+            <label class="shelf-label">出入库状态</label>
             <select v-model="swFilters.shelf" class="shelf-select">
               <option value="">请选择</option>
-              <option value="online">已上架</option>
-              <option value="offline">已下架</option>
+              <option value="online">已入库</option>
+              <option value="offline">已出库</option>
             </select>
           </div>
         </div>
@@ -140,11 +140,11 @@
             </select>
           </div>
           <div class="shelf-field">
-            <label class="shelf-label">上架状态</label>
+            <label class="shelf-label">出入库状态</label>
             <select v-model="compFilters.shelf" class="shelf-select">
               <option value="">请选择</option>
-              <option value="online">已上架</option>
-              <option value="offline">已下架</option>
+              <option value="online">已入库</option>
+              <option value="offline">已出库</option>
             </select>
           </div>
         </div>
@@ -177,7 +177,8 @@
               <th>最新版本漏洞数</th>
               <th>开发商</th>
               <th>编程语言</th>
-              <th>上架状态</th>
+              <th>出入库状态</th>
+              <th>评审意见</th>
               <th class="shelf-th-op">操作</th>
             </tr>
           </thead>
@@ -223,12 +224,16 @@
                   {{ getShelfLabel(row) }}
                 </span>
               </td>
+              <td class="shelf-opinion-cell">
+                <span v-if="row.reviewOpinion" class="shelf-opinion-text" :title="row.reviewOpinion">{{ row.reviewOpinion }}</span>
+                <span v-else class="shelf-opinion-empty">—</span>
+              </td>
               <td class="shelf-td-op">
                 <button
                   type="button"
                   class="shelf-op"
                   :class="{ 'shelf-op--off': isShelfOnline(row) }"
-                  @click="toggleShelf(row)"
+                  @click="openShelfDialog(row)"
                 >
                   {{ shelfActionLabel(row) }}
                 </button>
@@ -255,7 +260,8 @@
               <th>groupId</th>
               <th>编程语言</th>
               <th>开源许可证</th>
-              <th>上架状态</th>
+              <th>出入库状态</th>
+              <th>审核意见</th>
               <th class="shelf-th-op">操作</th>
             </tr>
           </thead>
@@ -286,12 +292,16 @@
                   {{ getShelfLabel(row) }}
                 </span>
               </td>
+              <td class="shelf-opinion-cell">
+                <span v-if="row.reviewOpinion" class="shelf-opinion-text" :title="row.reviewOpinion">{{ row.reviewOpinion }}</span>
+                <span v-else class="shelf-opinion-empty">—</span>
+              </td>
               <td class="shelf-td-op">
                 <button
                   type="button"
                   class="shelf-op"
                   :class="{ 'shelf-op--off': isShelfOnline(row) }"
-                  @click="toggleShelf(row)"
+                  @click="openShelfDialog(row)"
                 >
                   {{ shelfActionLabel(row) }}
                 </button>
@@ -349,6 +359,48 @@
     <div v-if="toastMsg" class="shelf-toast" :class="toastType" role="status">
       {{ toastMsg }}
     </div>
+
+    <!-- 单条出入库操作对话框 -->
+    <div v-if="showShelfModal" class="shelf-overlay" @click.self="showShelfModal = false">
+      <div class="shelf-modal" role="dialog" aria-modal="true" aria-labelledby="shelf-modal-title">
+        <h3 id="shelf-modal-title" class="shelf-modal-title">
+          {{ shelfTarget ? (isShelfOnline(shelfTarget) ? '确认出库' : '确认入库') : '' }}
+        </h3>
+        <p class="shelf-modal-desc">
+          确定将 <strong>{{ shelfTarget?.name }}</strong> {{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}？请填写审核意见：
+        </p>
+        <textarea
+          v-model="shelfOpinion"
+          class="shelf-textarea"
+          rows="4"
+          placeholder="请输入审核意见（必填）"
+        ></textarea>
+        <div class="shelf-modal-actions">
+          <button type="button" class="shelf-btn shelf-btn--cancel" @click="showShelfModal = false">取消</button>
+          <button type="button" class="shelf-btn shelf-btn--confirm" :disabled="!shelfOpinion.trim()" @click="confirmShelfDialog">确认{{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量出入库操作对话框 -->
+    <div v-if="showBatchShelfModal" class="shelf-overlay" @click.self="showBatchShelfModal = false">
+      <div class="shelf-modal" role="dialog" aria-modal="true" aria-labelledby="batch-shelf-modal-title">
+        <h3 id="batch-shelf-modal-title" class="shelf-modal-title">批量{{ batchShelfLabel }}</h3>
+        <p class="shelf-modal-desc">
+          确定将选中的 <strong>{{ selectedIds.length }}</strong> 项{{ activeTab === 'software' ? '软件' : '组件' }}批量{{ batchShelfLabel }}？请填写审核意见：
+        </p>
+        <textarea
+          v-model="batchShelfOpinion"
+          class="shelf-textarea"
+          rows="4"
+          placeholder="请输入审核意见（必填）"
+        ></textarea>
+        <div class="shelf-modal-actions">
+          <button type="button" class="shelf-btn shelf-btn--cancel" @click="showBatchShelfModal = false">取消</button>
+          <button type="button" class="shelf-btn shelf-btn--confirm" :disabled="!batchShelfOpinion.trim()" @click="confirmBatchShelfDialog">确认{{ batchShelfLabel }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -379,7 +431,7 @@ const SEED_SW = [
     vulnCount: 0,
     developer: 'Python Software Foundation',
     lang: 'Python',
-    shelfStatus: '上架中',
+    shelfStatus: '已入库',
   },
   {
     id: 'sw-2',
@@ -391,7 +443,7 @@ const SEED_SW = [
     vulnCount: 3,
     developer: 'Protocol Buffers',
     lang: 'Java',
-    shelfStatus: '上架中',
+    shelfStatus: '已入库',
   },
   {
     id: 'sw-3',
@@ -403,7 +455,7 @@ const SEED_SW = [
     vulnCount: 16,
     developer: 'OpenClaw Contributors',
     lang: 'JavaScript',
-    shelfStatus: '已下架',
+    shelfStatus: '已出库',
   },
 ]
 
@@ -434,7 +486,7 @@ function generateSoftwareData() {
       vulnCount: base.vulnCount,
       developer: base.developer,
       lang: base.lang,
-      shelfStatus: seq % 5 === 0 ? '已下架' : '上架中',
+      shelfStatus: seq % 5 === 0 ? '已出库' : '已入库',
     })
   }
 
@@ -452,7 +504,7 @@ function generateSoftwareData() {
       vulnCount: Math.max(0, base.vulnCount + (seq % 4) - 1),
       developer: base.developer,
       lang: base.lang,
-      shelfStatus: seq % 6 === 0 ? '已下架' : '上架中',
+      shelfStatus: seq % 6 === 0 ? '已出库' : '已入库',
     })
   }
   return list
@@ -467,7 +519,7 @@ const COMP_SEED = [
     groupId: 'org.springframework.cloud',
     lang: 'Java',
     license: 'Apache License V2.0',
-    shelfStatus: '上架中',
+    shelfStatus: '已入库',
   },
   {
     id: 'comp-2',
@@ -476,7 +528,7 @@ const COMP_SEED = [
     groupId: 'com.huaweicloud',
     lang: 'Java',
     license: 'Apache License V2.0',
-    shelfStatus: '上架中',
+    shelfStatus: '已入库',
   },
   {
     id: 'comp-3',
@@ -485,7 +537,7 @@ const COMP_SEED = [
     groupId: 'com.alibaba.cloud',
     lang: 'Java',
     license: 'Apache License V2.0',
-    shelfStatus: '上架中',
+    shelfStatus: '已入库',
   },
 ]
 
@@ -544,7 +596,7 @@ function generateComponentData() {
     list.push({
       id: `comp-${seq}`,
       ...t,
-      shelfStatus: seq % 7 === 0 ? '已下架' : '上架中',
+      shelfStatus: seq % 7 === 0 ? '已出库' : '已入库',
     })
   }
 
@@ -568,7 +620,7 @@ function generateComponentData() {
       groupId: t.groupId,
       lang: t.lang,
       license: t.license,
-      shelfStatus: seq % 8 === 0 ? '已下架' : '上架中',
+      shelfStatus: seq % 8 === 0 ? '已出库' : '已入库',
     })
   }
   return list
@@ -656,19 +708,19 @@ if (activeTab.value === 'component') {
 }
 
 function getShelfStatus(row) {
-  return row.shelfStatus || '上架中'
+  return row.shelfStatus || '已入库'
 }
 
 function isShelfOnline(row) {
-  return getShelfStatus(row) === '上架中'
+  return getShelfStatus(row) === '已入库'
 }
 
 function getShelfLabel(row) {
-  return isShelfOnline(row) ? '已上架' : '已下架'
+  return isShelfOnline(row) ? '已入库' : '已出库'
 }
 
 function shelfActionLabel(row) {
-  return isShelfOnline(row) ? '下架' : '上架'
+  return isShelfOnline(row) ? '出库' : '入库'
 }
 
 function applyShelfFilter(list, shelf) {
@@ -677,8 +729,65 @@ function applyShelfFilter(list, shelf) {
   return list
 }
 
-function toggleShelf(row) {
-  shelfRow(row, isShelfOnline(row) ? '已下架' : '上架中')
+// 出入库对话框
+const showShelfModal = ref(false)
+const shelfTarget = ref(null)
+const shelfOpinion = ref('')
+
+function openShelfDialog(row) {
+  shelfTarget.value = row
+  shelfOpinion.value = row.reviewOpinion || ''
+  showShelfModal.value = true
+}
+
+function confirmShelfDialog() {
+  if (!shelfTarget.value || !shelfOpinion.value.trim()) return
+  const row = shelfTarget.value
+  const newStatus = isShelfOnline(row) ? '已出库' : '已入库'
+  row.shelfStatus = newStatus
+  row.reviewOpinion = shelfOpinion.value
+  const label = newStatus === '已入库' ? '入库' : '出库'
+  const kind = activeTab.value === 'software' ? '软件' : '组件'
+  showToast(`已${label}${kind}「${row.name}」`, 'success')
+  showShelfModal.value = false
+  shelfTarget.value = null
+}
+
+// 批量出入库对话框
+const showBatchShelfModal = ref(false)
+const batchShelfTarget = ref('')
+const batchShelfOpinion = ref('')
+
+const batchShelfLabel = computed(() => batchShelfTarget.value === '已入库' ? '入库' : '出库')
+
+function openBatchShelfDialog(target) {
+  batchShelfTarget.value = target
+  batchShelfOpinion.value = ''
+  showBatchShelfModal.value = true
+}
+
+function confirmBatchShelfDialog() {
+  if (!batchShelfTarget.value || !batchShelfOpinion.value.trim() || !selectedIds.value.length) return
+  batchShelf(batchShelfTarget.value, batchShelfOpinion.value)
+  showBatchShelfModal.value = false
+}
+
+function batchShelf(status, opinion) {
+  if (activeTab.value === 'component') ensureCompData()
+  const label = status === '已入库' ? '入库' : '出库'
+  const source = activeTab.value === 'software' ? allSw.value : allComp.value
+  let count = 0
+  selectedIds.value.forEach((id) => {
+    const row = source.find((s) => s.id === id)
+    if (row) {
+      row.shelfStatus = status
+      row.reviewOpinion = opinion
+      count++
+    }
+  })
+  const kind = activeTab.value === 'software' ? '软件' : '组件'
+  showToast(`已批量${label}${count}项${kind}`, 'success')
+  selectedIds.value = []
 }
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / pageSize.value)))
@@ -758,30 +867,6 @@ function toggleItem(id) {
   else selectedIds.value.splice(idx, 1)
 }
 
-function shelfRow(row, status) {
-  row.shelfStatus = status
-  const label = status === '上架中' ? '上架' : '下架'
-  const kind = activeTab.value === 'software' ? '软件' : '组件'
-  showToast(`已${label}${kind}「${row.name}」`, 'success')
-}
-
-function batchShelf(status) {
-  if (!selectedIds.value.length) return
-  if (activeTab.value === 'component') ensureCompData()
-  const label = status === '上架中' ? '上架' : '下架'
-  const source = activeTab.value === 'software' ? allSw.value : allComp.value
-  let count = 0
-  selectedIds.value.forEach((id) => {
-    const row = source.find((s) => s.id === id)
-    if (row) {
-      row.shelfStatus = status
-      count++
-    }
-  })
-  const kind = activeTab.value === 'software' ? '软件' : '组件'
-  showToast(`批量${label}${kind}完成，共 ${count} 项`, 'success')
-  selectedIds.value = []
-}
 
 function onSoftwareClick(row) {
   router.push({ name: 'software-library', query: { q: row.name } })
@@ -1301,6 +1386,121 @@ function showToast(msg, type = 'info') {
   background: #fff;
   cursor: pointer;
   font-family: inherit;
+}
+
+/* 审核意见列 */
+.shelf-opinion-cell {
+  max-width: 180px;
+  overflow: hidden;
+}
+
+.shelf-opinion-text {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #374151;
+  font-size: 13px;
+}
+
+.shelf-opinion-empty {
+  color: #d1d5db;
+}
+
+/* 出入库对话框 */
+.shelf-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.shelf-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 440px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.shelf-modal-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.shelf-modal-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.shelf-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.shelf-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.shelf-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.shelf-btn--cancel {
+  color: #6b7280;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.shelf-btn--cancel:hover {
+  background: #f9fafb;
+}
+
+.shelf-btn--confirm {
+  color: #16a34a;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.shelf-btn--confirm:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.shelf-btn--confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .shelf-toast {

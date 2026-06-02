@@ -310,7 +310,7 @@ export const releaseHistory = [
   },
 ]
 
-// 4. 软件上下架 · CVE 预警
+// 4. 软件出入库 · CVE 预警
 export const patchPlanCVEList = [
   { id: 1, cveId: 'CVE-2026-28473', level: '高危', component: 'OpenSSL', version: '3.3.1', publishTime: '2026-05-24', description: '证书解析缓冲区溢出远程代码执行', affected: true, action: '待处理' },
   { id: 2, cveId: 'CVE-2026-27115', level: '严重', component: 'log4j-core', version: '2.23.1', publishTime: '2026-05-23', description: 'JNDI 注入远程代码执行漏洞', affected: true, action: '待处理' },
@@ -325,7 +325,7 @@ export const patchNotificationHistory = [
   { id: 2, trainId: 'VT-2025-003', cveId: 'CVE-2025-15467', component: 'OpenSSL', affectedVersions: '3.0.0-3.2.0', notifyTime: '2025-09-16 09:30:00', action: '补丁升级通知已发送', status: '已完成' },
 ]
 
-// 6. 软件上下架列表
+// 6. 软件出入库列表
 export const patchPlans = [
   {
     id: 'PP-2026-001',

@@ -135,7 +135,7 @@ const routes = [
         path: 'manage/approval',
         name: 'software-approval',
         component: SoftwareApprovalView,
-        meta: { adminTitle: '软件上下架' },
+        meta: { adminTitle: '软件出入库' },
       },
       // ==================== 组织管理 ====================
       {
@@ -167,7 +167,7 @@ const routes = [
         path: 'patch-plan',
         name: 'patch-plan',
         component: PatchPlanView,
-        meta: { adminTitle: '软件上下架' },
+        meta: { adminTitle: '软件出入库' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

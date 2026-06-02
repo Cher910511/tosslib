@@ -38,7 +38,7 @@ const permMatrix = [
   { label: '软件入库与技术评审', superadmin: true, admin: true, member: false },
   { label: '创建/编辑版本火车', superadmin: true, admin: true, member: false },
   { label: '版本火车发车', superadmin: true, admin: true, member: false },
-  { label: '创建软件上下架', superadmin: true, admin: true, member: false },
+  { label: '创建软件出入库', superadmin: true, admin: true, member: false },
   { label: '跨组织数据查看', superadmin: true, admin: false, member: false },
   { label: '创建/管理组织', superadmin: true, admin: false, member: false },
   { label: '管理用户账号', superadmin: true, admin: false, member: false },

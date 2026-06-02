@@ -2,8 +2,8 @@
   <div class="sig-page">
     <header class="sig-hero">
       <div class="sig-hero-text">
-        <h1 class="sig-title">签名验证</h1>
-        <p class="sig-lead">上传待验证的源码包或组件包，查验签名的有效性。</p>
+        <h1 class="sig-title">签名认证</h1>
+        <p class="sig-lead">上传待验证的源码包或组件包，通过签名校验验证下载来源真实性，并结合安全检测评估软件可信度。</p>
       </div>
       <div class="sig-hero-badge" aria-hidden="true">
         <span class="sig-hero-badge-inner">验</span>
@@ -138,18 +138,18 @@
     >
       <div
         class="sig-result-banner"
-        :class="verifyPassed ? 'sig-result-banner--ok' : 'sig-result-banner--fail'"
+        :class="overallPassed ? 'sig-result-banner--ok' : 'sig-result-banner--fail'"
       >
-        <span class="sig-result-icon" aria-hidden="true">{{ verifyPassed ? '✓' : '!' }}</span>
+        <span class="sig-result-icon" aria-hidden="true">{{ overallPassed ? '✓' : '!' }}</span>
         <div>
           <h2 id="sig-result-title" class="sig-result-heading">
-            {{ verifyPassed ? '验证通过' : '验证未通过' }}
+            {{ overallPassed ? '验证通过' : '验证未通过' }}
           </h2>
           <p class="sig-result-sub">
             {{
-              verifyPassed
-                ? '该文件已通过来源校验，可判定为在本平台下载获取。'
-                : '该文件未通过来源校验，建议从可信渠道重新下载后再进行验证。'
+              overallPassed
+                ? '该文件签名有效且软件可信，可放心使用。'
+                : '该文件签名无效或软件未通过可信验证，建议从可信渠道重新下载。'
             }}
           </p>
         </div>
@@ -164,10 +164,22 @@
           <dt>验证时间</dt>
           <dd>{{ resultTimeText }}</dd>
         </div>
-        <!-- <div class="sig-result-row">
-          <dt>校验结论</dt>
-          <dd>{{ verifyPassed ? '来源可信' : '来源未通过' }}</dd>
-        </div> -->
+        <div class="sig-result-row">
+          <dt>签名状态</dt>
+          <dd>
+            <span class="sig-status-tag" :class="signaturePassed ? 'sig-status-tag--ok' : 'sig-status-tag--fail'">
+              {{ signaturePassed ? '通过' : '未通过' }}
+            </span>
+          </dd>
+        </div>
+        <div class="sig-result-row">
+          <dt>可信状态</dt>
+          <dd>
+            <span class="sig-status-tag" :class="trusted ? 'sig-status-tag--ok' : 'sig-status-tag--fail'">
+              {{ trusted ? '可信' : '不可信' }}
+            </span>
+          </dd>
+        </div>
       </dl>
 
       <div class="sig-actions">
@@ -185,13 +197,16 @@ const fileInputRef = ref(null)
 const selectedFile = ref(null)
 const fileError = ref('')
 const dragOver = ref(false)
-const verifyPassed = ref(false)
+const signaturePassed = ref(false)
+const trusted = ref(false)
 const resultTimeText = ref('')
 /** 每次出结果递增，避免结果区复用时样式/类名偶发不刷新 */
 const resultPanelKey = ref(0)
 const uploadProgress = ref(0)
 const uploadReady = ref(false)
 const localUploading = ref(false)
+
+const overallPassed = computed(() => signaturePassed.value && trusted.value)
 
 /** 选文件后自动上传模拟：取消时递增，避免旧任务把状态置为已就绪 */
 let uploadJobId = 0
@@ -263,7 +278,7 @@ function formatNow() {
 }
 
 /** 约 50% 为 true（通过）；优先用 crypto 取位，比连续 Math.random 更均匀 */
-function drawVerifyPassed() {
+function drawBinaryResult() {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
       const buf = new Uint8Array(1)
@@ -386,7 +401,9 @@ async function startVerify() {
     }, scanMs)
   })
 
-  verifyPassed.value = drawVerifyPassed()
+  signaturePassed.value = drawBinaryResult()
+  // 可信状态独立生成（可结合实际安全检查逻辑）
+  trusted.value = drawBinaryResult()
   resultTimeText.value = formatNow()
   resultPanelKey.value += 1
   phase.value = 'result'
@@ -397,7 +414,8 @@ function resetFlow() {
   clearUploadInterval()
   clearScanWait()
   phase.value = 'idle'
-  verifyPassed.value = false
+  signaturePassed.value = false
+  trusted.value = false
   resultTimeText.value = ''
   selectedFile.value = null
   fileError.value = ''
@@ -913,6 +931,24 @@ onUnmounted(() => {
   font-size: 13px;
   line-height: 1.55;
   color: var(--sig-muted);
+}
+
+.sig-status-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sig-status-tag--ok {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.sig-status-tag--fail {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .sig-result-dl {
