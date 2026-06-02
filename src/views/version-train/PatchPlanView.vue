@@ -225,8 +225,8 @@
                 </span>
               </td>
               <td class="shelf-opinion-cell">
-                <span v-if="row.reviewOpinion" class="shelf-opinion-text" :title="row.reviewOpinion">{{ row.reviewOpinion }}</span>
-                <span v-else class="shelf-opinion-empty">—</span>
+                <span v-if="row.reviewOpinion" class="shelf-opinion-text shelf-opinion-link" :title="row.reviewOpinion" @click="openOpinionHistory(row)">{{ row.reviewOpinion }}</span>
+                <span v-else class="shelf-opinion-empty" @click="openOpinionHistory(row)">—</span>
               </td>
               <td class="shelf-td-op">
                 <button
@@ -261,7 +261,7 @@
               <th>编程语言</th>
               <th>开源许可证</th>
               <th>出入库状态</th>
-              <th>审核意见</th>
+              <th>评审意见</th>
               <th class="shelf-th-op">操作</th>
             </tr>
           </thead>
@@ -293,8 +293,8 @@
                 </span>
               </td>
               <td class="shelf-opinion-cell">
-                <span v-if="row.reviewOpinion" class="shelf-opinion-text" :title="row.reviewOpinion">{{ row.reviewOpinion }}</span>
-                <span v-else class="shelf-opinion-empty">—</span>
+                <span v-if="row.reviewOpinion" class="shelf-opinion-text shelf-opinion-link" :title="row.reviewOpinion" @click="openOpinionHistory(row)">{{ row.reviewOpinion }}</span>
+                <span v-else class="shelf-opinion-empty" @click="openOpinionHistory(row)">—</span>
               </td>
               <td class="shelf-td-op">
                 <button
@@ -367,13 +367,13 @@
           {{ shelfTarget ? (isShelfOnline(shelfTarget) ? '确认出库' : '确认入库') : '' }}
         </h3>
         <p class="shelf-modal-desc">
-          确定将 <strong>{{ shelfTarget?.name }}</strong> {{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}？请填写审核意见：
+          确定将 <strong>{{ shelfTarget?.name }}</strong> {{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}？请填写评审意见：
         </p>
         <textarea
           v-model="shelfOpinion"
           class="shelf-textarea"
           rows="4"
-          placeholder="请输入审核意见（必填）"
+          placeholder="请输入评审意见（必填）"
         ></textarea>
         <div class="shelf-modal-actions">
           <button type="button" class="shelf-btn shelf-btn--cancel" @click="showShelfModal = false">取消</button>
@@ -387,17 +387,53 @@
       <div class="shelf-modal" role="dialog" aria-modal="true" aria-labelledby="batch-shelf-modal-title">
         <h3 id="batch-shelf-modal-title" class="shelf-modal-title">批量{{ batchShelfLabel }}</h3>
         <p class="shelf-modal-desc">
-          确定将选中的 <strong>{{ selectedIds.length }}</strong> 项{{ activeTab === 'software' ? '软件' : '组件' }}批量{{ batchShelfLabel }}？请填写审核意见：
+          确定将选中的 <strong>{{ selectedIds.length }}</strong> 项{{ activeTab === 'software' ? '软件' : '组件' }}批量{{ batchShelfLabel }}？请填写评审意见：
         </p>
         <textarea
           v-model="batchShelfOpinion"
           class="shelf-textarea"
           rows="4"
-          placeholder="请输入审核意见（必填）"
+          placeholder="请输入评审意见（必填）"
         ></textarea>
         <div class="shelf-modal-actions">
           <button type="button" class="shelf-btn shelf-btn--cancel" @click="showBatchShelfModal = false">取消</button>
           <button type="button" class="shelf-btn shelf-btn--confirm" :disabled="!batchShelfOpinion.trim()" @click="confirmBatchShelfDialog">确认{{ batchShelfLabel }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评审意见历史弹窗 -->
+    <div v-if="showOpinionHistoryModal" class="shelf-overlay" @click.self="showOpinionHistoryModal = false">
+      <div class="shelf-modal shelf-modal--history" role="dialog" aria-modal="true" aria-labelledby="opinion-history-title">
+        <h3 id="opinion-history-title" class="shelf-modal-title">评审意见历史</h3>
+        <p class="shelf-modal-desc">
+          <strong>{{ opinionHistoryTarget?.name }}</strong> 的评审意见修改记录：
+        </p>
+        <div class="shelf-history-table-wrap">
+          <table class="shelf-table">
+            <thead>
+              <tr>
+                <th>操作</th>
+                <th>评审意见</th>
+                <th>操作人</th>
+                <th>操作时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="(opinionHistoryItems || []).length === 0">
+                <td colspan="4" class="shelf-empty-cell">暂无审核记录</td>
+              </tr>
+              <tr v-for="(h, idx) in opinionHistoryItems" :key="idx">
+                <td><span class="shelf-op-tag" :class="h.action === '入库' ? 'shelf-op-tag--in' : 'shelf-op-tag--out'">{{ h.action }}</span></td>
+                <td class="shelf-history-opinion">{{ h.opinion }}</td>
+                <td>{{ h.operator }}</td>
+                <td class="shelf-muted">{{ h.timestamp }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="shelf-modal-actions">
+          <button type="button" class="shelf-btn shelf-btn--cancel" @click="showOpinionHistoryModal = false">关闭</button>
         </div>
       </div>
     </div>
@@ -431,7 +467,11 @@ const SEED_SW = [
     vulnCount: 0,
     developer: 'Python Software Foundation',
     lang: 'Python',
+    reviewOpinion: '许可证合规，版本稳定，准予入库',
     shelfStatus: '已入库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-26 09:00', opinion: '许可证合规，版本稳定，准予入库' },
+    ],
   },
   {
     id: 'sw-2',
@@ -443,7 +483,11 @@ const SEED_SW = [
     vulnCount: 3,
     developer: 'Protocol Buffers',
     lang: 'Java',
+    reviewOpinion: '存在3个已知CVE，但均为低风险，建议监控使用',
     shelfStatus: '已入库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-25 11:20', opinion: '许可证检查通过，同意入库' },
+    ],
   },
   {
     id: 'sw-3',
@@ -455,7 +499,12 @@ const SEED_SW = [
     vulnCount: 16,
     developer: 'OpenClaw Contributors',
     lang: 'JavaScript',
+    reviewOpinion: '漏洞过多且长期未修复，予以出库处理',
     shelfStatus: '已出库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-20 10:00', opinion: '新项目入库，版本0.1.0' },
+      { action: '出库', operator: 'admin', timestamp: '2026-04-01 16:00', opinion: '漏洞过多且长期未修复，予以出库处理' },
+    ],
   },
 ]
 
@@ -487,6 +536,7 @@ function generateSoftwareData() {
       developer: base.developer,
       lang: base.lang,
       shelfStatus: seq % 5 === 0 ? '已出库' : '已入库',
+      reviewHistory: [],
     })
   }
 
@@ -505,6 +555,7 @@ function generateSoftwareData() {
       developer: base.developer,
       lang: base.lang,
       shelfStatus: seq % 6 === 0 ? '已出库' : '已入库',
+      reviewHistory: [],
     })
   }
   return list
@@ -520,6 +571,10 @@ const COMP_SEED = [
     lang: 'Java',
     license: 'Apache License V2.0',
     shelfStatus: '已入库',
+    reviewOpinion: 'Spring Cloud组件，许可证合规，准予入库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-22 10:00', opinion: 'Spring Cloud组件，许可证合规，准予入库' },
+    ],
   },
   {
     id: 'comp-2',
@@ -529,6 +584,10 @@ const COMP_SEED = [
     lang: 'Java',
     license: 'Apache License V2.0',
     shelfStatus: '已入库',
+    reviewOpinion: '升级至1.10.13，修复已知问题',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-18 14:30', opinion: '华为Nacos组件，已通过兼容性测试，准予入库' },
+    ],
   },
   {
     id: 'comp-3',
@@ -538,6 +597,10 @@ const COMP_SEED = [
     lang: 'Java',
     license: 'Apache License V2.0',
     shelfStatus: '已入库',
+    reviewOpinion: 'Alibaba Nacos发现组件，许可证合规，准予入库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-15 16:00', opinion: 'Alibaba Nacos发现组件，许可证合规，准予入库' },
+    ],
   },
 ]
 
@@ -597,6 +660,7 @@ function generateComponentData() {
       id: `comp-${seq}`,
       ...t,
       shelfStatus: seq % 7 === 0 ? '已出库' : '已入库',
+      reviewHistory: [],
     })
   }
 
@@ -621,6 +685,7 @@ function generateComponentData() {
       lang: t.lang,
       license: t.license,
       shelfStatus: seq % 8 === 0 ? '已出库' : '已入库',
+      reviewHistory: [],
     })
   }
   return list
@@ -744,9 +809,16 @@ function confirmShelfDialog() {
   if (!shelfTarget.value || !shelfOpinion.value.trim()) return
   const row = shelfTarget.value
   const newStatus = isShelfOnline(row) ? '已出库' : '已入库'
+  const label = newStatus === '已入库' ? '入库' : '出库'
   row.shelfStatus = newStatus
   row.reviewOpinion = shelfOpinion.value
-  const label = newStatus === '已入库' ? '入库' : '出库'
+  if (!row.reviewHistory) row.reviewHistory = []
+  row.reviewHistory.push({
+    action: label,
+    opinion: shelfOpinion.value,
+    operator: 'admin',
+    timestamp: formatDateTime(),
+  })
   const kind = activeTab.value === 'software' ? '软件' : '组件'
   showToast(`已${label}${kind}「${row.name}」`, 'success')
   showShelfModal.value = false
@@ -777,17 +849,40 @@ function batchShelf(status, opinion) {
   const label = status === '已入库' ? '入库' : '出库'
   const source = activeTab.value === 'software' ? allSw.value : allComp.value
   let count = 0
+  const now = formatDateTime()
   selectedIds.value.forEach((id) => {
     const row = source.find((s) => s.id === id)
     if (row) {
       row.shelfStatus = status
       row.reviewOpinion = opinion
+      if (!row.reviewHistory) row.reviewHistory = []
+      row.reviewHistory.push({
+        action: label,
+        opinion,
+        operator: 'admin',
+        timestamp: now,
+      })
       count++
     }
   })
   const kind = activeTab.value === 'software' ? '软件' : '组件'
   showToast(`已批量${label}${count}项${kind}`, 'success')
   selectedIds.value = []
+}
+
+// 评审意见历史弹窗
+const showOpinionHistoryModal = ref(false)
+const opinionHistoryTarget = ref(null)
+const opinionHistoryItems = computed(() => {
+  const row = opinionHistoryTarget.value
+  if (!row) return []
+  const history = row.reviewHistory || []
+  return [...history].reverse()
+})
+
+function openOpinionHistory(row) {
+  opinionHistoryTarget.value = row
+  showOpinionHistoryModal.value = true
 }
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / pageSize.value)))
@@ -882,6 +977,11 @@ function onComponentVersionClick(row) {
 const toastMsg = ref('')
 const toastType = ref('info')
 
+function formatDateTime() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
 function showToast(msg, type = 'info') {
   toastMsg.value = msg
   toastType.value = type
@@ -1294,17 +1394,21 @@ function showToast(msg, type = 'info') {
 }
 
 .shelf-op {
-  padding: 0;
-  border: none;
-  background: none;
+  padding: 4px 14px;
+  border: 0px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
   color: #da203e;
   cursor: pointer;
+  transition: all 0.15s;
 }
 
 .shelf-op:hover {
-  text-decoration: underline;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .shelf-op--off {
@@ -1312,7 +1416,8 @@ function showToast(msg, type = 'info') {
 }
 
 .shelf-op--off:hover {
-  color: #da203e;
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 .shelf-footer {
@@ -1388,7 +1493,7 @@ function showToast(msg, type = 'info') {
   font-family: inherit;
 }
 
-/* 审核意见列 */
+/* 评审意见列 */
 .shelf-opinion-cell {
   max-width: 180px;
   overflow: hidden;
@@ -1402,6 +1507,18 @@ function showToast(msg, type = 'info') {
   text-overflow: ellipsis;
   color: #374151;
   font-size: 13px;
+}
+
+.shelf-opinion-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  color: #2563eb;
+}
+
+.shelf-opinion-link:hover {
+  color: #1d4ed8;
 }
 
 .shelf-opinion-empty {
@@ -1562,5 +1679,55 @@ function showToast(msg, type = 'info') {
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* 评审意见历史弹窗 */
+.shelf-modal--history {
+  width: 560px;
+}
+
+.shelf-history-table-wrap {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0 -24px;
+  padding: 0 24px;
+}
+
+.shelf-history-table-wrap .shelf-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.shelf-history-opinion {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelf-empty-cell {
+  padding: 24px 14px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.shelf-op-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.shelf-op-tag--in {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.shelf-op-tag--out {
+  background: #fee2e2;
+  color: #dc2626;
 }
 </style>

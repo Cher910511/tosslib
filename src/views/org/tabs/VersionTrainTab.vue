@@ -10,7 +10,7 @@
             <span class="vt-tab-count-badge">{{ filteredTrains.length }}</span>
           </div>
           <div class="vt-tab-sidebar-actions">
-            <button type="button" class="vt-tab-pill-btn vt-tab-pill-btn--primary" @click="showNewTrainModal = true">+ 新增</button>
+            <button type="button" class="vt-tab-pill-btn vt-tab-pill-btn--primary" @click="resetNewTrainForm(); showNewTrainModal = true">+ 新增</button>
             <button type="button" class="vt-tab-pill-btn vt-tab-pill-btn--ghost" @click="showHistory = true">发车历史</button>
           </div>
           <div class="vt-tab-sidebar-search">
@@ -19,13 +19,15 @@
           </div>
         </div>
         <div class="vt-tab-sidebar-list">
-          <button
+          <div
             v-for="train in filteredTrains"
             :key="train.id"
-            type="button"
+            role="button"
+            tabindex="0"
             class="vt-tab-sidebar-item"
             :class="{ 'vt-tab-sidebar-item--active': activeTrainId === train.id }"
             @click="activeTrainId = train.id"
+            @keydown.enter.prevent="activeTrainId = train.id"
           >
             <div class="vt-tab-sidebar-item-main">
               <span class="vt-tab-sidebar-name">{{ train.name }}</span>
@@ -35,14 +37,15 @@
               <span class="vt-tab-sidebar-status" :class="'vt-tab-sidestatus--' + train.status">{{ train.status }}</span>
               <span class="vt-tab-sidebar-id">{{ train.id }}</span>
               <span class="vt-tab-sidebar-ver">{{ train.versionNum }}</span>
-              <div class="vt-tab-dot-wrap" @click.stop="openMenuTrainId = openMenuTrainId === train.id ? null : train.id">
+              <div v-if="train.status === '待发车'" class="vt-tab-dot-wrap" @click.stop="openMenuTrainId = openMenuTrainId === train.id ? null : train.id">
                 <span class="vt-tab-dot-btn">···</span>
                 <ul v-if="openMenuTrainId === train.id" class="vt-tab-dot-menu">
-                  <li class="vt-tab-dot-menu-item vt-tab-dot-menu-item--danger" @click.stop="confirmDeleteTrain(train)">删除</li>
+                  <li v-if="train.status === '待发车'" class="vt-tab-dot-menu-item" @click.stop="openEditTrainForm(train)">编辑</li>
+                  <li v-if="train.status === '待发车'" class="vt-tab-dot-menu-item vt-tab-dot-menu-item--danger" @click.stop="confirmDeleteTrain(train)">删除</li>
                 </ul>
               </div>
             </div>
-          </button>
+          </div>
           <div v-if="filteredTrains.length === 0" class="vt-tab-sidebar-empty">
             <span class="vt-tab-text-muted">{{ orgTrains.length === 0 ? '暂无版本火车' : '没有匹配的结果' }}</span>
           </div>
@@ -100,7 +103,26 @@
                   <div v-if="group.versions.length === 0" class="vt-tab-tree-empty-sub">暂无版本</div>
                 </div>
               </div>
-              <div v-if="groupedBySoftware.length === 0" class="vt-tab-tree-empty-row">暂无软件</div>
+              <!-- 无依赖关系组件节点 -->
+              <div v-if="orphanComponents.length > 0" class="vt-tab-tree-group">
+                <div class="vt-tab-tree-soft-row" @click="toggleSwName('__orphan__')">
+                  <span class="vt-tab-tree-expand-icon">
+                    <svg v-if="isSwNameOpen('__orphan__')" width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512.790674 713.142857L55.647817 256a32.182857 32.182857 0 1 0-45.641143 45.348571l457.142857 457.142858a64.365714 64.365714 0 0 0 90.989715 0l457.142857-457.142858a32.182857 32.182857 0 0 0-45.348572-45.348571l-457.142857 457.142857z"/></svg>
+                    <svg v-else width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512.790674 713.142857L55.647817 256a32.182857 32.182857 0 1 0-45.641143 45.348571l457.142857 457.142858a64.365714 64.365714 0 0 0 90.989715 0l457.142857-457.142858a32.182857 32.182857 0 0 0-45.348572-45.348571l-457.142857 457.142857z" transform="rotate(-90 512 512)"/></svg>
+                  </span>
+                  <span class="vt-tab-tree-soft-name" style="color:#9ca3af;">无依赖关系</span>
+                  <span class="vt-tab-dot-badge">{{ orphanComponents.length }}</span>
+                </div>
+                <div v-if="isSwNameOpen('__orphan__')" class="vt-tab-tree-soft-children">
+                  <div v-for="comp in orphanComponents" :key="comp.id" class="vt-tab-tree-component" style="padding-left:12px;">
+                    <div class="vt-tab-tree-comp-row">
+                      <span class="vt-tab-tree-comp-name">{{ comp.name.split(' / ')[1] || comp.name }}</span>
+                      <span class="vt-tab-tree-comp-version vt-tab-version-link" @click.stop="router.push({ name: 'software-detail', query: { v: comp.version, tab: 'intro' } })">v{{ comp.version }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-if="groupedBySoftware.length === 0 && orphanComponents.length === 0" class="vt-tab-tree-empty-row">暂无软件</div>
             </div>
           </div>
           </div>
@@ -119,8 +141,6 @@
                 <h2 class="vt-tab-card-title">
                   {{ activeTrain.id }} — {{ activeTrain.name }}
                   <span class="vt-tab-title-status" :class="'vt-tab-sidestatus--' + activeTrain.status">{{ activeTrain.status }}</span>
-                  <span v-if="activeTrain.releaseTime" class="vt-tab-title-time">发布时间：{{ activeTrain.releaseTime }}</span>
-                  <span v-if="activeTrain.endTime" class="vt-tab-title-time vt-tab-title-time--end">结束时间：{{ activeTrain.endTime }}</span>
                 </h2>
                 <div class="vt-tab-card-header-actions">
                   <template v-if="activeTrain.status === '待发车'">
@@ -130,7 +150,13 @@
                     {{ showVersionInfo ? '收起信息树' : '版本火车信息树' }}
                   </button>
                   <button v-if="activeTrain.status === '待发车'" type="button" class="vt-tab-btn vt-tab-btn-primary vt-tab-btn-xs" @click="openReleaseForm(activeTrain)">发车</button>
+                  <button v-if="activeTrain.status === '已发车'" type="button" class="vt-tab-btn vt-tab-btn-outline vt-tab-btn-xs" @click="openRecallModal(activeTrain)">撤回发车</button>
+                  <button v-if="activeTrain.status === '已发车' || activeTrain.status === '已过期'" type="button" class="vt-tab-btn vt-tab-btn-outline vt-tab-btn-xs" @click="copyTrain(activeTrain)">复制火车</button>
                 </div>
+              </div>
+              <div v-if="activeTrain.releaseTime" class="vt-tab-card-time-row">
+                <span class="vt-tab-title-time">发布时间：{{ activeTrain.releaseTime }}</span>
+                <span v-if="activeTrain.endTime" class="vt-tab-title-time vt-tab-title-time--end" style="margin-left:16px;">结束时间：{{ activeTrain.endTime }}</span>
               </div>
               <div v-if="activeTrain.remark" class="vt-tab-card-remark">
                 <span class="vt-tab-card-remark-text">{{ activeTrain.remark }}</span>
@@ -160,6 +186,26 @@
               </div>
             </div>
 
+            <!-- 软件/组件 Tab 切换 -->
+            <div class="vt-tab-im-tabs">
+              <button
+                class="vt-tab-im-tab"
+                :class="{ active: softwareTab === 'software' }"
+                @click="softwareTab = 'software'"
+              >
+                软件
+                <span class="vt-tab-im-tab-count">{{ activeTrainSoftwareItems.filter(i => (i.type || 'software') !== 'component').length }}</span>
+              </button>
+              <button
+                class="vt-tab-im-tab"
+                :class="{ active: softwareTab === 'component' }"
+                @click="softwareTab = 'component'"
+              >
+                组件
+                <span class="vt-tab-im-tab-count">{{ activeTrainSoftwareItems.filter(i => (i.type || '') === 'component').length }}</span>
+              </button>
+            </div>
+
             <!-- 软件列表表格 -->
             <div class="vt-tab-table-wrap">
               <table class="vt-tab-table">
@@ -173,7 +219,7 @@
                     <th>语言</th>
                     <th>许可证</th>
                     <th>状态</th>
-                    <th class="vt-tab-th-op">操作</th>
+                    <th v-if="activeTrain.status !== '已过期'" class="vt-tab-th-op">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -192,8 +238,11 @@
                       <template v-else-if="activeTrain.status === '已发车'">
                         <span class="vt-tab-badge" :class="sw.published ? 'vt-tab-badge--active' : 'vt-tab-badge--muted'">{{ sw.published ? '已上架' : '已下架' }}</span>
                       </template>
+                      <template v-else>
+                        <span class="vt-tab-badge vt-tab-badge--已过期">已过期</span>
+                      </template>
                     </td>
-                    <td class="vt-tab-td-op">
+                    <td v-if="activeTrain.status !== '已过期'" class="vt-tab-td-op">
                       <template v-if="activeTrain.status === '待发车'">
                         <button type="button" class="vt-tab-linkish vt-tab-linkish--danger" @click="removeSoftwareFromTrain(sw.id)">移除</button>
                       </template>
@@ -240,7 +289,7 @@
               <tr>
                 <th>火车编号</th>
                 <th>名称</th>
-                <th>发布时间</th>
+                <th>开始时间</th>
                 <th>结束时间</th>
                 <th>状态</th>
                 <th>软件数</th>
@@ -275,11 +324,11 @@
       </div>
     </div>
 
-    <!-- ====== 新增火车弹窗 ====== -->
+    <!-- ====== 新增/编辑火车弹窗 ====== -->
     <div v-if="showNewTrainModal" class="vt-tab-overlay" @click.self="showNewTrainModal = false">
       <div class="vt-tab-modal">
         <div class="vt-tab-modal-header">
-          <h3 class="vt-tab-modal-title">新增版本火车</h3>
+          <h3 class="vt-tab-modal-title">{{ editTarget ? '编辑版本火车' : '新增版本火车' }}</h3>
           <button type="button" class="vt-tab-modal-close" @click="showNewTrainModal = false">×</button>
         </div>
         <div class="vt-tab-modal-body">
@@ -296,7 +345,7 @@
         </div>
         <div class="vt-tab-modal-footer">
           <button type="button" class="vt-tab-btn vt-tab-btn-ghost" @click="showNewTrainModal = false">取消</button>
-          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="createNewTrain" :disabled="!newTrainForm.name.trim() || !newTrainForm.versionNum.trim()">确认创建</button>
+          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="createNewTrain" :disabled="!newTrainForm.name.trim() || !newTrainForm.versionNum.trim()">{{ editTarget ? '确认修改' : '确认创建' }}</button>
         </div>
       </div>
     </div>
@@ -305,13 +354,14 @@
     <div v-if="showReleaseModal" class="vt-tab-overlay" @click.self="showReleaseModal = false">
       <div class="vt-tab-modal">
         <div class="vt-tab-modal-header">
-          <h3 class="vt-tab-modal-title">确认发车</h3>
+          <h3 class="vt-tab-modal-title">设置发车计划</h3>
           <button type="button" class="vt-tab-modal-close" @click="showReleaseModal = false">×</button>
         </div>
         <div class="vt-tab-modal-body">
-          <p class="vt-tab-release-info">即将发车：<strong>{{ releaseTrain?.id }} — {{ releaseTrain?.name }}</strong></p>
+          <p class="vt-tab-release-info">计划发车：<strong>{{ releaseTrain?.id }} — {{ releaseTrain?.name }}</strong></p>
           <p class="vt-tab-release-info">包含软件数：<strong>{{ releaseTrain?.softwareList?.length || 0 }}</strong> 项</p>
           <p class="vt-tab-release-info">包含组件数：<strong>{{ (releaseTrain?.softwareList?.filter(s => s.type === 'component') || []).length }}</strong> 项</p>
+          <p class="vt-tab-release-hint">将在设置的开始时间正式发车，发车后组织成员可查看和使用此版本火车。</p>
           <div class="vt-tab-form-group">
             <label class="vt-tab-form-label">开始时间</label>
             <input v-model="releaseStartTime" type="datetime-local" class="vt-tab-input" />
@@ -327,7 +377,26 @@
         </div>
         <div class="vt-tab-modal-footer">
           <button type="button" class="vt-tab-btn vt-tab-btn-ghost" @click="showReleaseModal = false">取消</button>
-          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="confirmRelease">确认发车</button>
+          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="confirmRelease">保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 撤回发车确认弹窗 ====== -->
+    <div v-if="showRecallModal" class="vt-tab-overlay" @click.self="showRecallModal = false">
+      <div class="vt-tab-modal">
+        <div class="vt-tab-modal-header">
+          <h3 class="vt-tab-modal-title">确认撤回发车</h3>
+          <button type="button" class="vt-tab-modal-close" @click="showRecallModal = false">×</button>
+        </div>
+        <div class="vt-tab-modal-body">
+          <p class="vt-tab-release-info">即将撤回：<strong>{{ recallTarget?.id }} — {{ recallTarget?.name }}</strong></p>
+          <p class="vt-tab-release-info">撤回后状态将恢复为 <strong>待发车</strong>，可重新编辑和发车。</p>
+          <p class="vt-tab-release-hint">开始时间和结束时间将被清除，需重新设置</p>
+        </div>
+        <div class="vt-tab-modal-footer">
+          <button type="button" class="vt-tab-btn vt-tab-btn-ghost" @click="showRecallModal = false">取消</button>
+          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="confirmRecallRelease">确认撤回</button>
         </div>
       </div>
     </div>
@@ -507,6 +576,8 @@ const pageSize = ref(10)
 // 弹窗
 const showNewTrainModal = ref(false)
 const showReleaseModal = ref(false)
+const showRecallModal = ref(false)
+const recallTarget = ref(null)
 const showSelectSoftware = ref(false)
 const releaseTrain = ref(null)
 const releaseRemark = ref('')
@@ -519,6 +590,23 @@ const importPageSize = ref(10)
 const selectedNewSoftwareIds = ref([])
 
 const newTrainForm = reactive({ name: '', versionNum: '', remark: '' })
+const editTarget = ref(null)
+
+function openEditTrainForm(train) {
+  editTarget.value = train
+  newTrainForm.name = train.name
+  newTrainForm.versionNum = train.versionNum
+  newTrainForm.remark = train.remark || ''
+  showNewTrainModal.value = true
+  openMenuTrainId.value = null
+}
+
+function resetNewTrainForm() {
+  editTarget.value = null
+  newTrainForm.name = ''
+  newTrainForm.versionNum = ''
+  newTrainForm.remark = ''
+}
 
 // Toast
 const toast = reactive({ show: false, type: 'info', message: '' })
@@ -553,6 +641,10 @@ function autoSelectFirstTrain() {
 }
 onMounted(() => { setTimeout(autoSelectFirstTrain, 0) })
 watch(filteredTrains, autoSelectFirstTrain)
+const softwareTab = ref('software')
+watch(softwareNameSearch, () => { page.value = 1 })
+watch(softwareVersionSearch, () => { page.value = 1 })
+watch(softwareTab, () => { page.value = 1 })
 
 const activeTrain = computed(() =>
   activeTrainId.value ? orgTrains.value.find(t => t.id === activeTrainId.value) || null : null
@@ -560,7 +652,7 @@ const activeTrain = computed(() =>
 
 const activeTrainSoftwareItems = computed(() => {
   if (!activeTrain.value) return []
-  return activeTrain.value.softwareList.filter(s => (s.type || 'software') !== 'component')
+  return activeTrain.value.softwareList || []
 })
 
 const activeTrainSwItems = computed(() => {
@@ -577,8 +669,27 @@ const groupedBySoftware = computed(() => {
   return Object.values(map).sort((a, b) => a.name.localeCompare(b.name, 'zh'))
 })
 
+// 无软件依赖关系的组件（没有 software 字段或 software 不在当前火车软件列表中）
+const orphanComponents = computed(() => {
+  if (!activeTrain.value) return []
+  const swNames = new Set(activeTrain.value.softwareList.filter(s => (s.type || 'software') !== 'component').map(s => s.name))
+  return activeTrain.value.softwareList.filter(s => {
+    if ((s.type || '') !== 'component') return false
+    if (!s.software) return true
+    return !swNames.has(s.software)
+  })
+})
+
 const filteredSoftware = computed(() => {
   let items = [...activeTrainSoftwareItems.value]
+  // 按类型筛选
+  if (softwareTab.value === 'software') {
+    items = items.filter(s => (s.type || 'software') !== 'component')
+  } else if (softwareTab.value === 'component') {
+    items = items.filter(s => (s.type || '') === 'component')
+  } else {
+    items = items.filter(s => (s.type || 'software') !== 'component')
+  }
   const nameQ = softwareNameSearch.value.trim().toLowerCase()
   const verQ = softwareVersionSearch.value.trim().toLowerCase()
   if (nameQ) items = items.filter(s => s.name.toLowerCase().includes(nameQ))
@@ -614,9 +725,10 @@ const isIndeterminate = computed(() => {
 })
 
 const colspanCount = computed(() => {
-  let n = 6 // 软件名称 + 版本号 + 语言 + 许可证 + 扫描状态 + 状态
+  let n = 6 // 软件名称 + 版本号 + 语言 + 许可证 + 状态
   if (canBatch.value) n += 1
-  return n + 1 // + 操作
+  if (activeTrain.value?.status !== '已过期') n += 1 // 操作列
+  return n
 })
 
 // 模拟组件数据
@@ -760,6 +872,7 @@ function isSwOpen(id) {
 
 function treeExpandAll() {
   openSwNames.value = groupedBySoftware.value.map(g => g.name)
+  if (orphanComponents.value.length > 0) openSwNames.value.push('__orphan__')
   openSwIds.value = activeTrainSwItems.value.map(s => s.id)
   allExpanded.value = true
 }
@@ -856,6 +969,21 @@ function createNewTrain() {
   const name = newTrainForm.name.trim()
   const versionNum = newTrainForm.versionNum.trim()
   if (!name || !versionNum) return
+
+  if (editTarget.value) {
+    // 编辑模式
+    const train = editTarget.value
+    train.name = name
+    train.versionNum = versionNum
+    train.remark = newTrainForm.remark.trim() || ''
+    showNewTrainModal.value = false
+    resetNewTrainForm()
+    showToast('版本火车编辑成功')
+    openMenuTrainId.value = null
+    return
+  }
+
+  // 新增模式
   const count = orgTrains.value.length + 1
   const newTrain = {
     id: `VT-${new Date().getFullYear()}-${String(count).padStart(3, '0')}`,
@@ -869,9 +997,7 @@ function createNewTrain() {
   orgTrains.value.unshift(newTrain)
   activeTrainId.value = newTrain.id
   showNewTrainModal.value = false
-  newTrainForm.name = ''
-  newTrainForm.versionNum = ''
-  newTrainForm.remark = ''
+  resetNewTrainForm()
   showToast('版本火车创建成功')
 }
 
@@ -896,6 +1022,44 @@ function confirmRelease() {
   })
   showReleaseModal.value = false
   showToast(`版本火车 ${releaseTrain.value.id} 已成功发车`)
+}
+
+function openRecallModal(train) {
+  recallTarget.value = train
+  showRecallModal.value = true
+  openMenuTrainId.value = null
+}
+
+function confirmRecallRelease() {
+  if (!recallTarget.value) return
+  const train = recallTarget.value
+  train.status = '待发车'
+  delete train.releasedVersion
+  delete train.releaseTime
+  delete train.endTime
+  showRecallModal.value = false
+  recallTarget.value = null
+  showToast('已撤回发车，状态恢复为待发车')
+}
+
+function copyTrain(train) {
+  const count = orgTrains.value.length + 1
+  const newTrain = {
+    id: `VT-${new Date().getFullYear()}-${String(count).padStart(3, '0')}`,
+    name: train.name + '(副本)',
+    versionNum: train.versionNum,
+    status: '待发车',
+    createdAt: new Date().toISOString().slice(0, 10),
+    softwareList: train.softwareList.map(s => ({
+      ...s,
+      status: '待发布',
+      published: false,
+    })),
+    remark: train.remark || '',
+  }
+  orgTrains.value.unshift(newTrain)
+  activeTrainId.value = newTrain.id
+  showToast('版本火车复制成功，已创建新火车')
 }
 
 function toggleNewSoftware(id) {
@@ -1378,8 +1542,8 @@ watch(activeTrainId, () => {
 }
 
 .vt-tab-th-chk, .vt-tab-td-chk { width: 40px; text-align: center; }
-.vt-tab-th-op { text-align: right; }
-.vt-tab-td-op { text-align: right; white-space: nowrap; }
+.vt-tab-th-op { text-align: center; }
+.vt-tab-td-op { text-align: center; white-space: nowrap; }
 
 .vt-tab-soft-name { font-weight: 500; }
 
@@ -1766,6 +1930,16 @@ watch(activeTrainId, () => {
   margin: 0 0 12px;
   font-size: 14px;
   color: #374151;
+}
+
+.vt-tab-release-hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  padding: 8px;
+  background: #7d7d7d1b;
+  border-radius: 6px;
 }
 
 /* ====== Software Select ====== */

@@ -83,14 +83,13 @@
               <td>{{ item.license }}</td>
               <td>{{ item.submittedAt }}</td>
               <td>
-                <span v-if="filter === 'pending'" class="approval-type-badge" :class="item.type === '入库' ? 'type-on' : 'type-off'">
-                  {{ item.type }}
-                </span>
+                <span v-if="filter === 'pending'" class="approval-type-badge" :class="item.type === '入库' ? 'type-on' : 'type-off'">{{ item.type }}</span>
                 <span v-else>{{ item.operator || '—' }}</span>
               </td>
               <td class="approval-opinion-cell">
-                <span v-if="item.reviewOpinion" class="approval-opinion-text" :title="item.reviewOpinion">{{ item.reviewOpinion }}</span>
-                <span v-else class="approval-opinion-empty">—</span>
+                <button type="button" class="approval-opinion-btn" @click="openOpinionHistory(item)" :title="item.reviewOpinion || '点击查看历史'">
+                  {{ item.reviewOpinion || '—' }}
+                </button>
               </td>
               <td class="approval-td-op">
                 <template v-if="filter === 'pending'">
@@ -175,6 +174,32 @@
         </div>
       </div>
     </div>
+
+    <!-- 审核意见历史对话框 -->
+    <div v-if="showOpinionHistoryModal" class="approval-overlay" @click.self="showOpinionHistoryModal = false">
+      <div class="approval-modal approval-modal--wide" role="dialog" aria-modal="true" aria-labelledby="opinion-history-modal-title">
+        <h3 id="opinion-history-modal-title" class="approval-modal-title">评审意见历史</h3>
+        <p class="approval-modal-desc">
+          <strong>{{ opinionHistoryTarget?.name }}</strong> 的审核记录
+        </p>
+        <div class="opinion-history-list" v-if="opinionHistoryTarget?.reviewHistory?.length">
+          <div class="opinion-history-item" v-for="(entry, idx) in opinionHistoryTarget.reviewHistory" :key="idx">
+            <div class="opinion-history-header">
+              <span class="opinion-history-op" :class="entry.operation === '入库' ? 'op-in' : 'op-out'">{{ entry.operation }}</span>
+              <span class="opinion-history-user">{{ entry.operator }}</span>
+              <span class="opinion-history-time">{{ entry.time }}</span>
+            </div>
+            <div class="opinion-history-body">{{ entry.opinion }}</div>
+          </div>
+        </div>
+        <div class="opinion-history-empty" v-else>
+          暂无审核意见记录
+        </div>
+        <div class="approval-modal-actions">
+          <button type="button" class="approval-btn" @click="showOpinionHistoryModal = false">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -188,14 +213,26 @@ const filter = ref('pending')
 
 // 模拟数据
 const items = ref([
-  { id: 1, name: 'Apache Tomcat', version: '10.1.19', submitter: '张建国', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-20 10:30', type: '入库', status: 'pending', operator: null, reviewOpinion: '' },
-  { id: 2, name: 'Nginx', version: '1.25.4', submitter: '王明远', lang: 'C', license: 'BSD-2-Clause', submittedAt: '2025-03-19 14:20', type: '入库', status: 'pending', operator: null, reviewOpinion: '' },
-  { id: 3, name: 'Redis', version: '7.2.4', submitter: '李思远', lang: 'C', license: 'BSD-3-Clause', submittedAt: '2025-03-18 09:15', type: '入库', status: 'pending', operator: null, reviewOpinion: '' },
-  { id: 4, name: 'RabbitMQ', version: '3.13.0', submitter: '陈晓峰', lang: 'Erlang', license: 'MPL-2.0', submittedAt: '2025-03-17 16:45', type: '出库', status: 'pending', operator: null, reviewOpinion: '' },
-  { id: 5, name: 'Vue.js', version: '3.4.21', submitter: '赵小明', lang: 'TypeScript', license: 'MIT', submittedAt: '2025-03-15 11:00', type: '入库', status: 'approved', operator: 'admin', reviewOpinion: '审核通过，准予入库' },
-  { id: 6, name: 'Spring Boot', version: '3.2.3', submitter: '钱丽华', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-14 08:30', type: '入库', status: 'approved', operator: 'admin', reviewOpinion: '许可证合规，同意入库' },
-  { id: 7, name: 'Django', version: '5.0.3', submitter: '孙一鸣', lang: 'Python', license: 'BSD-3-Clause', submittedAt: '2025-03-12 13:20', type: '入库', status: 'rejected', operator: 'admin', reviewOpinion: '版本过旧，不满足安全要求' },
-  { id: 8, name: 'Log4j 1.x', version: '1.2.17', submitter: '周雅琴', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-10 10:00', type: '出库', status: 'rejected', operator: 'admin', reviewOpinion: '驳回出库申请，需补充替代方案' },
+  { id: 1, name: 'Apache Tomcat', version: '10.1.19', submitter: '张建国', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-20 10:30', type: '入库', status: 'pending', operator: null, reviewOpinion: '', reviewHistory: [
+    { operation: '提交入库申请', operator: '张建国', time: '2025-03-20 10:30', opinion: '申请将 Apache Tomcat 10.1.19 纳入软件库' },
+    { operation: '初审', operator: '李审核', time: '2025-03-20 11:00', opinion: '许可证检查通过，等待安全审查' },
+  ] },
+  { id: 2, name: 'Nginx', version: '1.25.4', submitter: '王明远', lang: 'C', license: 'BSD-2-Clause', submittedAt: '2025-03-19 14:20', type: '入库', status: 'pending', operator: null, reviewOpinion: '', reviewHistory: [
+    { operation: '提交入库申请', operator: '王明远', time: '2025-03-19 14:20', opinion: '申请将 Nginx 1.25.4 纳入软件库' },
+    { operation: '安全审查', operator: '赵安全', time: '2025-03-19 15:30', opinion: 'CVE 扫描通过，建议直接入库' },
+  ] },
+  { id: 3, name: 'Redis', version: '7.2.4', submitter: '李思远', lang: 'C', license: 'BSD-3-Clause', submittedAt: '2025-03-18 09:15', type: '入库', status: 'pending', operator: null, reviewOpinion: '', reviewHistory: [
+    { operation: '提交入库申请', operator: '李思远', time: '2025-03-18 09:15', opinion: '申请将 Redis 7.2.4 纳入软件库' },
+    { operation: '合规审查', operator: '钱合规', time: '2025-03-18 10:00', opinion: 'BSD-3-Clause 许可证合规，版本较新，建议批准' },
+  ] },
+  { id: 4, name: 'RabbitMQ', version: '3.13.0', submitter: '陈晓峰', lang: 'Erlang', license: 'MPL-2.0', submittedAt: '2025-03-17 16:45', type: '出库', status: 'pending', operator: null, reviewOpinion: '', reviewHistory: [
+    { operation: '提交出库申请', operator: '陈晓峰', time: '2025-03-17 16:45', opinion: '请求将 RabbitMQ 3.13.0 从软件库移除，因已停止维护' },
+    { operation: '技术评估', operator: '孙技术', time: '2025-03-18 09:00', opinion: '确认 RabbitMQ 3.x 已停止维护，建议迁移至更新的消息队列方案' },
+  ] },
+  { id: 5, name: 'Vue.js', version: '3.4.21', submitter: '赵小明', lang: 'TypeScript', license: 'MIT', submittedAt: '2025-03-15 11:00', type: '入库', status: 'approved', operator: 'admin', reviewOpinion: '审核通过，准予入库', reviewHistory: [{ operation: '入库', operator: 'admin', time: '2025-03-15 11:05', opinion: '审核通过，准予入库' }] },
+  { id: 6, name: 'Spring Boot', version: '3.2.3', submitter: '钱丽华', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-14 08:30', type: '入库', status: 'approved', operator: 'admin', reviewOpinion: '许可证合规，同意入库', reviewHistory: [{ operation: '入库', operator: 'admin', time: '2025-03-14 08:35', opinion: '许可证合规，同意入库' }] },
+  { id: 7, name: 'Django', version: '5.0.3', submitter: '孙一鸣', lang: 'Python', license: 'BSD-3-Clause', submittedAt: '2025-03-12 13:20', type: '入库', status: 'rejected', operator: 'admin', reviewOpinion: '版本过旧，不满足安全要求', reviewHistory: [{ operation: '驳回', operator: 'admin', time: '2025-03-12 13:25', opinion: '版本过旧，不满足安全要求' }] },
+  { id: 8, name: 'Log4j 1.x', version: '1.2.17', submitter: '周雅琴', lang: 'Java', license: 'Apache-2.0', submittedAt: '2025-03-10 10:00', type: '出库', status: 'rejected', operator: 'admin', reviewOpinion: '驳回出库申请，需补充替代方案', reviewHistory: [{ operation: '出库', operator: 'admin', time: '2025-03-10 10:05', opinion: '驳回出库申请，需补充替代方案' }] },
 ])
 
 const filteredList = computed(() => items.value.filter((i) => i.status === filter.value))
@@ -216,6 +253,7 @@ function confirmApprove() {
   if (!approveTarget.value || !approveOpinion.value.trim()) return
   const idx = items.value.findIndex((i) => i.id === approveTarget.value.id)
   if (idx === -1) return
+  pushHistory(items.value[idx], '入库', approveOpinion.value)
   items.value[idx] = { ...items.value[idx], status: 'approved', operator: 'admin', reviewOpinion: approveOpinion.value }
   showApproveModal.value = false
   approveTarget.value = null
@@ -236,6 +274,7 @@ function confirmReject() {
   if (!rejectTarget.value || !rejectReason.value.trim()) return
   const idx = items.value.findIndex((i) => i.id === rejectTarget.value.id)
   if (idx === -1) return
+  pushHistory(items.value[idx], '驳回', rejectReason.value)
   items.value[idx] = { ...items.value[idx], status: 'rejected', operator: 'admin', reviewOpinion: rejectReason.value }
   showRejectModal.value = false
   rejectTarget.value = null
@@ -256,6 +295,7 @@ function confirmOffShelf() {
   if (!offShelfTarget.value || !offShelfReason.value.trim()) return
   const idx = items.value.findIndex((i) => i.id === offShelfTarget.value.id)
   if (idx === -1) return
+  pushHistory(items.value[idx], '出库', offShelfReason.value)
   items.value[idx] = { ...items.value[idx], status: 'rejected', operator: 'admin', reviewOpinion: offShelfReason.value }
   showOffShelfModal.value = false
   offShelfTarget.value = null
@@ -265,6 +305,33 @@ function viewDetail(item) {
   router.push({
     name: 'software-detail',
     query: { name: item.name, version: item.version },
+  })
+}
+
+// 审核意见历史对话框
+const showOpinionHistoryModal = ref(false)
+const opinionHistoryTarget = ref(null)
+
+function openOpinionHistory(item) {
+  opinionHistoryTarget.value = item
+  showOpinionHistoryModal.value = true
+}
+
+// 工具函数：获取当前时间字符串
+function now() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// 工具：往 reviewHistory 追加一条记录
+function pushHistory(item, operation, opinion) {
+  if (!item.reviewHistory) item.reviewHistory = []
+  item.reviewHistory.push({
+    operation,
+    operator: 'admin',
+    time: now(),
+    opinion,
   })
 }
 </script>
@@ -554,5 +621,105 @@ function viewDetail(item) {
   justify-content: flex-end;
   margin-top: 16px;
   gap: 8px;
+}
+
+/* 审核意见可点击按钮 */
+.approval-opinion-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #374151;
+  font-size: 13px;
+  text-align: left;
+  transition: color 0.15s;
+}
+
+.approval-opinion-btn:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.approval-opinion-empty {
+  color: #d1d5db;
+}
+
+/* 宽版模态框 */
+.approval-modal--wide {
+  width: 540px;
+}
+
+/* 审核意见历史列表 */
+.opinion-history-list {
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0 0 16px;
+}
+
+.opinion-history-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.opinion-history-item:last-child {
+  border-bottom: none;
+}
+
+.opinion-history-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.opinion-history-op {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.opinion-history-op.op-in {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.opinion-history-op.op-out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.opinion-history-user {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.opinion-history-time {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.opinion-history-body {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  padding-left: 4px;
+}
+
+.opinion-history-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 24px 0;
 }
 </style>

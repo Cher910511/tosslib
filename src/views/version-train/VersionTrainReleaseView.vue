@@ -115,7 +115,7 @@
           <div class="vt-card-header" v-if="activeTrain">
             <div class="vt-card-header-row">
               <h2 class="vt-card-title">{{ activeTrain.id }} — {{ activeTrain.name }} <span class="vt-title-status" :class="'vt-sidestatus--' + activeTrain.status">{{ activeTrain.status }}</span>
-                <span v-if="activeTrain.releaseTime" class="vt-title-time">发布时间：{{ activeTrain.releaseTime }}</span>
+                <span v-if="activeTrain.releaseTime" class="vt-title-time">开始时间：{{ activeTrain.releaseTime }}</span>
                 <span v-if="activeTrain.endTime" class="vt-title-time vt-title-time--end">结束时间：{{ activeTrain.endTime }}</span>
               </h2>
               <div class="vt-card-header-actions">

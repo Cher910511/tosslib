@@ -132,6 +132,9 @@ export const versionTrains = [
       { id: 55, name: 'Netty', type: 'software', version: '4.1.110', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '高危CVE修复', reviewedAt: '2026-05-24' },
       // 组件
       { id: 56, name: 'log4j-core / log4j-appserver', type: 'component', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '应用服务器适配', reviewedAt: '2026-05-24', software: 'log4j-core' },
+      // 无依赖关系组件
+      { id: 1100, name: 'h2database / h2', type: 'component', version: '2.2.224', lang: 'Java', license: 'MPL-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '嵌入式数据库', reviewedAt: '2026-05-24' },
+      { id: 1101, name: 'flyway / flyway-core', type: 'component', version: '10.17.0', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '待定', reviewOpinion: '数据库迁移工具', reviewedAt: '2026-05-24' },
       { id: 1021, name: 'OpenSSL / libssl-dev', type: 'component', version: '3.3.2', lang: 'C', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '开发库', reviewedAt: '2026-05-24', software: 'OpenSSL' },
       { id: 1022, name: 'OpenSSL / openssl-utils', type: 'component', version: '3.3.2', lang: 'C', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '命令行工具', reviewedAt: '2026-05-24', software: 'OpenSSL' },
       { id: 1023, name: 'Apache Tomcat / tomcat-catalina', type: 'component', version: '10.1.26', lang: 'Java', license: 'Apache-2.0', status: '待发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Servlet容器核心', reviewedAt: '2026-05-24', software: 'Apache Tomcat' },
@@ -272,6 +275,39 @@ export const versionTrains = [
       { id: 1063, name: 'Prometheus / prometheus-server', type: 'component', version: '2.55.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务端核心', reviewedAt: '2025-12-20', published: true, software: 'Prometheus' },
       { id: 1064, name: 'Alertmanager / alertmanager-webhook', type: 'component', version: '0.27.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Webhook接收器', reviewedAt: '2025-12-20', published: true, software: 'Alertmanager' },
       { id: 1065, name: 'Alertmanager / alertmanager-silences', type: 'component', version: '0.27.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '静默规则组件', reviewedAt: '2025-12-20', published: true, software: 'Alertmanager' },
+    ],
+  },
+  // 已过期火车
+  {
+    id: 'VT-2025-001',
+    name: '2025年Q2首次发车',
+    status: '已过期',
+    createdAt: '2025-04-01',
+    releasedVersion: 'v4.0.0',
+    releaseTime: '2025-04-15 10:00:00',
+    endTime: '2025-10-15 23:59:59',
+    softwareList: [
+      { id: 131, name: 'Spring Boot', type: 'software', version: '3.0.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '框架核心组件', reviewedAt: '2025-03-20', published: true },
+      { id: 132, name: 'Apache Dubbo', type: 'software', version: '3.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'RPC框架', reviewedAt: '2025-03-20', published: true },
+      { id: 133, name: 'Nacos', type: 'software', version: '2.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '服务发现组件', reviewedAt: '2025-03-20', published: true },
+      { id: 134, name: 'Sentinel', type: 'software', version: '1.8.6', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '流量管控组件', reviewedAt: '2025-03-20', published: true },
+      { id: 135, name: 'Nacos / nacos-client', type: 'component', version: '2.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Java客户端', reviewedAt: '2025-03-20', published: true, software: 'Nacos' },
+      { id: 136, name: 'Apache Dubbo / dubbo-spring-boot-starter', type: 'component', version: '3.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'Spring Boot集成', reviewedAt: '2025-03-20', published: true, software: 'Apache Dubbo' },
+    ],
+  },
+  {
+    id: 'VT-2024-001',
+    name: '2024年Q3基础平台升级',
+    status: '已过期',
+    createdAt: '2024-07-01',
+    releasedVersion: 'v3.0.0',
+    releaseTime: '2024-08-01 10:00:00',
+    endTime: '2025-02-01 23:59:59',
+    softwareList: [
+      { id: 141, name: 'Kubernetes', type: 'software', version: '1.28.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '容器编排核心', reviewedAt: '2024-06-15', published: true },
+      { id: 142, name: 'Docker', type: 'software', version: '24.0.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '容器运行时', reviewedAt: '2024-06-15', published: true },
+      { id: 143, name: 'Prometheus', type: 'software', version: '2.48.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控组件', reviewedAt: '2024-06-15', published: true },
+      { id: 144, name: 'Grafana', type: 'software', version: '10.2.0', lang: 'TypeScript', license: 'AGPL-3.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '可视化组件', reviewedAt: '2024-06-15', published: true },
     ],
   },
 ]
