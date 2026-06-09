@@ -89,6 +89,13 @@
             >
               <span class="nav-label">软件出入库</span>
             </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/scan-details"
+              active-class="is-active"
+            >
+              <span class="nav-label">扫描明细</span>
+            </RouterLink>
           </div>
         </div>
       </nav>
@@ -181,6 +188,11 @@
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
             <span class="current">软件出入库</span>
+          </template>
+          <template v-else-if="route.name === 'scan-details'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">扫描明细</span>
           </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>

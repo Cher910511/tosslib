@@ -13,6 +13,7 @@ import SoftwareScanView from '../views/software/SoftwareScanView.vue'
 import ScanResultView from '../views/software/ScanResultView.vue'
 import SignatureVerifyView from '../views/software/SignatureVerifyView.vue'
 import DetectionReportView from '../views/software/DetectionReportView.vue'
+import ScanDetailsView from '../views/software/ScanDetailsView.vue'
 import SoftwareApprovalView from '../views/software/SoftwareApprovalView.vue'
 import VersionTrainTreeView from '../views/version-train/VersionTrainTreeView.vue'
 import VersionTrainReleaseView from '../views/version-train/VersionTrainReleaseView.vue'
@@ -168,6 +169,12 @@ const routes = [
         name: 'patch-plan',
         component: PatchPlanView,
         meta: { adminTitle: '软件出入库' },
+      },
+      {
+        path: 'scan-details',
+        name: 'scan-details',
+        component: ScanDetailsView,
+        meta: { adminTitle: '扫描明细' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],
