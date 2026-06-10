@@ -407,7 +407,7 @@
       <div class="shelf-modal shelf-modal--history" role="dialog" aria-modal="true" aria-labelledby="opinion-history-title">
         <h3 id="opinion-history-title" class="shelf-modal-title">评审意见历史</h3>
         <p class="shelf-modal-desc">
-          <strong>{{ opinionHistoryTarget?.name }}</strong>（{{ opinionHistoryTarget?.version }}）的评审意见修改记录：
+          <strong>{{ opinionHistoryTarget?.name }} {{ opinionHistoryTarget?.version }} </strong>的评审意见修改记录：
         </p>
         <div class="shelf-history-table-wrap">
           <table class="shelf-table">
