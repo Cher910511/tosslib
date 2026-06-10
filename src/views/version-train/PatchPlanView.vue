@@ -367,7 +367,7 @@
           {{ shelfTarget ? (isShelfOnline(shelfTarget) ? '确认出库' : '确认入库') : '' }}
         </h3>
         <p class="shelf-modal-desc">
-          确定将 <strong>{{ shelfTarget?.name }}</strong> {{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}？请填写评审意见：
+          确定将 <strong>{{ shelfTarget?.name }} {{ shelfTarget?.version }}</strong> {{ isShelfOnline(shelfTarget) ? '出库' : '入库' }}？请填写评审意见：
         </p>
         <textarea
           v-model="shelfOpinion"
@@ -407,7 +407,7 @@
       <div class="shelf-modal shelf-modal--history" role="dialog" aria-modal="true" aria-labelledby="opinion-history-title">
         <h3 id="opinion-history-title" class="shelf-modal-title">评审意见历史</h3>
         <p class="shelf-modal-desc">
-          <strong>{{ opinionHistoryTarget?.name }}</strong> 的评审意见修改记录：
+          <strong>{{ opinionHistoryTarget?.name }}</strong>（{{ opinionHistoryTarget?.version }}）的评审意见修改记录：
         </p>
         <div class="shelf-history-table-wrap">
           <table class="shelf-table">
