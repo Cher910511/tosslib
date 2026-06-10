@@ -171,10 +171,11 @@
                 >
               </th>
               <th>软件名称</th>
-              <th>最新版本评分</th>
-              <th>版本发布时间</th>
+              <th>软件版本</th>
+              <th>评分</th>
+              <th>发布时间</th>
               <th>行业分类</th>
-              <th>最新版本漏洞数</th>
+              <th>漏洞数</th>
               <th>开发商</th>
               <th>编程语言</th>
               <th>出入库状态</th>
@@ -193,10 +194,9 @@
                 >
               </td>
               <td>
-                <button type="button" class="shelf-name-link" @click="onSoftwareClick(row)">
-                  {{ row.name }}
-                </button>
+                <span class="shelf-name-cell">{{ row.name }}</span>
               </td>
+              <td class="shelf-version-cell">{{ row.version }}</td>
               <td>
                 <span v-if="row.score != null" class="shelf-score">
                   <span class="shelf-score-gauge" aria-hidden="true" />
@@ -1283,7 +1283,6 @@ function showToast(msg, type = 'info') {
   white-space: nowrap;
 }
 
-.shelf-name-link,
 .shelf-ver-link {
   padding: 0;
   border: none;
@@ -1295,7 +1294,6 @@ function showToast(msg, type = 'info') {
   cursor: pointer;
 }
 
-.shelf-name-link:hover,
 .shelf-ver-link:hover {
   text-decoration: underline;
 }
@@ -1359,7 +1357,7 @@ function showToast(msg, type = 'info') {
 }
 
 .shelf-lang {
-  color: #2563eb;
+  color: #374151;
 }
 
 .shelf-lang-badge {
@@ -1367,9 +1365,9 @@ function showToast(msg, type = 'info') {
   padding: 2px 10px;
   border-radius: 4px;
   font-size: 12px;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
 }
 
 .shelf-status-tag {
