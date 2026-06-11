@@ -21,6 +21,8 @@ import PatchPlanView from '../views/version-train/PatchPlanView.vue'
 import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vue'
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
+import AdminGovernanceView from '../views/admin/AdminGovernanceView.vue'
+import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
@@ -175,6 +177,19 @@ const routes = [
         name: 'scan-details',
         component: ScanDetailsView,
         meta: { adminTitle: '扫描明细' },
+      },
+      // ==================== 软件治理 ====================
+      {
+        path: 'admin-flow',
+        name: 'admin-gov',
+        component: AdminGovernanceView,
+        meta: { adminTitle: '软件治理' },
+      },
+      {
+        path: 'admin-flow/:id',
+        name: 'admin-gov-detail',
+        component: AdminGovernanceDetail,
+        meta: { adminTitle: '软件详情' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

@@ -64,7 +64,7 @@
             </tr>
             <tr v-for="(row, i) in paginatedList" :key="i">
               <td>{{ (page - 1) * pageSize + i + 1 }}</td>
-<td class="software-name-cell" @click="goToDetail(row)">{{ row.name }}</td>
+              <td class="software-name-cell" @click="goToDetail(row)">{{ row.name }}</td>
               <td>{{ row.version }}</td>
               <td>{{ row.scanTime }}</td>
               <td>
@@ -78,16 +78,50 @@
                     <div class="progress-fill" :style="{ width: row.progress + '%' }"></div>
                   </div>
                   <span class="progress-text">{{ row.progress }}%</span>
+                  <button type="button" class="manage-add-btn manage-add-btn-xs" @click.stop="showRowProgress(row)">{{ showScanProgress && selectedRowName === row.name ? '收起' : '展开' }}</button>
                 </div>
-                <button v-else type="button" class="scan-btn" :class="row.status === 'success' ? 'scan-btn--rescan' : 'scan-btn--start'" @click="handleScan(row)">
-                  <svg v-if="row.status === 'success'" viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-                  </svg>
-                  <svg v-else viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
+                <template v-else-if="row.status === 'success'">
+                  <button type="button" class="manage-add-btn manage-add-btn-xs" @click.stop="buildScanResults(); showResultModal = true; showScanProgress = false">查看结果</button>
+                  <button type="button" class="scan-btn scan-btn--rescan" @click="handleScan(row)">再次扫描</button>
+                </template>
+                <button v-else type="button" class="scan-btn scan-btn--start" @click="handleScan(row)">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
                   </svg>
-                  {{ row.status === 'success' ? '再次扫描' : '开始扫描' }}
+                  开始扫描
                 </button>
+              </td>
+            </tr>
+            <!-- 展开的扫描进度行 -->
+            <tr v-if="showScanProgress && selectedRowName === row.name">
+              <td colspan="6" style="padding:0;border:none;">
+                <div class="scan-progress-inline">
+                  <div
+                    v-for="step in scanSteps"
+                    :key="step.id"
+                    class="scan-progress-step"
+                    :class="{
+                      'sps--active': step.status === 'scanning',
+                      'sps--done': step.status === 'success',
+                      'sps--fail': step.status === 'fail',
+                    }"
+                  >
+                    <div class="sps-header">
+                      <span class="sps-icon">
+                        <span v-if="step.status === 'pending'">○</span>
+                        <span v-if="step.status === 'scanning'" class="sps-spin">◌</span>
+                        <span v-if="step.status === 'success'">✓</span>
+                        <span v-if="step.status === 'fail'">✕</span>
+                      </span>
+                      <span class="sps-name">{{ step.name }}</span>
+                      <div class="sps-bar">
+                        <div class="sps-bar-fill" :style="{ width: step.progress + '%' }"></div>
+                      </div>
+                      <span v-if="step.status === 'scanning'" class="sps-pct">{{ step.progress }}%</span>
+                      <span v-if="step.summary" class="sps-summary">{{ step.summary }}</span>
+                    </div>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -233,6 +267,42 @@
       </div>
     </Teleport>
 
+    <!-- 扫描结果弹窗 -->
+    <Teleport to="body">
+      <div v-if="showResultModal" class="modal-overlay" @click.self="showResultModal = false">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h3>扫描结果</h3>
+            <button type="button" class="modal-close" @click="showResultModal = false">×</button>
+          </div>
+          <div class="modal-body">
+            <div
+              v-for="item in scanResults"
+              :key="item.name"
+              class="result-card"
+              @click="item.open = !item.open"
+            >
+              <div class="result-card-header">
+                <span class="result-card-arrow">{{ item.open ? '▼' : '▶' }}</span>
+                <span class="result-card-dot" :class="'result-dot--' + item.status"></span>
+                <span class="result-card-name">{{ item.name }}</span>
+                <span class="result-card-status" :class="'result-status--' + item.status">{{ item.statusText }}</span>
+              </div>
+              <div v-if="item.open" class="result-card-body">
+                <div v-for="(detail, di) in item.details" :key="di" class="result-detail-row">
+                  <span class="result-detail-name">{{ detail.name }}</span>
+                  <span class="result-detail-value" :class="'result-detail--' + detail.status">{{ detail.statusText }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="manage-add-btn" @click="showResultModal = false">关闭</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Toast 提示 -->
     <Teleport to="body">
       <div v-if="toastVisible" class="toast-notification">
@@ -251,6 +321,106 @@ import { useRouter } from 'vue-router'
 
 const showScanModal = ref(false)
 const scanMode = ref('fetch-software') // 'fetch-software' | 'fetch-component'
+
+// 扫描进度和结果
+const scanning = ref(false)
+const showScanProgress = ref(false)
+const showResultModal = ref(false)
+const selectedRowName = ref('')
+
+const scanSteps = ref([])
+
+function initScanSteps() {
+  scanSteps.value = [
+    { id: 'sca', name: 'SCA 扫描', status: 'pending', progress: 0, summary: '' },
+    { id: 'copyright', name: 'Copyright 扫描', status: 'pending', progress: 0, summary: '' },
+    { id: 'malware', name: '恶意代码扫描', status: 'pending', progress: 0, summary: '' },
+    { id: 'secret', name: '机密信息检测', status: 'pending', progress: 0, summary: '' },
+    { id: 'license', name: '许可证合规检查', status: 'pending', progress: 0, summary: '' },
+  ]
+}
+
+const scanResults = ref([])
+
+function buildScanResults() {
+  scanResults.value = [
+    {
+      name: '已知安全漏洞检测', status: 'pass', statusText: '通过', open: false,
+      details: [
+        { name: 'CVE-2024-2730 漏洞扫描', status: 'pass', statusText: '未发现' },
+        { name: '依赖项安全审查', status: 'pass', statusText: '通过' },
+      ]
+    },
+    {
+      name: '安全检测', status: 'pass', statusText: '通过', open: false,
+      details: [
+        { name: '静态代码分析', status: 'pass', statusText: '通过' },
+        { name: '动态行为检测', status: 'pass', statusText: '通过' },
+      ]
+    },
+    {
+      name: '完整性保护检查', status: 'warn', statusText: '警告', open: false,
+      details: [
+        { name: '签名验证', status: 'warn', statusText: '1 个文件签名异常' },
+        { name: '哈希校验', status: 'pass', statusText: '通过' },
+      ]
+    },
+    {
+      name: '许可证合规检查', status: 'pass', statusText: '通过', open: false,
+      details: [
+        { name: '许可证兼容性分析', status: 'pass', statusText: '通过' },
+        { name: '版权声明检查', status: 'pass', statusText: '通过' },
+      ]
+    },
+    {
+      name: '内容安全检测', status: 'fail', statusText: '未通过', open: false,
+      details: [
+        { name: '敏感信息泄露检测', status: 'fail', statusText: '发现 2 处潜在泄露' },
+        { name: '代码注入检测', status: 'pass', statusText: '通过' },
+      ]
+    },
+  ]
+}
+
+function showRowProgress(row) {
+  if (showScanProgress.value && selectedRowName.value === row.name) {
+    showScanProgress.value = false
+    selectedRowName.value = ''
+  } else {
+    // 初始化和展开该行的扫描进度
+    initScanSteps()
+    selectedRowName.value = row.name
+    showScanProgress.value = true
+
+    // 模拟扫描步骤进度
+    let stepIdx = 0
+    const stepResults = [
+      { summary: '未发现已知漏洞', status: 'success' },
+      { summary: '2 个文件版权声明异常', status: 'success' },
+      { summary: '未发现恶意代码', status: 'success' },
+      { summary: '未发现机密信息泄露', status: 'success' },
+      { summary: '许可证合规检查通过', status: 'success' },
+    ]
+    const tick = () => {
+      if (stepIdx >= scanSteps.value.length) return
+      const step = scanSteps.value[stepIdx]
+      step.status = 'scanning'
+      step.progress = 0
+      const progInterval = setInterval(() => {
+        step.progress = Math.min(100, step.progress + Math.floor(Math.random() * 25) + 5)
+        if (step.progress >= 100) {
+          clearInterval(progInterval)
+          step.status = stepResults[stepIdx].status
+          step.summary = stepResults[stepIdx].summary
+          stepIdx++
+          setTimeout(tick, 400)
+        }
+      }, 300)
+    }
+    tick()
+    buildScanResults()
+  }
+}
 
 // 表单数据
 const formData = ref({
@@ -502,12 +672,11 @@ function startScan() {
     const comp = componentList.value.find(c => c.id === formData.value.componentId)
     scanList.value.unshift({ name: comp.name, version: comp.version, status: 'scanning', progress: 0, scanTime: new Date().toLocaleString('zh-CN') })
     showToast('扫描任务已开始')
-  }
-
   closeModal()
-  page.value = 1
 }
 
+// 表格行内重新扫描
+}
 // 表格行内重新扫描
 function handleScan(row) {
   const idx = scanList.value.findIndex(r => r === row)
@@ -584,159 +753,134 @@ function refreshList() {
   cursor: not-allowed;
 }
 
+/* ===== 行内扫描进度 ===== */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.sps-icon { width: 20px; text-align: center; font-size: 13px; flex-shrink: 0; }
+.sps--active .sps-icon { color: #2563eb; }
+.sps--done .sps-icon { color: #22c55e; }
+.sps--fail .sps-icon { color: #ef4444; }
+.sps-spin { animation: spin 1s linear infinite; display: inline-block; }
+.sps-name { font-size: 13px; font-weight: 500; color: #374151; min-width: 120px; }
+.sps-bar { width: 100px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.sps-bar-fill { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.3s ease; }
+.sps-pct { font-size: 11px; color: #9ca3af; min-width: 30px; }
+.sps-summary { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+/* ===== 表格操作按钮 ===== */
+
+/* ===== Tab 切换 ===== */
 .manage-tabs {
   display: flex;
-  gap: 0;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 4px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 3px;
+  width: fit-content;
 }
-
 .manage-tab {
-  position: relative;
-  padding: 10px 20px 12px;
-  margin-bottom: -1px;
+  padding: 7px 20px;
   border: none;
-  background: none;
-  font: inherit;
-  font-size: 15px;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
   font-weight: 500;
   color: #6b7280;
   cursor: pointer;
+  transition: all 0.15s;
 }
-
-.manage-tab::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1px;
-  height: 16px;
-  background: #e5e7eb;
-}
-
-.manage-tabs .manage-tab:last-child::after {
-  display: none;
-}
-
+.manage-tab:hover { color: #374151; }
 .manage-tab.is-active {
-  color: #da203e;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.manage-tab.is-active::after {
-  display: none;
-}
-
-.manage-tab.is-active::before {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #da203e;
-}
-
-.manage-tab:hover:not(.is-active) {
-  color: #374151;
-}
-
+/* ===== 卡片表格 ===== */
 .manage-card {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px 0 0;
 }
-
 .manage-card-title {
-  margin: 0 0 16px;
-  font-size: 16px;
+  margin: 0 20px 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #111827;
 }
-
 .manage-table-wrap { overflow-x: auto; }
-
 .manage-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
-
-.manage-table th,
-.manage-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-}
-
 .manage-table th {
-  font-weight: 600;
-  color: #374151;
-  background: #f9fafb;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  background: #fafafa;
 }
+.manage-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+.manage-th-op { text-align: center; width: 180px; }
+.manage-td-op { text-align: center; white-space: nowrap; }
 
-.manage-table tbody tr:hover { background: #f9fafb; }
-
-.manage-th-op, .manage-td-op { text-align: right; white-space: nowrap; }
-
+/* ===== 扫描状态标签 ===== */
 .scan-status {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 4px;
   font-size: 12px;
+  font-weight: 500;
 }
+.scan-status--scanning { background: #eff6ff; color: #2563eb; }
+.scan-status--success { background: #dcfce7; color: #16a34a; }
+.scan-status--failed { background: #fee2e2; color: #dc2626; }
+.scan-status--pending { background: #f3f4f6; color: #6b7280; }
 
-.scan-status--pending { background: #fef3c7; color: #92400e; }
-.scan-status--scanning { background: #dbeafe; color: #1e40af; }
-.scan-status--completed { background: #d1fae5; color: #065f46; }
-.scan-status--failed { background: #fee2e2; color: #991b1b; }
-
-/* 扫描状态进度条 */
 .scan-status-progress {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-.scan-status-progress .progress-bar {
-  flex: 1;
+.progress-bar {
+  width: 80px;
   height: 6px;
   background: #e5e7eb;
   border-radius: 3px;
   overflow: hidden;
-  min-width: 60px;
 }
+.progress-fill { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.3s ease; }
+.progress-text { font-size: 12px; color: #6b7280; min-width: 30px; }
 
-.scan-status-progress .progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.scan-status-progress .progress-text {
+.scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
   font-size: 12px;
-  color: #6b7280;
-  min-width: 32px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #374151;
 }
+.scan-btn:hover { border-color: #da203e; color: #da203e; }
+.scan-btn-icon { width: 14px; height: 14px; }
+.scan-btn--rescan { color: #2563eb; border-color: #bfdbfe; }
+.scan-btn--rescan:hover { color: #1d4ed8; border-color: #93c5fd; }
 
-/* 详情弹窗 */
-.detail-body {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.detail-section {
-  margin-bottom: 24px;
-}
-
-.detail-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+.manage-add-btn-xs {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .detail-info-grid {

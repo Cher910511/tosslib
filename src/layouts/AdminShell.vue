@@ -84,6 +84,13 @@
           <div v-show="versionTrainOpen" class="admin-nav-submenu">
             <RouterLink
               class="admin-nav-item admin-nav-item--sub"
+              to="/software/admin-flow"
+              active-class="is-active"
+            >
+              <span class="nav-label">软件治理</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
               to="/software/patch-plan"
               active-class="is-active"
             >
@@ -193,6 +200,18 @@
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
             <span class="current">扫描明细</span>
+          </template>
+          <template v-else-if="route.name === 'admin-gov'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">软件治理</span>
+          </template>
+          <template v-else-if="route.name === 'admin-gov-detail'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <RouterLink to="/software/admin-flow">软件治理</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">软件详情</span>
           </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>
