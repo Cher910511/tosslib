@@ -105,7 +105,7 @@
               :disabled="selectedCount === 0"
               @click="startScan"
             >
-              启动扫描{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
+              开始扫描{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
             <button
               v-if="selectedAdvanceableCount > 0"
@@ -346,10 +346,11 @@
               <th v-if="activeStep !== 0">版本</th>
               <th v-if="activeStep !== 0">主语言</th>
               <th v-if="activeStep !== 0">开源许可证</th>
+              <th v-if="activeStep === 4">漏洞数</th>
               <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">仓库地址</th>
-              <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">备份仓库地址</th>
+              <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">备份仓库地址</th>
               <th v-if="activeStep === 1">选型时间</th>
-              <th v-if="activeStep === 2">评估时间</th>
+              <th v-if="activeStep === 2">扫描时间</th>
               <th v-if="activeStep === 3">验收时间</th>
               <th v-if="activeStep === 4">入库时间</th>
               <th v-if="activeStep === 1">备份状态</th>
@@ -369,21 +370,22 @@
                   <input type="checkbox" v-model="item.selected" />
                 </td>
                 <td v-if="activeStep === 0">{{ item.name }}</td>
-                <td v-if="activeStep === 0">{{ item.version }}</td>
+                <td v-if="activeStep === 0">
+                  <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
+                </td>
                 <td v-if="activeStep === 0">{{ item.lang || '—' }}</td>
                 <td v-if="activeStep === 0">{{ item.license || '—' }}</td>
                 <td v-if="activeStep === 0" class="col-repo">
                   <code class="gov-code">{{ item.repoUrl }}</code>
                 </td>
                 <td v-if="activeStep === 0" class="gov-muted">{{ item.createdAt }}</td>
+                <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">{{ item.name }}</td>
                 <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">
-                  <button type="button" class="gov-link" @click="goDetail(item)">{{ item.name }}</button>
+                  <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
                 </td>
-                <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">{{ item.version }}</td>
                 <td v-if="activeStep === 2">{{ item.name }}</td>
                 <td v-if="activeStep === 2">
-                  <button v-if="item.scanProgress !== undefined && item.scanProgress >= 33" type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
-                  <span v-else>{{ item.version }}</span>
+                  <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
                 </td>
                 <td v-if="activeStep === 3 || activeStep === 4">{{ item.name }}</td>
                 <td v-if="activeStep === 3 || activeStep === 4">
@@ -391,10 +393,13 @@
                 </td>
                 <td v-if="activeStep !== 0">{{ item.lang || '—' }}</td>
                 <td v-if="activeStep !== 0">{{ item.license || '—' }}</td>
+                <td v-if="activeStep === 4">
+                  <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
+                </td>
                 <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">
                   <code class="gov-code">{{ item.repoUrl }}</code>
                 </td>
-                <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">
+                <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">
                   <code class="gov-code">{{ item.backupStatus === '待备份' ? '--' : (item.mirrorUrl || '--') }}</code>
                 </td>
                 <td v-if="activeStep !== 0" class="gov-muted">{{ item.createdAt }}</td>
@@ -426,8 +431,10 @@
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="goDetail(item)">详情</button>
                 </template>
-                <span class="gov-sep">|</span>
-                <button type="button" class="gov-link-sub" @click="removeItem(item)">移除</button>
+                <template v-if="!(activeStep === 4 && item.warehouseStatus === '已入库')">
+                  <span class="gov-sep">|</span>
+                  <button type="button" class="gov-link-sub" @click="removeItem(item)">移除</button>
+                </template>
                 <template v-if="activeStep === 3">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="openReviewModal(item)">审核</button>
@@ -500,7 +507,6 @@
           <div class="gov-drawer-body">
             <div v-for="(log, i) in logItem.logs" :key="i" class="gov-log-row">
               <span class="gov-log-time">{{ log.time }}</span>
-              <span class="gov-log-level" :class="'level--' + log.level">{{ log.level }}</span>
               <span class="gov-log-msg">{{ log.msg }}</span>
             </div>
             <p v-if="logItem.logs.length === 0" class="gov-empty-sm">暂无日志</p>
@@ -1151,6 +1157,7 @@ function fetchSoftwareList() {
           reviewStatus: '待评审',
           warehouseStatus: '待入库',
           riskLevel: null,
+          vulnCount: Math.floor(Math.random() * 8),
           logs: [{ time: now, level: 'info', msg: '已获取软件列表' }],
         })
       })
@@ -1196,6 +1203,7 @@ function handleExcelImport(e) {
     reviewStatus: '待评审',
     warehouseStatus: '待入库',
     riskLevel: null,
+    vulnCount: 0,
     logs: [{ time: now, level: 'info', msg: '通过 Excel 导入' }],
   })
   e.target.value = ''
@@ -1221,10 +1229,16 @@ function startBackup() {
 function startScan() {
   const selected = stepList.value.filter(i => i.selected)
   const now = new Date().toLocaleString('zh-CN')
-  selected.forEach(item => {
+
+  // 先关闭所有展开行
+  softwareList.value.forEach(i => { i._scanOpen = false })
+
+  // 选中1条 → 展开该条进度条；选中多条 → 只展开最上方一条
+  selected.forEach((item, idx) => {
     item.selected = false
     item.assessStatus = '评估中'
     item.scanProgress = 0
+    if (idx === 0) item._scanOpen = true
     item.logs.push({ time: now, level: 'info', msg: '启动 SCA 扫描、恶意代码扫描...' })
     const interval = setInterval(() => {
       if (!item.scanProgress) item.scanProgress = 0
@@ -2136,7 +2150,7 @@ select.gov-filter-input {
 .level--ok { background: #dcfce7; color: #16a34a; }
 .level--warn { background: #fef3c7; color: #d97706; }
 .level--fail { background: #fee2e2; color: #dc2626; }
-.gov-log-msg { color: #374151; flex: 1; }
+.gov-log-msg { color: #374151; flex: 1;margin-left: 10px; }
 
 .gov-empty-sm {
   color: #9ca3af;
@@ -2569,5 +2583,25 @@ select.gov-filter-input {
 @keyframes reviewModalIn {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* 漏洞数徽标 */
+.gov-vuln-badge {
+  display: inline-block;
+  min-width: 24px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 20px;
+}
+.gov-vuln-badge.vuln--none {
+  background: #dcfce7;
+  color: #166534;
+}
+.gov-vuln-badge.vuln--has {
+  background: #fee2e2;
+  color: #991b1b;
 }
 </style>
