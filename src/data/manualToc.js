@@ -47,8 +47,8 @@ export const manualToc = [
     id: 'organization',
     title: '组织管理',
     children: [
-      { id: 'org-list', title: '组织列表', doc: 'organization' },
       { id: 'org-detail', title: '组织详情', doc: 'org-detail' },
+      { id: 'version-train', title: '版本火车', doc: 'version-train' },
     ],
   },
   {

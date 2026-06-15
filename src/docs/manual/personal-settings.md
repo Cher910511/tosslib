@@ -25,16 +25,7 @@
 
 ![personal-settings-3](../images/personal-settings-3.png)
 
-## 4. 选型列表
-
-选型列表用于管理处于技术选型或评估阶段的软件资产，方便进行横向对比与统一评估。
-
-* 列表展示软件名称、版本、发布时间、行业分类、开发商及编程语言等基础信息；
-* 支持将不再关注的软件移出当前选型清单。通过选型列表，可帮助团队统一沉淀待评估的软件候选集；
-
-![personal-settings-4](../images/personal-settings-4.png)
-
-## 5. 预警信息
+## 4. 预警信息
 
 预警信息模块用于统一展示您所订阅或选型的软件风险告警。
 
@@ -52,7 +43,7 @@
 ![personal-settings-4](../images/personal-settings-5.png)
 ![personal-settings-4](../images/personal-settings-6.png)
 
-## 6. 预警信息设置
+## 5. 预警信息设置
 
 预警信息设置用于配置风险通知的接收方式，确保在出现漏洞或安全事件时能够及时收到提醒。支持以下通知渠道：
 
