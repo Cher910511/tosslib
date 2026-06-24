@@ -1072,7 +1072,7 @@ function showToast(msg, type = 'info') {
 
 .shelf-card-head--table {
   border-bottom: none;
-  padding-bottom: 0;
+  padding-bottom: 12px;
 }
 
 .shelf-card-title-btn {

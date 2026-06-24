@@ -23,6 +23,10 @@ import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
 import AdminGovernanceView from '../views/admin/AdminGovernanceView.vue'
 import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
+import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
+import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
+import IntelVulnView from '../views/intel/IntelVulnView.vue'
+import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
@@ -178,6 +182,18 @@ const routes = [
         component: ScanDetailsView,
         meta: { adminTitle: '扫描明细' },
       },
+      {
+        path: 'vulnerability-alert',
+        name: 'vulnerability-alert',
+        component: VulnerabilityAlertView,
+        meta: { adminTitle: '漏洞预警' },
+      },
+      {
+        path: 'send-alert-history',
+        name: 'send-alert-history',
+        component: SendAlertHistoryView,
+        meta: { adminTitle: '预警发送历史' },
+      },
       // ==================== 软件治理 ====================
       {
         path: 'admin-flow',
@@ -190,6 +206,19 @@ const routes = [
         name: 'admin-gov-detail',
         component: AdminGovernanceDetail,
         meta: { adminTitle: '软件详情' },
+      },
+      // ==================== 安全情报中心 ====================
+      {
+        path: 'intel-vuln',
+        name: 'intel-vuln',
+        component: IntelVulnView,
+        meta: { adminTitle: '漏洞库' },
+      },
+      {
+        path: 'intel-opi',
+        name: 'intel-opi',
+        component: IntelOpiView,
+        meta: { adminTitle: '舆情库' },
       },
       { path: '', redirect: { name: 'software-home' } },
     ],

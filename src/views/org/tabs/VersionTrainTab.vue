@@ -161,6 +161,15 @@
               <div v-if="activeTrain.remark" class="vt-tab-card-remark">
                 <span class="vt-tab-card-remark-text">{{ activeTrain.remark }}</span>
               </div>
+              <!-- 可见范围 -->
+              <div class="vt-tab-viewers">
+                <span class="vt-tab-viewers-label">可见范围：</span>
+                <template v-if="activeTrain.viewers && activeTrain.viewers.length > 0">
+                  <span v-for="(m, i) in activeTrain.viewers" :key="m" class="vt-tab-viewer-tag">{{ m }}<button v-if="activeTrain.status !== '已过期'" type="button" class="vt-tab-viewer-remove" @click.stop="removeViewer(activeTrain, i)">x</button></span>
+                </template>
+                <span v-else class="vt-tab-viewer-all">暂未设置</span>
+                <button v-if="activeTrain.status !== '已过期'" type="button" class="vt-tab-viewer-add" @click.stop="openMemberSelect(activeTrain)">+ 添加成员</button>
+              </div>
               <!-- 工具栏 -->
               <div class="vt-tab-card-toolbar">
                 <div class="vt-tab-card-search">
@@ -218,8 +227,6 @@
                     <th>版本号</th>
                     <th>语言</th>
                     <th>许可证</th>
-                    <th>状态</th>
-                    <th v-if="activeTrain.status !== '已过期'" class="vt-tab-th-op">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -227,29 +234,10 @@
                     <td class="vt-tab-td-chk" v-if="canBatch">
                       <input type="checkbox" :checked="selectedSoftwareForBatch.includes(sw.id)" @change="toggleSoftwareSelection(sw.id)" />
                     </td>
-                    <td><span class="vt-tab-soft-name">{{ sw.name }}</span></td>
+                    <td><span class="vt-tab-soft-name vt-tab-version-link" @click="router.push({ name: 'software-detail', query: { v: sw.version, tab: 'intro' } })">{{ sw.name }}</span></td>
                     <td><span class="vt-tab-code vt-tab-version-link" @click="router.push({ name: 'software-detail', query: { v: sw.version, tab: 'intro' } })">{{ sw.version }}</span></td>
                     <td>{{ sw.lang }}</td>
                     <td>{{ sw.license }}</td>
-                    <td>
-                      <template v-if="activeTrain.status === '待发车'">
-                        <span class="vt-tab-badge vt-tab-badge--muted">待上架</span>
-                      </template>
-                      <template v-else-if="activeTrain.status === '已发车'">
-                        <span class="vt-tab-badge" :class="sw.published ? 'vt-tab-badge--active' : 'vt-tab-badge--muted'">{{ sw.published ? '已上架' : '已下架' }}</span>
-                      </template>
-                      <template v-else>
-                        <span class="vt-tab-badge vt-tab-badge--已过期">已过期</span>
-                      </template>
-                    </td>
-                    <td v-if="activeTrain.status !== '已过期'" class="vt-tab-td-op">
-                      <template v-if="activeTrain.status === '待发车'">
-                        <button type="button" class="vt-tab-linkish vt-tab-linkish--danger" @click="removeSoftwareFromTrain(sw.id)">移除</button>
-                      </template>
-                      <template v-if="activeTrain.status === '已发车'">
-                        <button type="button" class="vt-tab-linkish" @click="toggleShelf(sw)">{{ sw.published ? '下架' : '上架' }}</button>
-                      </template>
-                    </td>
                   </tr>
                   <tr v-if="paginatedSoftware.length === 0">
                     <td :colspan="colspanCount" class="vt-tab-empty-cell">暂无软件数据</td>
@@ -361,7 +349,7 @@
           <p class="vt-tab-release-info">计划发车：<strong>{{ releaseTrain?.id }} — {{ releaseTrain?.name }}</strong></p>
           <p class="vt-tab-release-info">包含软件数：<strong>{{ releaseTrain?.softwareList?.length || 0 }}</strong> 项</p>
           <p class="vt-tab-release-info">包含组件数：<strong>{{ (releaseTrain?.softwareList?.filter(s => s.type === 'component') || []).length }}</strong> 项</p>
-          <p class="vt-tab-release-hint">将在设置的开始时间正式发车，发车后组织成员可查看和使用此版本火车。</p>
+          <p class="vt-tab-release-hint">将在设置的开始时间正式发车，发车后可指定组织成员查看此版本火车。</p>
           <div class="vt-tab-form-group">
             <label class="vt-tab-form-label">开始时间</label>
             <input v-model="releaseStartTime" type="datetime-local" class="vt-tab-input" />
@@ -373,6 +361,18 @@
           <div class="vt-tab-form-group">
             <label class="vt-tab-form-label">发车备注</label>
             <textarea v-model="releaseRemark" class="vt-tab-textarea" rows="3" placeholder="发车说明..." />
+          </div>
+          <div class="vt-tab-form-group">
+            <label class="vt-tab-form-label">可见成员</label>
+            <div class="vt-tab-release-viewers">
+              <div v-if="releaseViewerIds.length > 0" class="vt-tab-release-tags">
+                <span v-for="name in releaseViewerIds" :key="name" class="vt-tab-viewer-tag">{{ name }}<button type="button" class="vt-tab-viewer-remove" @click="removeReleaseViewer(name)">x</button></span>
+              </div>
+              <div class="vt-tab-release-empty-row">
+                <span v-if="releaseViewerIds.length === 0" class="vt-tab-release-empty-text">暂未选择可见成员</span>
+                <button type="button" class="vt-tab-viewer-add" @click="openMemberSelect(releaseTrain)">选择成员</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="vt-tab-modal-footer">
@@ -549,6 +549,41 @@
     <div v-if="toast.show" class="vt-tab-toast" :class="'vt-tab-toast--' + toast.type">
       {{ toast.message }}
     </div>
+
+    <!-- ====== 成员选择弹窗 ====== -->
+    <div v-if="showMemberPicker" class="vt-tab-overlay" @click.self="showMemberPicker = false">
+      <div class="vt-tab-modal">
+        <div class="vt-tab-modal-header">
+          <h3 class="vt-tab-modal-title">选择可见成员</h3>
+          <button type="button" class="vt-tab-modal-close" @click="showMemberPicker = false">x</button>
+        </div>
+        <div class="vt-tab-modal-body">
+          <div class="vt-tab-card-search" style="margin-bottom:12px;max-width:100%">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input v-model="memberPickerSearch" type="text" class="vt-tab-card-input" placeholder="搜索成员..." />
+          </div>
+          <div class="vt-tab-release-member-list">
+            <div class="vt-tab-member-hint">以下为组织内所有普通成员</div>
+            <label class="vt-tab-member-select-all">
+              <input type="checkbox" :checked="memberPickerSelected.length === filteredPickerMembers.length && filteredPickerMembers.length > 0" :indeterminate="memberPickerSelected.length > 0 && memberPickerSelected.length < filteredPickerMembers.length" @change="togglePickerAll" />
+              <span>全选所有成员</span>
+            </label>
+            <div v-for="m in filteredPickerMembers" :key="m.name" class="vt-tab-release-member-row" @click="togglePickerMember(m.name)">
+              <input type="checkbox" :checked="memberPickerSelected.includes(m.name)" class="vt-tab-member-checkbox" />
+              <span class="vt-tab-member-avatar">{{ m.name.charAt(0) }}</span>
+              <div class="vt-tab-member-info">
+                <span class="vt-tab-member-name">{{ m.nickname }}</span>
+                <span class="vt-tab-member-email">{{ m.email }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="vt-tab-modal-footer">
+          <button type="button" class="vt-tab-btn vt-tab-btn-ghost" @click="showMemberPicker = false">取消</button>
+          <button type="button" class="vt-tab-btn vt-tab-btn-primary" @click="confirmMemberPicker">确认</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -560,6 +595,98 @@ import { versionTrains, reviewResults, releaseHistory } from '../../../data/vers
 const router = useRouter()
 
 const props = defineProps({ org: { type: Object, required: true } })
+
+// ====== 组织成员模拟数据 ======
+const orgMembers = [
+  { name: '张三', nickname: '张三', email: 'zhangsan@company.com', avatar: '', role: 'member' },
+  { name: '李四', nickname: '李四', email: 'lisi@company.com', avatar: '', role: 'member' },
+  { name: '王五', nickname: '王五', email: 'wangwu@company.com', avatar: '', role: 'member' },
+  { name: '赵六', nickname: '赵六', email: 'zhaoliu@company.com', avatar: '', role: 'admin' },
+  { name: '陈七', nickname: '陈七', email: 'chenqi@company.com', avatar: '', role: 'member' },
+  { name: '刘八', nickname: '刘八', email: 'liuba@company.com', avatar: '', role: 'member' },
+  { name: '周九', nickname: '周九', email: 'zhoujiu@company.com', avatar: '', role: 'admin' },
+  { name: '吴十', nickname: '吴十', email: 'wushi@company.com', avatar: '', role: 'member' },
+]
+
+// 仅普通成员可选
+const selectableMembers = computed(() => orgMembers.filter(m => m.role === 'member'))
+
+// ====== 可见范围状态（集成到发车弹窗） ======
+const releaseViewerIds = ref([])
+const releaseViewerSearch = ref('')
+
+const filteredReleaseMembers = computed(() => {
+  const q = releaseViewerSearch.value.trim().toLowerCase()
+  let list = selectableMembers.value
+  if (q) list = list.filter(m => m.name.toLowerCase().includes(q) || m.nickname.toLowerCase().includes(q) || m.email.toLowerCase().includes(q))
+  return list
+})
+
+function toggleReleaseViewer(member) {
+  const idx = releaseViewerIds.value.indexOf(member.name)
+  if (idx >= 0) releaseViewerIds.value.splice(idx, 1)
+  else releaseViewerIds.value.push(member.name)
+}
+
+function removeReleaseViewer(name) {
+  releaseViewerIds.value = releaseViewerIds.value.filter(n => n !== name)
+}
+
+// ====== 成员选择弹窗（外部和发车弹窗共用） ======
+const showMemberPicker = ref(false)
+const memberPickerTarget = ref(null)
+const memberPickerSearch = ref('')
+const memberPickerSelected = ref([])
+
+const filteredPickerMembers = computed(() => {
+  const q = memberPickerSearch.value.trim().toLowerCase()
+  let list = selectableMembers.value
+  if (q) list = list.filter(m => m.name.toLowerCase().includes(q) || m.nickname.toLowerCase().includes(q) || m.email.toLowerCase().includes(q))
+  return list
+})
+
+function togglePickerMember(name) {
+  const idx = memberPickerSelected.value.indexOf(name)
+  if (idx >= 0) memberPickerSelected.value.splice(idx, 1)
+  else memberPickerSelected.value.push(name)
+}
+
+function togglePickerAll() {
+  if (memberPickerSelected.value.length === filteredPickerMembers.value.length) {
+    memberPickerSelected.value = []
+  } else {
+    memberPickerSelected.value = filteredPickerMembers.value.map(m => m.name)
+  }
+}
+
+function confirmMemberPicker() {
+  const target = memberPickerTarget.value
+  if (!target) return
+  target.viewers = [...memberPickerSelected.value]
+  // 如果打开时来自发车弹窗，同步 releaseViewerIds
+  if (target === releaseTrain.value) {
+    releaseViewerIds.value = [...memberPickerSelected.value]
+  }
+  showMemberPicker.value = false
+  showToast('已更新可见成员')
+}
+
+function openMemberSelect(train) {
+  memberPickerTarget.value = train
+  memberPickerSelected.value = [...(train.viewers || [])]
+  memberPickerSearch.value = ''
+  showMemberPicker.value = true
+}
+
+function removeViewer(train, idx) {
+  if (!train.viewers) train.viewers = []
+  if (train.viewers.length <= 1 && train.status === '已发车') {
+    showToast('已发车的版本火车至少保留一名可见成员')
+    return
+  }
+  train.viewers.splice(idx, 1)
+  showToast('已移除可见成员')
+}
 
 // ====== 状态 ======
 const trainSearch = ref('')
@@ -725,9 +852,8 @@ const isIndeterminate = computed(() => {
 })
 
 const colspanCount = computed(() => {
-  let n = 6 // 软件名称 + 版本号 + 语言 + 许可证 + 状态
+  let n = 4 // 软件名称 + 版本号 + 语言 + 许可证
   if (canBatch.value) n += 1
-  if (activeTrain.value?.status !== '已过期') n += 1 // 操作列
   return n
 })
 
@@ -1006,6 +1132,8 @@ function openReleaseForm(train) {
   releaseRemark.value = ''
   releaseStartTime.value = ''
   releaseEndTime.value = ''
+  releaseViewerIds.value = [...(train.viewers || [])]
+  releaseViewerSearch.value = ''
   showReleaseModal.value = true
 }
 
@@ -1013,10 +1141,12 @@ function confirmRelease() {
   if (!releaseTrain.value) return
   if (!releaseStartTime.value) { showToast('请填写开始时间'); return }
   if (!releaseEndTime.value) { showToast('请填写结束时间'); return }
+  if (releaseViewerIds.value.length === 0) { showToast('请选择可见成员'); return }
   releaseTrain.value.status = '已发车'
   releaseTrain.value.releaseTime = releaseStartTime.value.replace('T', ' ')
   releaseTrain.value.endTime = releaseEndTime.value.replace('T', ' ')
   releaseTrain.value.remark = releaseRemark.value || releaseTrain.value.remark
+  releaseTrain.value.viewers = [...releaseViewerIds.value]
   releaseTrain.value.softwareList.forEach(s => {
     if ((s.type || 'software') !== 'component') s.published = true
   })
@@ -1444,7 +1574,6 @@ watch(activeTrainId, () => {
   font-size: 12px;
   font-weight: 400;
   color: #6b7280;
-  margin-left: 4px;
 }
 
 .vt-tab-title-time--end { color: #dc2626; }
@@ -1864,6 +1993,7 @@ watch(activeTrainId, () => {
 .vt-tab-modal-footer {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
@@ -2125,4 +2255,29 @@ watch(activeTrainId, () => {
 .vt-tab-import-page-size {
   margin-left: 4px;
 }
+/* 发车弹窗 - 成员选择 */
+.vt-tab-release-viewers { }
+.vt-tab-release-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.vt-tab-release-empty-row { display: flex; align-items: center; gap: 8px; }
+.vt-tab-release-empty-text { font-size: 12px; color: #9ca3af; }
+.vt-tab-viewer-tag { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; background: #f3f4f6; border-radius: 4px; font-size: 12px; line-height: 20px; }
+.vt-tab-viewer-remove { padding: 0; border: none; background: none; font-size: 12px; color: #9ca3af; cursor: pointer; line-height: 1; margin-left: 2px; }
+.vt-tab-viewer-remove:hover { color: #dc2626; }
+.vt-tab-viewer-add { padding: 2px 12px; border: 1px dashed #d1d5db; background: none; font-size: 12px; color: #6b7280; cursor: pointer; border-radius: 4px; font-family: inherit; }
+.vt-tab-viewer-add:hover { border-color: #da203e; color: #da203e; }
+.vt-tab-release-member-list { max-height: 260px; overflow-y: auto; }
+.vt-tab-member-hint { font-size: 11px; color: #9ca3af; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f3f4f6; }
+.vt-tab-member-select-all { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; font-size: 12px; color: #374151; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+.vt-tab-member-select-all input[type="checkbox"] { margin: 0; accent-color: #da203e; }
+.vt-tab-release-member-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+.vt-tab-release-member-row:hover { background: #f9fafb; margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: 6px; }
+.vt-tab-member-checkbox { margin: 0; accent-color: #da203e; }
+.vt-tab-member-avatar { width: 28px; height: 28px; border-radius: 50%; background: #da203e; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.vt-tab-member-info { display: flex; flex-direction: column; }
+.vt-tab-member-name { font-size: 13px; color: #374151; font-weight: 500; }
+.vt-tab-member-email { font-size: 11px; color: #9ca3af; }
+/* 可见范围 */
+.vt-tab-viewers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0px; font-size: 12px; color: #374151; }
+.vt-tab-viewers-label { color: #6b7280; flex-shrink: 0; }
+.vt-tab-viewer-all { color: #9ca3af; }
 </style>

@@ -64,6 +64,7 @@
               <input type="file" accept=".xlsx,.xls,.csv" hidden @change="handleExcelImport" />
               <span class="gov-btn">Excel 导入</span>
             </label>
+            <span v-if="importError" class="gov-import-error">{{ importError }}</span>
             <button type="button" class="gov-btn" @click="downloadTemplate">
               下载导入模板
             </button>
@@ -201,7 +202,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">获取时间</label>
+          <label class="gov-filter-label">选型时间</label>
           <span class="gov-filter-wrap">
             <input v-model="s1Date" type="date" class="gov-filter-input" />
             <button v-if="s1Date" type="button" class="gov-filter-clear" @click="s1Date = ''">&times;</button>
@@ -270,6 +271,13 @@
             </select>
           </span>
         </div>
+        <div class="gov-filter-field">
+          <label class="gov-filter-label">扫描时间</label>
+          <span class="gov-filter-wrap">
+            <input v-model="s2Date" type="date" class="gov-filter-input" />
+            <button v-if="s2Date" type="button" class="gov-filter-clear" @click="s2Date = ''">&times;</button>
+          </span>
+        </div>
       </div>
 
       <!-- 步骤4筛选栏：治理成果验收 -->
@@ -297,6 +305,13 @@
               <option value="评审通过">评审通过</option>
               <option value="评审不通过">评审不通过</option>
             </select>
+          </span>
+        </div>
+        <div class="gov-filter-field">
+          <label class="gov-filter-label">验收时间</label>
+          <span class="gov-filter-wrap">
+            <input v-model="s3Date" type="date" class="gov-filter-input" />
+            <button v-if="s3Date" type="button" class="gov-filter-clear" @click="s3Date = ''">&times;</button>
           </span>
         </div>
       </div>
@@ -327,6 +342,22 @@
             </select>
           </span>
         </div>
+        <div class="gov-filter-field">
+          <label class="gov-filter-label">入库时间</label>
+          <span class="gov-filter-wrap">
+            <input v-model="s4Date" type="date" class="gov-filter-input" />
+            <button v-if="s4Date" type="button" class="gov-filter-clear" @click="s4Date = ''">&times;</button>
+          </span>
+        </div>
+      </div>
+
+      <!-- 全选行 -->
+      <div v-if="stepList.length > 0" class="gov-select-all-hint">
+        <label class="gov-select-all-label">
+          <input type="checkbox" :checked="selectedCount === stepList.length" :indeterminate="selectedCount > 0 && selectedCount < stepList.length" @change="toggleSelectAll" />
+          <span>全选所有 <strong>{{ stepList.length }}</strong> 条</span>
+        </label>
+        <span v-if="selectedCount > 0" class="gov-select-all-count">已选 {{ selectedCount }} 项</span>
       </div>
 
       <div class="gov-card">
@@ -439,7 +470,7 @@
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="openReviewModal(item)">审核</button>
                 </template>
-                <template v-if="activeStep === 4">
+                <template v-if="activeStep === 4 && item.warehouseStatus !== '已入库'">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="singleWarehouse(item, '已入库')">入库</button>
                 </template>
@@ -872,6 +903,7 @@ const fetchProgress = ref(0)
 const batchReviewTarget = ref(null)
 const batchReviewOpinion = ref('')
 const opinionHistoryItem = ref(null)
+const importError = ref('')
 
 // 步骤1筛选
 const filterName = ref('')
@@ -887,6 +919,7 @@ const s1Backup = ref('')
 // 步骤3筛选：软件技术评估
 const s2Name = ref('')
 const s2Version = ref('')
+const s2Date = ref('')
 const s2Sca = ref('')
 const s2Copyright = ref('')
 const s2Malware = ref('')
@@ -894,11 +927,13 @@ const s2Malware = ref('')
 // 步骤4筛选：治理成果验收
 const s3Name = ref('')
 const s3Version = ref('')
+const s3Date = ref('')
 const s3Review = ref('')
 
 // 步骤5筛选：软件入库
 const s4Name = ref('')
 const s4Version = ref('')
+const s4Date = ref('')
 const s4Warehouse = ref('')
 
 // ===== 治理流程步骤定义 =====
@@ -951,11 +986,13 @@ const stepList = computed(() => {
   if (activeStep.value === 2) {
     const name = s2Name.value.trim().toLowerCase()
     const version = s2Version.value.trim().toLowerCase()
+    const date = s2Date.value
     const sca = s2Sca.value
     const copyright = s2Copyright.value
     const malware = s2Malware.value
     if (name) list = list.filter(i => i.name.toLowerCase().includes(name))
     if (version) list = list.filter(i => i.version.toLowerCase().includes(version))
+    if (date) list = list.filter(i => i.createdAt && i.createdAt.startsWith(date))
     if (sca) list = list.filter(i => scanStage(i.scanProgress, 33) === sca)
     if (copyright) list = list.filter(i => scanStage(i.scanProgress, 66) === copyright)
     if (malware) list = list.filter(i => scanStage(i.scanProgress, 100) === malware)
@@ -965,9 +1002,11 @@ const stepList = computed(() => {
   if (activeStep.value === 3) {
     const name = s3Name.value.trim().toLowerCase()
     const version = s3Version.value.trim().toLowerCase()
+    const date = s3Date.value
     const review = s3Review.value
     if (name) list = list.filter(i => i.name.toLowerCase().includes(name))
     if (version) list = list.filter(i => i.version.toLowerCase().includes(version))
+    if (date) list = list.filter(i => i.createdAt && i.createdAt.startsWith(date))
     if (review) list = list.filter(i => i.reviewStatus === review)
   }
 
@@ -975,6 +1014,7 @@ const stepList = computed(() => {
   if (activeStep.value === 4) {
     const name = s4Name.value.trim().toLowerCase()
     const version = s4Version.value.trim().toLowerCase()
+    const date = s4Date.value
     const warehouse = s4Warehouse.value
     if (name) list = list.filter(i => i.name.toLowerCase().includes(name))
     if (version) list = list.filter(i => i.version.toLowerCase().includes(version))
@@ -994,8 +1034,6 @@ const kpiEntered = computed(() => softwareList.value.filter(i => i.currentStep =
 
 
 // 选中相关
-
-// 选中相关
 const selectedCount = computed(() => stepList.value.filter(i => i.selected).length)
 
 const selectAll = computed({
@@ -1007,6 +1045,21 @@ const indeterminate = computed(() => {
   const sel = paginatedList.value.filter(i => i.selected)
   return sel.length > 0 && sel.length < paginatedList.value.length
 })
+
+// 本页已全选，且还有未选中的条目时，显示全选所有页的提示
+const showSelectAllHint = computed(() =>
+  paginatedList.value.length > 0
+  && paginatedList.value.every(i => i.selected)
+  && selectedCount.value < stepList.value.length
+)
+
+function toggleSelectAll() {
+  if (selectedCount.value === stepList.value.length) {
+    stepList.value.forEach(i => { i.selected = false })
+  } else {
+    stepList.value.forEach(i => { i.selected = true })
+  }
+}
 
 // 分页
 const pageSize = 8
@@ -1105,9 +1158,9 @@ function fmtNow() {
 watch([
   filterName, filterVersion, filterDate,
   s1Name, s1Version, s1Date, s1Backup,
-  s2Name, s2Version, s2Sca, s2Copyright, s2Malware,
-  s3Name, s3Version, s3Review,
-  s4Name, s4Version, s4Warehouse,
+  s2Name, s2Version, s2Date, s2Sca, s2Copyright, s2Malware,
+  s3Name, s3Version, s3Date, s3Review,
+  s4Name, s4Version, s4Date, s4Warehouse,
 ], () => {
   page.value = 1
 })
@@ -1186,26 +1239,65 @@ function downloadTemplate() {
 function handleExcelImport(e) {
   const files = e.target.files
   if (!files || !files.length) return
-  const now = new Date().toLocaleString('zh-CN')
-  softwareList.value.push({
-    id: nextId++,
-    name: 'Excel-Import-' + Math.floor(Math.random() * 1000),
-    version: '-',
-    repoUrl: '-',
-    lang: '—',
-    license: '—',
-    file: '—',
-    currentStep: 1,
-    selected: false,
-    createdAt: fmtNow(),
-    backupStatus: '待备份',
-    assessStatus: '待评估',
-    reviewStatus: '待评审',
-    warehouseStatus: '待入库',
-    riskLevel: null,
-    vulnCount: 0,
-    logs: [{ time: now, level: 'info', msg: '通过 Excel 导入' }],
+
+  // 模拟解析 Excel 得到多条数据
+  const fileName = files[0].name.replace(/\.\w+$/, '').trim()
+  const rows = fileName ? [
+    { name: fileName, version: '-' },
+    { name: 'Spring Boot', version: '3.2.0' },
+    { name: 'MyBatis', version: '3.5.16' },
+  ] : []
+
+  let success = 0
+  const failReasons = []
+
+  rows.forEach((row, idx) => {
+    // 校验必填字段
+    if (!row.name || !row.name.trim()) {
+      failReasons.push(`第 ${idx + 1} 条：必填字段为空`)
+      return
+    }
+    // 检查重复
+    const dup = softwareList.value.some(
+      s => s.name.toLowerCase() === row.name.trim().toLowerCase()
+    )
+    if (dup) {
+      failReasons.push(`第 ${idx + 1} 条：${row.name} 该软件已存在`)
+      return
+    }
+    // 导入成功
+    const now = new Date().toLocaleString('zh-CN')
+    softwareList.value.push({
+      id: nextId++,
+      name: row.name.trim(),
+      version: row.version || '-',
+      repoUrl: `https://github.com/example/${row.name.trim().toLowerCase().replace(/\s+/g, '-')}.git`,
+      lang: row.lang || '—',
+      license: row.license || '—',
+      file: '—',
+      currentStep: 1,
+      selected: false,
+      createdAt: fmtNow(),
+      backupStatus: '待备份',
+      assessStatus: '待评估',
+      reviewStatus: '待评审',
+      warehouseStatus: '待入库',
+      riskLevel: null,
+      vulnCount: 0,
+      logs: [{ time: now, level: 'info', msg: '通过 Excel 导入' }],
+    })
+    success++
   })
+
+  const total = rows.length
+  const failed = failReasons.length
+  let msg = `导入成功 ${success} 条`
+  if (failed > 0) {
+    msg += `，失败 ${failed} 条`
+    msg += `。失败原因：${failReasons.join('；')}`
+  }
+  importError.value = msg
+  setTimeout(() => { importError.value = '' }, 5000)
   e.target.value = ''
 }
 
@@ -1779,6 +1871,19 @@ select.gov-filter-input {
   cursor: pointer;
   display: inline-flex;
 }
+.gov-import-error {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 4px 12px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 20px;
+  max-width: 420px;
+  vertical-align: middle;
+}
 
 /* ===== 卡片 ===== */
 .gov-card {
@@ -2024,6 +2129,59 @@ select.gov-filter-input {
   font-size: 12px;
   color: #6b7280;
 }
+.gov-page-selected {
+  font-size: 12px;
+  color: #da203e;
+  font-weight: 500;
+  margin-left: 8px;
+}
+.gov-page-select-all {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid #da203e;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  color: #da203e;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 20px;
+}
+.gov-page-select-all:hover {
+  background: #da203e;
+  color: #fff;
+}
+
+/* 全选行 */
+.gov-select-all-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+.gov-select-all-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+.gov-select-all-label input[type="checkbox"] {
+  margin: 0;
+  accent-color: #da203e;
+}
+.gov-select-all-count {
+  font-size: 12px;
+  color: #da203e;
+  font-weight: 500;
+}
+
 .gov-page-controls {
   display: flex;
   align-items: center;

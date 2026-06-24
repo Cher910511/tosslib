@@ -66,6 +66,34 @@
           <span class="nav-ico" aria-hidden="true">⌘</span>
           组织管理
         </RouterLink>
+        <!-- 安全情报中心（带二级菜单） -->
+        <div class="admin-nav-group">
+          <div
+            class="admin-nav-item admin-nav-item--group"
+            :class="{ 'is-open': intelOpen }"
+            @click="intelOpen = !intelOpen"
+          >
+            <span class="nav-ico" aria-hidden="true">◉</span>
+            <span class="nav-label">安全情报中心</span>
+            <span class="nav-caret" aria-hidden="true">{{ intelOpen ? '▾' : '▸' }}</span>
+          </div>
+          <div v-show="intelOpen" class="admin-nav-submenu">
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/intel-vuln"
+              active-class="is-active"
+            >
+              <span class="nav-label">漏洞库</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/intel-opi"
+              active-class="is-active"
+            >
+              <span class="nav-label">舆情库</span>
+            </RouterLink>
+          </div>
+        </div>
         <a class="admin-nav-item is-disabled" href="#" @click.prevent>
           <span class="nav-ico" aria-hidden="true">▤</span>
           需求反馈
@@ -102,6 +130,13 @@
               active-class="is-active"
             >
               <span class="nav-label">扫描明细</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/vulnerability-alert"
+              active-class="is-active"
+            >
+              <span class="nav-label">漏洞预警</span>
             </RouterLink>
           </div>
         </div>
@@ -196,10 +231,10 @@
             <span class="sep">/</span>
             <span class="current">软件出入库</span>
           </template>
-          <template v-else-if="route.name === 'scan-details'">
+          <template v-else-if="route.name === 'vulnerability-alert'">
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
-            <span class="current">扫描明细</span>
+            <span class="current">漏洞预警</span>
           </template>
           <template v-else-if="route.name === 'admin-gov'">
             <RouterLink to="/software/home">首页</RouterLink>
@@ -212,6 +247,11 @@
             <RouterLink to="/software/admin-flow">软件治理</RouterLink>
             <span class="sep">/</span>
             <span class="current">软件详情</span>
+          </template>
+          <template v-else-if="route.name === 'intel-vuln' || route.name === 'intel-opi'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">{{ route.meta.adminTitle }}</span>
           </template>
           <template v-else>
             <RouterLink to="/software/home">首页</RouterLink>
@@ -398,6 +438,9 @@ const softwareManageOpen = ref(false)
 
 // 版本火车二级菜单展开状态
 const versionTrainOpen = ref(false)
+
+// 安全情报中心二级菜单展开状态
+const intelOpen = ref(false)
 
 const componentDetailBreadcrumb = computed(() => {
   const id = route.params.id

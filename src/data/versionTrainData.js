@@ -217,6 +217,7 @@ export const versionTrains = [
     releaseTime: '2025-12-01 10:00',
     endTime: '2026-06-01 23:59',
     remark: '本次发车包含4个高危CVE修复，涉及日志、协议、容器、序列化等领域。请各业务线在2026年6月前完成升级。',
+    viewers: ['张三', '陈七'],
     softwareList: [
       { id: 101, name: 'log4j-core', type: 'software', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '日志组件安全更新', reviewedAt: '2025-11-20', published: true },
       { id: 102, name: 'OpenSSL', type: 'software', version: '3.3.2', lang: 'C', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '安全协议版本升级', reviewedAt: '2025-11-20', published: true },
@@ -242,6 +243,7 @@ export const versionTrains = [
     releaseTime: '2025-12-20 10:00',
     endTime: '2026-06-20 23:59',
     remark: 'Spring Boot 3.2.3 及周边框架统一升级，兼容性已验证。Nacos客户端同步升级到2.4.0。',
+    viewers: ['张三', '王五', '刘八'],
     softwareList: [
       { id: 111, name: 'Spring Boot', type: 'software', version: '3.2.3', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '微服务框架升级', reviewedAt: '2025-12-15', published: true },
       { id: 112, name: 'MyBatis', type: 'software', version: '3.5.16', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'ORM框架升级', reviewedAt: '2025-12-15', published: true },
@@ -266,6 +268,7 @@ export const versionTrains = [
     releaseTime: '2025-12-28 10:00',
     endTime: '2026-06-28 23:59',
     remark: 'Prometheus + Grafana 监控体系统一打包，AGPL许可组件已通过法务审批。',
+    viewers: ['陈七', '刘八', '吴十'],
     softwareList: [
       { id: 121, name: 'Prometheus', type: 'software', version: '2.55.0', lang: 'Go', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控核心组件', reviewedAt: '2025-12-20', published: true },
       { id: 122, name: 'Grafana', type: 'software', version: '11.2.0', lang: 'TypeScript', license: 'AGPL-3.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '监控可视化', reviewedAt: '2025-12-20', published: true },
@@ -286,6 +289,8 @@ export const versionTrains = [
     releasedVersion: 'v4.0.0',
     releaseTime: '2025-04-15 10:00:00',
     endTime: '2025-10-15 23:59:59',
+    remark: '首次发车，包含Spring Boot等基础框架。',
+    viewers: ['张三', '李四', '王五', '陈七'],
     softwareList: [
       { id: 131, name: 'Spring Boot', type: 'software', version: '3.0.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '框架核心组件', reviewedAt: '2025-03-20', published: true },
       { id: 132, name: 'Apache Dubbo', type: 'software', version: '3.2.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: 'RPC框架', reviewedAt: '2025-03-20', published: true },
