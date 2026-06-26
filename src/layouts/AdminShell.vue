@@ -66,6 +66,10 @@
           <span class="nav-ico" aria-hidden="true">⌘</span>
           组织管理
         </RouterLink>
+        <RouterLink class="admin-nav-item" to="/software/openapi-tools" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">◈</span>
+          Open API
+        </RouterLink>
         <!-- 安全情报中心（带二级菜单） -->
         <div class="admin-nav-group">
           <div
@@ -231,10 +235,10 @@
             <span class="sep">/</span>
             <span class="current">软件出入库</span>
           </template>
-          <template v-else-if="route.name === 'vulnerability-alert'">
+          <template v-else-if="route.name === 'openapi-tools'">
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
-            <span class="current">漏洞预警</span>
+            <span class="current">OpenAPI 工具集</span>
           </template>
           <template v-else-if="route.name === 'admin-gov'">
             <RouterLink to="/software/home">首页</RouterLink>

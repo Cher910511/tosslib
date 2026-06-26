@@ -438,13 +438,13 @@
                   <span class="gov-badge" :class="badgeClass(item.backupStatus)">{{ item.backupStatus }}</span>
                 </td>
                 <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.scanProgress, 0, 33)">{{ item.scanProgress !== undefined ? (item.scanProgress >= 33 ? '成功' : '扫描中') : '待扫描' }}</span>
+                  <span class="gov-scan-sub" :class="scanBadge(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
                 </td>
                 <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.scanProgress, 33, 66)">{{ item.scanProgress !== undefined ? (item.scanProgress >= 66 ? '成功' : '扫描中') : '待扫描' }}</span>
+                  <span class="gov-scan-sub" :class="scanBadge(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
                 </td>
                 <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.scanProgress, 66, 100)">{{ item.scanProgress !== undefined ? (item.scanProgress >= 100 ? '成功' : '扫描中') : '待扫描' }}</span>
+                  <span class="gov-scan-sub" :class="scanBadge(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
                 </td>
               <td v-if="activeStep === 3">
                 <span class="gov-badge" :class="badgeClass(item.reviewStatus)">{{ item.reviewStatus }}</span>
@@ -483,19 +483,38 @@
             <!-- 扫描进度展开行 -->
             <tr v-if="item._scanOpen && activeStep === 2" class="gov-scan-detail-row">
               <td :colspan="colSpan" style="padding: 12px 40px;">
-                <div class="gov-scan-detail">
-                  <div class="gov-scan-detail-bar">
-                    <div class="gov-scan-detail-track">
-                      <div class="gov-scan-detail-fill" :style="{ width: (item.scanProgress || 0) + '%' }" />
+                <div class="gov-scan-parallel">
+                  <div class="gov-scan-item">
+                    <div class="gov-scan-item-hd">
+                      <span class="gov-scan-item-label">SCA 检测</span>
+                      <span class="gov-scan-item-status" :class="scanPhase(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
                     </div>
-                    <div class="gov-scan-detail-node" :class="{ 'is-done': (item.scanProgress || 0) >= 33 }" style="left:16.7%">
-                      <span class="gov-scan-node-label">SCA 检测</span>
+                    <div class="gov-scan-item-bar">
+                      <div class="gov-scan-item-track">
+                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.scaProgress || 0, 100) + '%' }" />
+                      </div>
                     </div>
-                    <div class="gov-scan-detail-node" :class="{ 'is-done': (item.scanProgress || 0) >= 66 }" style="left:50%">
-                      <span class="gov-scan-node-label">Copyright</span>
+                  </div>
+                  <div class="gov-scan-item">
+                    <div class="gov-scan-item-hd">
+                      <span class="gov-scan-item-label">Copyright 检测</span>
+                      <span class="gov-scan-item-status" :class="scanPhase(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
                     </div>
-                    <div class="gov-scan-detail-node" :class="{ 'is-done': (item.scanProgress || 0) >= 100 }" style="left:83.3%">
-                      <span class="gov-scan-node-label">恶意代码</span>
+                    <div class="gov-scan-item-bar">
+                      <div class="gov-scan-item-track">
+                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.copyrightProgress || 0, 100) + '%' }" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="gov-scan-item">
+                    <div class="gov-scan-item-hd">
+                      <span class="gov-scan-item-label">恶意代码检测</span>
+                      <span class="gov-scan-item-status" :class="scanPhase(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
+                    </div>
+                    <div class="gov-scan-item-bar">
+                      <div class="gov-scan-item-track">
+                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.malwareProgress || 0, 100) + '%' }" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1329,21 +1348,49 @@ function startScan() {
   selected.forEach((item, idx) => {
     item.selected = false
     item.assessStatus = '评估中'
-    item.scanProgress = 0
+    item.scaProgress = 0
+    item.copyrightProgress = 0
+    item.malwareProgress = 0
     if (idx === 0) item._scanOpen = true
     item.logs.push({ time: now, level: 'info', msg: '启动 SCA 扫描、恶意代码扫描...' })
-    const interval = setInterval(() => {
-      if (!item.scanProgress) item.scanProgress = 0
-      item.scanProgress += Math.floor(Math.random() * 10) + 3
-      if (item.scanProgress >= 100) {
-        item.scanProgress = 100
-        clearInterval(interval)
+
+    // 三个并行扫描（不同速度模拟）
+    const intervals = []
+    intervals.push(setInterval(() => {
+      if (item.scaProgress < 100) {
+        item.scaProgress = Math.min(100, (item.scaProgress || 0) + Math.floor(Math.random() * 12) + 5)
+      } else {
+        clearInterval(intervals[0])
+      }
+    }, 300 + Math.random() * 200))
+
+    intervals.push(setInterval(() => {
+      if (item.copyrightProgress < 100) {
+        item.copyrightProgress = Math.min(100, (item.copyrightProgress || 0) + Math.floor(Math.random() * 10) + 3)
+      } else {
+        clearInterval(intervals[1])
+      }
+    }, 300 + Math.random() * 200))
+
+    intervals.push(setInterval(() => {
+      if (item.malwareProgress < 100) {
+        item.malwareProgress = Math.min(100, (item.malwareProgress || 0) + Math.floor(Math.random() * 8) + 2)
+      } else {
+        clearInterval(intervals[2])
+      }
+    }, 300 + Math.random() * 200))
+
+    // 监听全部完成后更新状态
+    const checkDone = setInterval(() => {
+      if ((item.scaProgress || 0) >= 100 && (item.copyrightProgress || 0) >= 100 && (item.malwareProgress || 0) >= 100) {
+        clearInterval(checkDone)
+        intervals.forEach(i => clearInterval(i))
         setTimeout(() => {
           item.assessStatus = '评估完成'
           item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '评估完成，生成治理报告' })
         }, 500)
       }
-    }, 400)
+    }, 200)
   })
 }
 
@@ -1525,14 +1572,14 @@ function toggleScan(item) {
 }
 
 function scanPhase(progress) {
-  if (progress < 33) return 'SCA 检测...'
-  if (progress < 66) return 'Copyright 检测...'
-  return '恶意代码检测...'
+  if (!progress || progress <= 0) return ''
+  if (progress >= 100) return 'phase--ok'
+  return 'phase--run'
 }
 
-function scanBadge(progress, min, max) {
-  if (progress === undefined) return 'badge--warn'
-  if (progress >= max) return 'badge--ok'
+function scanBadge(progress) {
+  if (!progress || progress <= 0) return 'badge--warn'
+  if (progress >= 100) return 'badge--ok'
   return 'badge--run'
 }
 </script>
@@ -2032,61 +2079,17 @@ select.gov-filter-input {
   border-bottom: 1px solid #e5e7eb;
   padding: 16px 40px !important;
 }
-.gov-scan-detail {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  width: 100%;
-}
-.gov-scan-detail-bar {
-  flex: 1;
-  position: relative;
-  height: 24px;
-}
-.gov-scan-detail-track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 4px;
-  margin-top: -2px;
-  background: #e5e7eb;
-  border-radius: 2px;
-  overflow: visible;
-}
-.gov-scan-detail-fill {
-  height: 100%;
-  background: #da203e;
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-.gov-scan-detail-node {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #d1d5db;
-  border: 2px solid #fff;
-  z-index: 1;
-  transition: background 0.3s;
-}
-.gov-scan-detail-node.is-done {
-  background: #da203e;
-}
-.gov-scan-node-label {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-}
-.gov-scan-detail-node.is-done .gov-scan-node-label {
-  color: #da203e;
-}
+.gov-scan-parallel { display: flex; flex-direction: row; gap: 20px; }
+.gov-scan-item { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.gov-scan-item-hd { display: flex; align-items: center; justify-content: space-between; }
+.gov-scan-item-label { font-size: 12px; font-weight: 500; color: #374151; }
+.gov-scan-item-status { font-size: 11px; font-weight: 500; padding: 0 6px; border-radius: 3px; line-height: 18px; }
+.gov-scan-item-status.phase--ok { background: #dcfce7; color: #16a34a; }
+.gov-scan-item-status.phase--run { background: #dbeafe; color: #2563eb; }
+.gov-scan-item-status.phase--fail { background: #fef2f2; color: #991b1b; }
+.gov-scan-item-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+.gov-scan-item-track { height: 100%; }
+.gov-scan-item-fill { height: 100%; background: #da203e; border-radius: 3px; transition: width 0.3s; }
 
 /* ===== 徽标 ===== */
 
