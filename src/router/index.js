@@ -158,7 +158,7 @@ const routes = [
         component: OrgDetailView,
         meta: { adminTitle: '组织详情' },
       },
-      // ==================== OpenAPI 工具集 ====================
+      // ==================== OpenAPI ====================
       {
         path: 'openapi-tools',
         name: 'openapi-tools',
