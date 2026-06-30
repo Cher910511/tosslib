@@ -95,6 +95,55 @@
       <div class="ts-inner">
         <div class="ts-sec-header"><h2 class="ts-section-title">VSCode 侧边栏插件</h2><span class="ts-section-badge">编辑器插件</span></div>
         <p class="ts-section-desc">在 VSCode / Cursor / Windsurf 中直接使用可信开源代码库的全部能力。安装即用，无需切换窗口，让开源治理融入日常编码流程。</p>
+        <div class="ts-vs-preview">
+          <div class="ts-vs-activitybar">
+            <span class="ts-vs-activity-icon is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+            <span class="ts-vs-activity-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+            <span class="ts-vs-activity-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+          </div>
+          <div class="ts-vs-explorer">
+            <div class="ts-vs-explorer-hd">资源管理器</div>
+            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> src</div>
+            <div class="ts-vs-file ts-vs-file--open"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> pom.xml</div>
+            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> application.yml</div>
+            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> package.json</div>
+          </div>
+          <div class="ts-vs-editor-wrap">
+            <div class="ts-vs-tabs">
+              <span class="ts-vs-tab is-active">pom.xml</span>
+              <span class="ts-vs-tab">application.yml</span>
+            </div>
+            <div class="ts-vs-editor-body">
+              <div class="ts-vs-line"><span class="ts-vs-num">12</span><span class="ts-vs-cmt">&lt;!-- ⚠ 检测到高危漏洞 CVE-2024-xxxx --&gt;</span></div>
+              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">13</span>&lt;dependency&gt;</div>
+              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">14</span>  &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;</div>
+              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">15</span>  &lt;artifactId&gt;<span class="ts-vs-warn">log4j-core</span>&lt;/artifactId&gt;</div>
+              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">16</span>  &lt;version&gt;<span class="ts-vs-warn">2.23.1</span>&lt;/version&gt;</div>
+              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">17</span>&lt;/dependency&gt;</div>
+              <div class="ts-vs-line"><span class="ts-vs-num">18</span></div>
+              <div class="ts-vs-line"><span class="ts-vs-num">19</span>&lt;dependency&gt;</div>
+              <div class="ts-vs-line"><span class="ts-vs-num">20</span>  &lt;groupId&gt;com.alibaba&lt;/groupId&gt;</div>
+              <div class="ts-vs-line"><span class="ts-vs-num">21</span>  &lt;artifactId&gt;<span class="ts-vs-ok">fastjson2</span>&lt;/artifactId&gt;</div>
+              <div class="ts-vs-line"><span class="ts-vs-num">22</span>  &lt;version&gt;<span class="ts-vs-ok">2.0.47</span>&lt;/version&gt; <span class="ts-vs-cmt">✓ 已认证</span></div>
+              <div class="ts-vs-line"><span class="ts-vs-num">23</span>&lt;/dependency&gt;</div>
+            </div>
+          </div>
+          <div class="ts-vs-panel">
+            <div class="ts-vs-panel-hd">可信治理 Agent</div>
+            <div class="ts-vs-panel-chat">
+              <div class="ts-vs-panel-msg ts-vs-panel-msg--agent"><div class="ts-vs-panel-bubble">检测完成：log4j-core 存在高危漏洞 CVE-2024-xxxx（CVSS 9.8），建议替换为 tlog-safe 3.1.0</div></div>
+              <div class="ts-vs-panel-msg ts-vs-panel-msg--user"><div class="ts-vs-panel-bubble">帮我替换并修复依赖</div></div>
+              <div class="ts-vs-panel-msg ts-vs-panel-msg--agent"><div class="ts-vs-panel-bubble">已替换为 tlog-safe 3.1.0，依赖树已更新，全部检测通过。</div></div>
+            </div>
+            <div class="ts-vs-panel-skills">
+              <span class="ts-vs-skill">许可证检测</span>
+              <span class="ts-vs-skill is-active">漏洞扫描</span>
+              <span class="ts-vs-skill">智能选型</span>
+              <span class="ts-vs-skill">SBOM 导出</span>
+            </div>
+            <div class="ts-vs-panel-input"><span class="ts-vs-input-hint">选择代码或 Skill 进行治理...</span></div>
+          </div>
+        </div>
         <div class="ts-simple-list">
           <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><h4>许可证实时检测</h4><p>对项目中使用的开源组件进行实时许可证扫描，第一时间发现 GPL、AGPL 等强传染性许可证，规避合规风险。覆盖 200+ 许可证类型与冲突矩阵。</p></div></div>
           <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div><h4>AI 智能选型</h4><p>连接平台可信数据库，根据你的技术栈和需求智能推荐经过安全审核的开源组件。多维度对比评分，杜绝盲目引入。已收录 50,000+ 可信组件。</p></div></div>
@@ -220,6 +269,42 @@ function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrol
 .ts-si-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(218,32,62,0.06); color: #da203e; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .ts-simple-item h4 { font-size: 14px; font-weight: 600; color: #0f0f0f; margin: 0 0 6px; letter-spacing: -.01em; }
 .ts-simple-item p { font-size: 12px; line-height: 1.65; color: #999; margin: 0; }
+
+/* VSCode preview */
+.ts-vs-preview { display: grid; grid-template-columns: 32px 140px 1fr 260px; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid #333; background: #252526; height: 340px; }
+.ts-vs-activitybar { background: #333; display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px; }
+.ts-vs-activity-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.4); cursor: default; }
+.ts-vs-activity-icon.is-active { color: #fff; }
+.ts-vs-explorer { background: #252526; padding: 8px 0; border-right: 1px solid #333; }
+.ts-vs-explorer-hd { padding: 0 12px 8px; font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .06em; }
+.ts-vs-file { padding: 3px 12px; font-size: 11px; color: #ccc; display: flex; align-items: center; gap: 5px; }
+.ts-vs-file--open { background: #37373d; }
+.ts-vs-file-icon { font-size: 10px; }
+.ts-vs-editor-wrap { background: #1e1e1e; display: flex; flex-direction: column; }
+.ts-vs-tabs { display: flex; background: #252526; border-bottom: 1px solid #333; }
+.ts-vs-tab { padding: 6px 14px; font-size: 10px; color: #999; border-right: 1px solid #333; }
+.ts-vs-tab.is-active { background: #1e1e1e; color: #fff; border-top: 1px solid #da203e; }
+.ts-vs-editor-body { flex: 1; padding: 8px 0; font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace; font-size: 11px; line-height: 1.65; overflow: hidden; }
+.ts-vs-num { display: inline-block; width: 28px; text-align: right; color: rgba(255,255,255,0.2); margin-right: 8px; font-size: 10px; user-select: none; }
+.ts-vs-line { color: rgba(255,255,255,0.6); padding: 0 12px; white-space: nowrap; }
+.ts-vs-line--hl { background: rgba(218,32,62,0.1); border-left: 2px solid #da203e; padding-left: 10px; }
+.ts-vs-warn { color: #e5a850; text-decoration: underline; text-decoration-color: rgba(229,168,80,0.3); }
+.ts-vs-ok { color: #5dc87a; }
+.ts-vs-cmt { color: rgba(255,255,255,0.2); font-style: italic; }
+.ts-vs-panel { background: #1e1e1e; border-left: 1px solid #333; display: flex; flex-direction: column; }
+.ts-vs-panel-hd { padding: 8px 10px 6px; font-size: 10px; font-weight: 600; color: #aaa; border-bottom: 1px solid #333; text-transform: uppercase; letter-spacing: .06em; }
+.ts-vs-panel-chat { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.ts-vs-panel-msg { display: flex; }
+.ts-vs-panel-msg--agent { justify-content: flex-start; }
+.ts-vs-panel-msg--user { justify-content: flex-end; }
+.ts-vs-panel-bubble { max-width: 90%; padding: 5px 8px; border-radius: 6px; font-size: 10px; line-height: 1.5; }
+.ts-vs-panel-msg--agent .ts-vs-panel-bubble { background: #333; color: #ccc; }
+.ts-vs-panel-msg--user .ts-vs-panel-bubble { background: #da203e; color: #fff; }
+.ts-vs-panel-skills { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-top: 1px solid #333; }
+.ts-vs-skill { padding: 2px 8px; border-radius: 4px; font-size: 9px; color: #888; background: #333; cursor: default; white-space: nowrap; }
+.ts-vs-skill.is-active { background: rgba(218,32,62,0.15); color: #da203e; }
+.ts-vs-panel-input { padding: 6px 8px; border-top: 1px solid #333; }
+.ts-vs-input-hint { font-size: 9px; color: #555; }
 
 /* Notebook preview */
 .ts-nb-preview-lg { border-radius: 10px; overflow: hidden; background: #fafafa; border: 1px solid #eee; margin-bottom: 24px; }
