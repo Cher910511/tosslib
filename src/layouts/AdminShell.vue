@@ -30,6 +30,10 @@
           <span class="nav-ico" aria-hidden="true">◈</span>
           签名验证
         </RouterLink>
+        <RouterLink class="admin-nav-item" to="/software/toolset" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">▤</span>
+          工具集
+        </RouterLink>
         <RouterLink class="admin-nav-item" to="/software/detection-report" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">▧</span>
           检测报告

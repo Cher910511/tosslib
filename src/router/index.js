@@ -26,6 +26,7 @@ import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
 import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
 import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
 import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
+import ToolsetView from '../views/admin/ToolsetView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
 import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
@@ -164,6 +165,13 @@ const routes = [
         name: 'openapi-tools',
         component: OpenApiToolsView,
         meta: { adminTitle: 'OpenAPI' },
+      },
+      // ==================== 工具集 ====================
+      {
+        path: 'toolset',
+        name: 'toolset',
+        component: ToolsetView,
+        meta: { adminTitle: '工具集' },
       },
       // ==================== 版本火车 ====================
       {
