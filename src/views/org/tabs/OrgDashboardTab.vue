@@ -1,0 +1,680 @@
+<template>
+  <div class="dash-tab">
+    <div v-if="!isAdmin" class="dash-forbidden">
+      <div class="dash-forbidden-icon">!</div>
+      <p>仅组织管理员可查看工作台</p>
+    </div>
+
+    <template v-else>
+      <!-- KPI 指标行 -->
+      <div class="dash-kpi">
+        <div class="dash-stat">
+          <div class="dash-stat-body">
+            <div class="dash-stat-info">
+              <span class="dash-stat-value">128</span>
+              <span class="dash-stat-label">使用中的软件</span>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon--blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+          </div>
+          <div class="dash-stat-foot">
+            <span class="dash-stat-change dash-stat-change--up">+6 本周新增</span>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-body">
+            <div class="dash-stat-info">
+              <span class="dash-stat-value">356</span>
+              <span class="dash-stat-label">使用中的组件</span>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon--purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+          </div>
+          <div class="dash-stat-foot">
+            <span class="dash-stat-change dash-stat-change--up">+23 本周新增</span>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-body">
+            <div class="dash-stat-info">
+              <span class="dash-stat-value dash-stat-value--danger">12</span>
+              <span class="dash-stat-label">下架软件</span>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon--red">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+          </div>
+          <div class="dash-stat-foot">
+            <span class="dash-stat-change dash-stat-change--down">-2 较上月</span>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-body">
+            <div class="dash-stat-info">
+              <span class="dash-stat-value dash-stat-value--danger">45</span>
+              <span class="dash-stat-label">下架组件</span>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon--red">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+          </div>
+          <div class="dash-stat-foot">
+            <span class="dash-stat-change dash-stat-change--up">+5 较上月</span>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-body">
+            <div class="dash-stat-info">
+              <span class="dash-stat-value">6</span>
+              <span class="dash-stat-label">本周新增预警</span>
+            </div>
+            <div class="dash-stat-icon dash-stat-icon--orange">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+          </div>
+          <div class="dash-stat-foot">
+            <span class="dash-stat-change dash-stat-change--danger">+2 较上周</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 版本火车状态堆叠条 -->
+      <div class="dash-train-strip">
+        <div class="dash-train-strip-hd">
+          <h3>版本火车状态</h3>
+          <span class="dash-train-strip-badge">共 12 辆</span>
+        </div>
+        <div class="dash-train-strip-body">
+          <div class="dash-train-bar">
+            <div class="dash-train-bar-seg dash-train-bar--released" style="width:33.33%"><span>已发车 4</span></div>
+            <div class="dash-train-bar-seg dash-train-bar--pending" style="width:33.33%"><span>待发车 4</span></div>
+            <div class="dash-train-bar-seg dash-train-bar--expired" style="width:33.34%"><span>已过期 4</span></div>
+          </div>
+        </div>
+        <div class="dash-train-strip-legend">
+          <span class="dash-train-legend-item"><span class="dash-train-dot" style="background:#22c55e" />已发车 4</span>
+          <span class="dash-train-legend-item"><span class="dash-train-dot" style="background:#f59e0b" />待发车 4</span>
+          <span class="dash-train-legend-item"><span class="dash-train-dot" style="background:#9ca3af" />已过期 4</span>
+        </div>
+      </div>
+
+      <!-- 图表区域 -->
+      <div class="dash-panels">
+        <!-- 第一行：风险等级 + 漏洞排行合并 -->
+        <div class="dash-panel dash-panel--full">
+          <div class="dash-split-panel">
+            <div class="dash-split-left">
+              <div class="dash-split-hd">
+                <h3>风险等级分布</h3>
+              </div>
+              <div class="dash-split-body">
+                <div ref="levelChartRef" class="dash-echart"></div>
+              </div>
+            </div>
+            <div class="dash-split-divider"></div>
+            <div class="dash-split-right">
+              <div class="dash-split-hd">
+                <h3>漏洞软件排行</h3>
+                <label class="dash-rank-filter">
+                  <input type="checkbox" v-model="showOffShelf" />
+                  <span>包含已下架</span>
+                </label>
+              </div>
+              <div class="dash-split-body">
+                <template v-if="orgHasData">
+                <div class="dash-rank-list">
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num dash-rank-num--1">1</span>
+                    <span class="dash-rank-name">Log4j 2</span>
+                    <span class="dash-rank-ver">2.23.1</span>
+                    <span class="dash-rank-vuln-badge">12 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num dash-rank-num--2">2</span>
+                    <span class="dash-rank-name">OpenSSL</span>
+                    <span class="dash-rank-ver">3.3.0</span>
+                    <span class="dash-rank-vuln-badge">9 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num dash-rank-num--3">3</span>
+                    <span class="dash-rank-name">Spring Framework</span>
+                    <span class="dash-rank-ver">6.1.5</span>
+                    <span class="dash-rank-vuln-badge">7 漏洞</span>
+                  </div>
+                  <div v-if="showOffShelf" class="dash-rank-item">
+                    <span class="dash-rank-num">4</span>
+                    <span class="dash-rank-name">Grafana</span>
+                    <span class="dash-rank-ver">11.1.0</span>
+                    <span class="dash-rank-vuln-badge dash-rank-vuln-badge--off">6 漏洞</span>
+                    <span class="dash-rank-off-badge">下架</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">4</span>
+                    <span class="dash-rank-name">Nginx</span>
+                    <span class="dash-rank-ver">1.26.0</span>
+                    <span class="dash-rank-vuln-badge">5 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">5</span>
+                    <span class="dash-rank-name">Redis</span>
+                    <span class="dash-rank-ver">7.2.4</span>
+                    <span class="dash-rank-vuln-badge">4 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">6</span>
+                    <span class="dash-rank-name">Elasticsearch</span>
+                    <span class="dash-rank-ver">8.15.0</span>
+                    <span class="dash-rank-vuln-badge">4 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">7</span>
+                    <span class="dash-rank-name">Prometheus</span>
+                    <span class="dash-rank-ver">2.54.0</span>
+                    <span class="dash-rank-vuln-badge">3 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">8</span>
+                    <span class="dash-rank-name">RabbitMQ</span>
+                    <span class="dash-rank-ver">3.13.6</span>
+                    <span class="dash-rank-vuln-badge">3 漏洞</span>
+                  </div>
+                  <div class="dash-rank-item">
+                    <span class="dash-rank-num">9</span>
+                    <span class="dash-rank-name">PostgreSQL</span>
+                    <span class="dash-rank-ver">16.3</span>
+                    <span class="dash-rank-vuln-badge">2 漏洞</span>
+                  </div>
+                  <div v-if="!showOffShelf" class="dash-rank-item">
+                    <span class="dash-rank-num">10</span>
+                    <span class="dash-rank-name">Vue.js</span>
+                    <span class="dash-rank-ver">3.4.31</span>
+                    <span class="dash-rank-vuln-badge">1 漏洞</span>
+                  </div>
+                </div>
+                </template>
+                <div v-else class="dash-rank-empty">
+                  <span class="dash-empty-icon">🔒</span>
+                  <p class="dash-empty-text">暂无漏洞数据</p>
+                  <p class="dash-empty-hint">该组织暂无存在漏洞的软件</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第二行 -->
+        <div class="dash-panel dash-panel--third">
+          <div class="dash-panel-hd">
+            <h3>软件与组件概况</h3>
+            <span class="dash-panel-badge">总计 541</span>
+          </div>
+          <div class="dash-panel-body">
+            <div ref="overviewChartRef" class="dash-echart dash-echart--sm"></div>
+          </div>
+        </div>
+        <div class="dash-panel dash-panel--third">
+          <div class="dash-panel-hd">
+            <h3>近 30 天预警趋势</h3>
+            <span class="dash-panel-badge">日报</span>
+          </div>
+          <div class="dash-panel-body">
+            <div ref="trendChartRef" class="dash-echart"></div>
+          </div>
+        </div>
+        <div class="dash-panel dash-panel--third">
+          <div class="dash-panel-hd">
+            <h3>最新预警</h3>
+            <span class="dash-panel-badge">5 条</span>
+          </div>
+          <div class="dash-panel-body" style="padding:2px 6px;">
+            <template v-if="orgHasData">
+              <div class="dash-alert-list" style="border-top:none;padding:0;">
+                <div class="dash-alert-item">
+                  <span class="dash-alert-level dash-alert-level--high">高危</span>
+                  <span class="dash-alert-name">Apache Log4j2 远程代码执行</span>
+                  <span class="dash-alert-time">07-02</span>
+                </div>
+                <div class="dash-alert-item">
+                  <span class="dash-alert-level dash-alert-level--critical">超危</span>
+                  <span class="dash-alert-name">OpenSSL 缓冲区溢出漏洞</span>
+                  <span class="dash-alert-time">06-30</span>
+                </div>
+                <div class="dash-alert-item">
+                  <span class="dash-alert-level dash-alert-level--high">高危</span>
+                  <span class="dash-alert-name">Spring Framework 权限绕过</span>
+                  <span class="dash-alert-time">06-28</span>
+                </div>
+                <div class="dash-alert-item">
+                  <span class="dash-alert-level dash-alert-level--mid">中危</span>
+                  <span class="dash-alert-name">Nginx HTTP/2 请求走私</span>
+                  <span class="dash-alert-time">06-25</span>
+                </div>
+                <div class="dash-alert-item">
+                  <span class="dash-alert-level dash-alert-level--mid">中危</span>
+                  <span class="dash-alert-name">Redis 权限提升漏洞</span>
+                  <span class="dash-alert-time">06-23</span>
+                </div>
+              </div>
+              <button type="button" class="dash-alert-more" @click="$emit('switchTab', 'alerts')">查看详情 →</button>
+            </template>
+            <div v-else class="dash-empty-state">
+              <span class="dash-empty-icon">🛡️</span>
+              <p class="dash-empty-text">暂无预警信息</p>
+              <p class="dash-empty-hint">当前组织没有待处理的漏洞预警</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import * as echarts from 'echarts'
+
+const props = defineProps({ org: { type: Object, required: true } })
+const emit = defineEmits(['switchTab'])
+const isAdmin = true
+
+// 根据组织ID区分数据：org-001(工商银行)和org-003(华为)有完整数据，其他组织数据为空
+const orgHasData = computed(() => ['org-001', 'org-003'].includes(props.org.id))
+const showOffShelf = ref(false)
+
+const levelChartRef = ref(null)
+const overviewChartRef = ref(null)
+const trendChartRef = ref(null)
+
+let charts = []
+
+function initCharts() {
+  initLevel()
+  initOverview()
+  initTrend()
+}
+
+function initLevel() {
+  if (!levelChartRef.value) return
+  const c = echarts.init(levelChartRef.value)
+  c.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 项 ({d}%)' },
+    color: ['#7f1d1d', '#dc2626', '#f59e0b', '#6b7280'],
+    series: [{
+      type: 'pie', radius: ['45%', '70%'],
+      avoidLabelOverlap: true, padAngle: 2,
+      itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, position: 'outside', fontSize: 11, fontWeight: 600, color: '#374151', formatter: '{b}' },
+      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.15)' } },
+      data: [
+        { value: 12, name: '超危' },
+        { value: 28, name: '高危' },
+        { value: 35, name: '中危' },
+        { value: 15, name: '低危' },
+      ],
+    }],
+  })
+  charts.push(c)
+}
+
+function initOverview() {
+  if (!overviewChartRef.value) return
+  const c = echarts.init(overviewChartRef.value)
+  c.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => {
+      const total = p.reduce((s, d) => s + d.value, 0)
+      return p.map(d => `${d.marker} ${d.seriesName}: ${d.value}`).join('<br/>') + `<br/>合计: ${total}`
+    }},
+    legend: { data: ['使用中', '已下架'], bottom: 0, textStyle: { fontSize: 11, color: '#6b7280' }, itemWidth: 10, itemHeight: 10 },
+    grid: { left: 40, right: 10, top: 20, bottom: 40 },
+    xAxis: { type: 'category', data: ['软件', '组件'], axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151' } },
+    yAxis: { type: 'value', show: false },
+    series: [
+      {
+        name: '使用中', type: 'bar', barWidth: 20, barGap: '20%', borderRadius: [4, 4, 0, 0],
+        itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#93c5fd' }]) },
+        label: { show: true, position: 'top', fontSize: 12, fontWeight: 700, color: '#374151' },
+        data: [128, 356],
+      },
+      {
+        name: '已下架', type: 'bar', barWidth: 20, borderRadius: [4, 4, 0, 0],
+        itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ef4444' }, { offset: 1, color: '#fca5a5' }]) },
+        label: { show: true, position: 'top', fontSize: 12, fontWeight: 700, color: '#dc2626' },
+        data: [12, 45],
+      },
+    ],
+  })
+  charts.push(c)
+}
+
+function initTrend() {
+  if (!trendChartRef.value) return
+  const c = echarts.init(trendChartRef.value)
+  const hasData = orgHasData.value
+  c.setOption({
+    color: ['#da203e'],
+    tooltip: { trigger: 'axis', formatter: '{b}<br/>预警数: {c}' },
+    dataZoom: hasData ? [{
+      type: 'slider', start: 0, end: 100,
+      height: 14, bottom: 4,
+      borderColor: '#e5e7eb', backgroundColor: '#f9fafb',
+      fillerColor: 'rgba(218,32,62,0.1)', handleStyle: { color: '#da203e' },
+      textStyle: { fontSize: 10, color: '#9ca3af' }, showDetail: false,
+    }] : undefined,
+    grid: { left: 45, right: 20, top: 24, bottom: hasData ? 40 : 16 },
+    xAxis: {
+      type: 'category', boundaryGap: false,
+      data: ['06-01', '06-05', '06-10', '06-15', '06-20', '06-25', '06-30'],
+      axisLabel: { fontSize: 11, color: '#9ca3af' },
+      axisLine: { lineStyle: { color: '#f3f4f6' } },
+    },
+    yAxis: {
+      type: 'value', axisLabel: { fontSize: 11, color: '#9ca3af' },
+      splitLine: { lineStyle: { color: '#f3f4f6' } },
+      min: 0, max: hasData ? undefined : 10,
+    },
+    series: [{
+      type: 'line', smooth: true, symbol: hasData ? 'circle' : 'none', symbolSize: 6,
+      lineStyle: { width: 2 },
+      areaStyle: hasData ? {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(218,32,62,0.2)' },
+          { offset: 1, color: 'rgba(218,32,62,0.02)' },
+        ]),
+      } : undefined,
+      data: hasData ? [2, 5, 3, 8, 6, 4, 6] : [0, 0, 0, 0, 0, 0, 0],
+    }],
+  })
+  charts.push(c)
+}
+
+function handleResize() {
+  charts.forEach(c => c?.resize())
+}
+
+onMounted(() => {
+  initCharts()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  charts.forEach(c => c?.dispose())
+  charts = []
+})
+</script>
+
+<style scoped>
+.dash-tab { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+/* Forbidden */
+.dash-forbidden {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 80px 20px; color: #9ca3af; gap: 12px;
+}
+.dash-forbidden-icon {
+  width: 48px; height: 48px; border-radius: 50%; background: #f3f4f6;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #d1d5db;
+}
+.dash-forbidden p { margin: 0; font-size: 14px; }
+
+/* KPI Stats */
+.dash-kpi { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 22px; }
+.dash-stat {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.dash-stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.dash-stat-body {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 10px;
+}
+.dash-stat-info { display: flex; flex-direction: column; gap: 2px; }
+.dash-stat-value { font-size: 28px; font-weight: 700; color: #111827; line-height: 1.2; }
+.dash-stat-value--danger { color: #dc2626; }
+.dash-stat-label { font-size: 12px; color: #6b7280; }
+.dash-stat-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.dash-stat-icon--blue { background: #eff6ff; color: #3b82f6; }
+.dash-stat-icon--purple { background: #f5f3ff; color: #8b5cf6; }
+.dash-stat-icon--red { background: #fef2f2; color: #ef4444; }
+.dash-stat-icon--orange { background: #fff7ed; color: #f97316; }
+.dash-stat-foot {
+  padding: 6px 18px 10px; border-top: 1px solid #f9fafb;
+}
+.dash-stat-change { font-size: 11px; font-weight: 500; }
+.dash-stat-change--up { color: #16a34a; }
+.dash-stat-change--down { color: #6b7280; }
+.dash-stat-change--danger { color: #dc2626; }
+
+/* Version train horizontal stacked bar */
+.dash-train-strip {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 18px 16px;
+  margin-bottom: 16px;
+}
+.dash-train-strip-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.dash-train-strip-hd h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.dash-train-strip-badge {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+.dash-train-strip-body {
+  padding: 0;
+}
+.dash-train-bar {
+  display: flex;
+  width: 100%;
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dash-train-bar-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  transition: opacity 0.15s;
+}
+.dash-train-bar-seg:hover { opacity: 0.85; }
+.dash-train-bar-seg span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+.dash-train-bar--released { background: #22c55e; }
+.dash-train-bar--pending { background: #f59e0b; }
+.dash-train-bar--expired { background: #9ca3af; }
+.dash-train-strip-legend {
+  display: flex;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-top: 10px;
+}
+.dash-train-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.dash-train-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Vulnerability ranking list */
+.dash-rank-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(5, auto);
+  grid-auto-flow: column;
+  gap: 6px 14px;
+  padding: 2px 0;
+}
+.dash-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  background: #fafafa;
+  border: 1px solid #f3f4f6;
+  font-size: 12px;
+  min-width: 0;
+}
+.dash-rank-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+.dash-rank-num--1 { background: #fef2f2; color: #dc2626; }
+.dash-rank-num--2 { background: #fff7ed; color: #d97706; }
+.dash-rank-num--3 { background: #fffbeb; color: #d97706; }
+.dash-rank-name { flex: 1; font-weight: 600; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.dash-rank-ver {
+  font-size: 11px; font-weight: 600; color: #2563eb; background: #eff6ff;
+  padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.dash-rank-vuln-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 18px; padding: 0 5px;
+  border-radius: 9px; font-size: 11px; font-weight: 700;
+  background: #fef2f2; color: #dc2626; flex-shrink: 0;
+}
+.dash-rank-vuln-badge--off { background: #f3f4f6; color: #9ca3af; }
+.dash-rank-off-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; background: #e5e7eb; color: #6b7280; flex-shrink: 0; }
+.dash-rank-filter {
+  display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; font-size: 12px; color: #6b7280;
+}
+.dash-rank-filter input[type="checkbox"] { margin: 0; accent-color: #da203e; }
+
+/* Split panel: risk level + ranking */
+.dash-split-panel { display: flex; }
+.dash-split-left, .dash-split-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dash-split-divider { width: 1px; flex-shrink: 0; background: #f3f4f6; }
+.dash-split-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px 4px; gap: 8px;
+}
+.dash-split-hd h3 { margin: 0; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; }
+.dash-split-body { flex: 1; padding: 4px 14px 2px; overflow: hidden; }
+
+/* Alert list */
+.dash-alert-list {
+  display: flex; flex-direction: column; gap: 0; padding: 6px 0 2px; border-top: 1px solid #f3f4f6;
+}
+.dash-alert-item {
+  display: flex; align-items: center; gap: 8px; padding: 7px 4px; font-size: 12px; border-bottom: 1px solid #f9fafb;
+}
+.dash-alert-item:last-child { border-bottom: none; }
+.dash-alert-more {
+  display: block; width: 100%; padding: 7px 0; margin-top: 2px;
+  border: none; border-top: 1px solid #f3f4f6; border-radius: 0;
+  background: transparent; font-family: inherit; font-size: 12px; color: #da203e;
+  cursor: pointer; text-align: center; font-weight: 500; transition: background 0.15s;
+}
+.dash-alert-more:hover { background: #fef2f2; }
+
+/* Empty state */
+.dash-empty-state, .dash-rank-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 12px; text-align: center;
+}
+.dash-empty-icon { font-size: 28px; margin-bottom: 6px; display: block; }
+.dash-empty-text { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #6b7280; }
+.dash-empty-hint { margin: 0; font-size: 12px; color: #9ca3af; }
+.dash-alert-level {
+  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.dash-alert-level--critical { background: #7f1d1d; color: #fff; }
+.dash-alert-level--high { background: #fef2f2; color: #dc2626; }
+.dash-alert-level--mid { background: #fffbeb; color: #d97706; }
+.dash-alert-name { flex: 1; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-alert-time { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+
+/* Panels Grid */
+.dash-panels { display: flex; flex-wrap: wrap; gap: 16px; }
+.dash-panel {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+}
+.dash-panel--half { flex: 1 1 calc(50% - 8px); min-width: 320px; }
+.dash-panel--third { flex: 1 1 calc(33.33% - 11px); min-width: 240px; }
+.dash-panel--two-thirds { flex: 1 1 calc(66.67% - 6px); min-width: 360px; }
+.dash-panel--full { flex: 1 1 100%; }
+
+.dash-panel-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
+}
+.dash-panel-hd h3 { margin: 0; font-size: 14px; font-weight: 600; color: #374151; }
+.dash-panel-badge {
+  font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px;
+  background: #f3f4f6; color: #6b7280;
+}
+.dash-panel-badge--ok { background: #dcfce7; color: #16a34a; }
+
+.dash-panel-body { padding: 6px 8px 4px; }
+.dash-echart { width: 100%; height: 200px; }
+.dash-echart--sm { width: 100%; height: 180px; }
+.dash-echart--wide { height: 220px; }
+
+/* Meta Grid */
+.dash-meta-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; padding: 8px 6px 14px;
+}
+.dash-meta-cell {
+  text-align: center; padding: 16px 8px 14px;
+  background: linear-gradient(135deg, #fafafa 0%, #f7f8fa 100%);
+  border: 1px solid #f0f0f0; border-radius: 10px;
+}
+.dash-meta-num { display: block; font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.dash-meta-num--ok { color: #16a34a; }
+.dash-meta-label { font-size: 12px; color: #6b7280; }
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .dash-kpi { grid-template-columns: repeat(3, 1fr); }
+  .dash-panel--half { flex: 1 1 100%; }
+  .dash-panel--third { flex: 1 1 calc(50% - 8px); }
+  .dash-meta-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .dash-kpi { grid-template-columns: repeat(2, 1fr); }
+  .dash-panel--third { flex: 1 1 100%; }
+  .dash-meta-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>

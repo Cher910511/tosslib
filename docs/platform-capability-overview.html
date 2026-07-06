@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>可信开源代码库｜平台能力全景图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-alt: #fafbfc;
+    --border: #e5e8ee;
+    --border-soft: #edeff3;
+    --ink: #101828;
+    --ink-2: #4b5563;
+    --ink-3: #98a2b3;
+
+    --brand: #2554eb;
+    --brand-dark: #1d40c4;
+    --brand-50: #eef2ff;
+    --brand-100: #dbe4fd;
+
+    --teal: #0d9488;
+    --teal-50: #eafaf8;
+    --teal-100: #cdeee9;
+
+    --amber: #b45309;
+    --amber-50: #fdf6e9;
+    --amber-100: #f6e2b8;
+
+    --violet: #7c3aed;
+    --violet-50: #f5f3ff;
+    --violet-100: #e4dbfd;
+
+    --cyan: #0891b2;
+    --cyan-50: #ecfbfd;
+    --cyan-100: #cdf0f5;
+
+    --slate: #475467;
+    --slate-50: #f1f2f5;
+    --slate-100: #e2e5ea;
+
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
+    --shadow-md: 0 4px 16px rgba(16,24,40,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+
+  .canvas { width: 1300px; max-width: 100%; }
+
+  /* ═══════════ HEADER ═══════════ */
+  .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; padding: 0 4px; }
+  .header .title-group { display: flex; align-items: center; gap: 12px; }
+  .header .mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark)); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 8px rgba(37,84,235,0.25);
+  }
+  .header .mark svg { display: block; }
+  .header h1 { font-size: 21px; font-weight: 700; color: var(--ink); letter-spacing: -0.2px; }
+  .header .subtitle { font-size: 11px; color: var(--ink-3); letter-spacing: 1px; margin-top: 2px; font-weight: 500; }
+  .header .badge {
+    font-size: 10.5px; font-weight: 600; color: var(--brand);
+    border: 1px solid var(--brand-100); border-radius: 20px;
+    padding: 5px 12px; background: var(--brand-50);
+  }
+  .header-accent { height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--brand), var(--teal), var(--amber), var(--violet)); margin-bottom: 16px; opacity: 0.85; }
+
+  /* ═══════════ MAIN CONTAINER ═══════════ */
+  .main-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  .pipeline { display: flex; align-items: stretch; }
+
+  /* ── LEFT: Sources ── */
+  .left-col {
+    width: 210px; flex-shrink: 0;
+    background: var(--surface-alt);
+    border-right: 1px solid var(--border-soft);
+    padding: 22px 15px;
+    display: flex; flex-direction: column;
+  }
+  .col-eyebrow {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--ink-3); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .src-list {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: space-between; gap: 8px;
+  }
+  .src-card {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: 9px 10px; box-shadow: var(--shadow-sm);
+    display: flex; gap: 9px; align-items: flex-start;
+  }
+  .src-card .icn {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--slate-50);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .src-card .sname { font-size: 11.5px; font-weight: 600; color: var(--ink); }
+  .src-card .sdetail { font-size: 9.5px; color: var(--ink-3); line-height: 1.5; margin-top: 2px; }
+
+  /* ── RIGHT: Outputs ── */
+  .right-col {
+    width: 200px; flex-shrink: 0;
+    background: var(--surface-alt);
+    border-left: 1px solid var(--border-soft);
+    padding: 16px 10px;
+    display: flex; flex-direction: column;
+  }
+  .out-list {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: space-between; gap: 5px;
+  }
+  .out-block {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: 6px 8px; box-shadow: var(--shadow-sm);
+    display: flex; gap: 7px; align-items: flex-start;
+  }
+  .out-block .icn {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--violet-50);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .out-block .oname { font-size: 11.5px; font-weight: 600; color: var(--ink); }
+  .out-block .odetail { font-size: 9.5px; color: var(--ink-3); line-height: 1.5; margin-top: 2px; }
+
+  /* ── CENTER ── */
+  .center-col { flex: 1; padding: 20px 24px 14px; display: flex; flex-direction: column; min-width: 0; justify-content: center; gap: 2px; }
+
+  /* ── Flow section label ── */
+  .flow-section-label {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+  }
+  .fs-icon {
+    width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fs-icon.blue { background: var(--brand); }
+  .fs-icon.green { background: var(--teal); }
+  .fs-num { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; }
+  .fs-num.blue { color: var(--brand); }
+  .fs-num.green { color: var(--teal); }
+  .fs-desc { font-size: 10.5px; color: var(--ink-3); }
+
+  /* ── Flow row ── */
+  .flow-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 6px; }
+  .fnode {
+    flex: 1; text-align: left;
+    border-radius: var(--radius-sm); padding: 8px 10px 7px;
+    position: relative; min-width: 0;
+  }
+  .fnode.gov { background: var(--brand-50); border: 1px solid var(--brand-100); }
+  .fnode.use { background: var(--teal-50); border: 1px solid var(--teal-100); }
+  .fnode .fhead { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .fnode .ficon {
+    width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fnode.gov .ficon { background: var(--brand); }
+  .fnode.use .ficon { background: var(--teal); }
+  .fnode .step-num {
+    font-size: 8.5px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .fnode.gov .step-num { color: var(--brand); }
+  .fnode.use .step-num { color: var(--teal); }
+  .fnode .ftitle { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .fnode .fdesc { font-size: 9px; color: var(--ink-2); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fnode .ftool {
+    font-size: 8.5px; color: var(--ink-3); margin-top: 5px; font-weight: 600;
+    padding: 2px 6px; background: rgba(16,24,40,0.04); border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ── Horizontal connector: static arrow ── */
+  .farrow {
+    width: 22px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .farrow.blue { color: var(--brand); }
+  .farrow.green { color: var(--teal); }
+
+  /* ── Vertical connector ── */
+  .vconn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 5px 0; position: relative;
+  }
+  .vconn-text {
+    font-size: 9.5px; color: var(--ink-3); font-weight: 500;
+  }
+  .vconn .vline {
+    flex: 1; max-width: 110px; height: 2px;
+    background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 8px);
+  }
+  .vconn.blue { color: var(--brand); }
+  .vconn.green { color: var(--teal); }
+
+  /* ── Platform Core ── */
+  .platform-core {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 12px 18px 9px; background: var(--surface-alt);
+  }
+  .pc-header {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 11px;
+  }
+  .pc-header .pc-icon {
+    width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pc-name { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.1px; }
+  .pc-goals {
+    display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .pc-goal {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9.5px; font-weight: 500; padding: 3px 9px 3px 7px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .pc-goal svg { flex-shrink: 0; }
+
+  .pc-cap-row {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px;
+  }
+  .cap {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    padding: 8px 6px 7px; text-align: center; box-shadow: var(--shadow-sm);
+    border-top: 2px solid var(--brand);
+  }
+  .cap .cicon {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--brand-50);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 4px;
+  }
+  .cap .cicon svg { display: block; }
+  .cap .cname { font-size: 10.5px; font-weight: 700; color: var(--ink); }
+  .cap .citems { font-size: 8.5px; color: var(--ink-3); line-height: 1.4; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Loop row ── */
+  .loop-row {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 7px; margin-top: 8px; padding: 6px 12px;
+    border-top: 1px dashed var(--amber-100);
+    background: var(--amber-50); border-radius: 0 0 8px 8px; margin-left: -18px; margin-right: -18px; margin-bottom: -9px; padding-left: 18px; padding-right: 18px;
+  }
+  .loop-label { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--amber); font-weight: 700; white-space: nowrap; }
+  .loop-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .loop-tag {
+    font-size: 9.5px; font-weight: 500; padding: 4px 10px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--amber-100); color: var(--amber);
+    white-space: nowrap;
+  }
+  .loop-feedback { font-size: 9.5px; color: var(--ink-3); white-space: nowrap; margin-left: auto; }
+
+  /* ── Scenario row ── */
+  .scenario-row {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .scenario-tag {
+    flex: 1; padding: 7px 9px;
+    background: var(--surface); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm); text-align: left; box-shadow: var(--shadow-sm);
+    border-top: 2px solid var(--cyan);
+  }
+  .scenario-tag .st-head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .scenario-tag .icn {
+    width: 20px; height: 20px; border-radius: 6px; background: var(--cyan-50);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .scenario-tag .st-title { font-size: 10.5px; font-weight: 700; color: var(--ink); }
+  .scenario-tag .st-flow { font-size: 9px; color: var(--ink-3); line-height: 1.5; }
+
+  /* ── Bottom bar ── */
+  .bottom-bar {
+    display: flex; align-items: stretch; justify-content: center;
+    padding: 0; background: var(--surface-alt); border-top: 1px solid var(--border-soft);
+    flex-wrap: wrap;
+  }
+  .metric {
+    text-align: center; padding: 15px 30px; flex: 1;
+    border-right: 1px solid var(--border-soft);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .metric:last-child { border-right: none; }
+  .metric .micon { margin-bottom: 3px; opacity: 0.85; }
+  .metric .mval { font-size: 19px; font-weight: 800; color: var(--brand); letter-spacing: -0.3px; }
+  .metric .mlbl { font-size: 9.5px; color: var(--ink-3); font-weight: 500; }
+
+  .footer { text-align: center; margin-top: 16px; font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="header">
+    <div class="title-group">
+      <div class="mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div>
+        <h1>可信开源代码库｜平台能力全景</h1>
+        <div class="subtitle">TOSSLIB — TRUSTED OPEN SOURCE SOFTWARE LIBRARY</div>
+      </div>
+    </div>
+    <div class="badge">Platform Capability Overview</div>
+  </div>
+  <div class="header-accent"></div>
+
+  <div class="main-box">
+    <div class="pipeline">
+
+      <!-- ═══ LEFT: Data Sources ═══ -->
+      <div class="left-col">
+        <div class="col-eyebrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#98a2b3" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+          上游数据源
+        </div>
+        <div class="src-list">
+        <div class="src-card">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.3"/><circle cx="6" cy="18" r="2.3"/><circle cx="18" cy="12" r="2.3"/><path d="M6 8.3V15.7"/><path d="M8 12h4a4 4 0 004-4"/></svg></div>
+          <div>
+            <div class="sname">开源社区仓库</div>
+            <div class="sdetail">GitHub、GitLab、AtomGit</div>
+          </div>
+        </div>
+        <div class="src-card">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+          <div>
+            <div class="sname">制品镜像源</div>
+            <div class="sdetail">Maven、npm、PyPI</div>
+          </div>
+        </div>
+        <div class="src-card">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="#475467"/></svg></div>
+          <div>
+            <div class="sname">漏洞情报库</div>
+            <div class="sdetail">NVD、CNNVD 实时同步</div>
+          </div>
+        </div>
+        <div class="src-card">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="2.8"/></svg></div>
+          <div>
+            <div class="sname">舆情与威胁情报</div>
+            <div class="sdetail">社区动态、恶意代码情报</div>
+          </div>
+        </div>
+        <div class="src-card">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.3"/><rect x="3" y="14" width="18" height="6" rx="1.3"/><circle cx="7" cy="7" r="0.8" fill="#475467"/><circle cx="7" cy="17" r="0.8" fill="#475467"/></svg></div>
+          <div>
+            <div class="sname">企业私有仓库</div>
+            <div class="sdetail">制品上传、存量代码导入</div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- ═══ CENTER: Integrated Pipeline ═══ -->
+      <div class="center-col">
+
+        <!-- ===== 数据流 ①: 平台治理 ===== -->
+        <div class="flow-section-label">
+          <div class="fs-icon blue"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></div>
+          <span class="fs-num blue">平台治理</span>
+          <span class="fs-desc">— 开源软件从获取评估到可信入库的全生命周期管控</span>
+        </div>
+
+        <div class="flow-row">
+          <div class="fnode gov">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H4z"/><path d="M4 10h4l2 3h4l2-3h4"/></svg></div>
+              <div><div class="step-num">STEP 01</div><div class="ftitle">软件获取</div></div>
+            </div>
+            <div class="fdesc">社区仓库对接、制品同步导入</div>
+            <div class="ftool">软件库｜仓库对接</div>
+          </div>
+          <div class="farrow blue"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#2554eb"/></svg></div>
+          <div class="fnode gov">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="1.8"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="1.8"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="18" r="1.8"/></svg></div>
+              <div><div class="step-num">STEP 02</div><div class="ftitle">引入选型</div></div>
+            </div>
+            <div class="fdesc">多维评估、版本对比推荐</div>
+            <div class="ftool">组件库｜AI助手</div>
+          </div>
+          <div class="farrow blue"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#2554eb"/></svg></div>
+          <div class="fnode gov">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><circle cx="12" cy="15.7" r="0.6" fill="#fff"/></svg></div>
+              <div><div class="step-num">STEP 03</div><div class="ftitle">技术评估</div></div>
+            </div>
+            <div class="fdesc">SBOM生成、漏洞与许可证检查</div>
+            <div class="ftool">SBOM分析｜签名验证</div>
+          </div>
+          <div class="farrow blue"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#2554eb"/></svg></div>
+          <div class="fnode gov">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg></div>
+              <div><div class="step-num">STEP 04</div><div class="ftitle">治理验收</div></div>
+            </div>
+            <div class="fdesc">风险报告审核、合规评分确认</div>
+            <div class="ftool">检测报告｜出入库审批</div>
+          </div>
+          <div class="farrow blue"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#2554eb"/></svg></div>
+          <div class="fnode gov">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="1.3"/><path d="M3 7l2-4h14l2 4"/><line x1="9" y1="12.5" x2="15" y2="12.5"/></svg></div>
+              <div><div class="step-num">STEP 05</div><div class="ftitle">软件入库</div></div>
+            </div>
+            <div class="fdesc">可信资产归档、版本火车编排</div>
+            <div class="ftool">软件库｜版本火车</div>
+          </div>
+        </div>
+
+        <!-- Governance → Core connector -->
+        <div class="vconn blue">
+          <div class="vline"></div>
+          <span class="vconn-text">可信资产汇入平台能力层</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+          <div class="vline"></div>
+        </div>
+
+        <!-- ===== PLATFORM CORE ===== -->
+        <div class="platform-core">
+          <div class="pc-goals">
+            <span class="pc-goal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>合法合规</span>
+            <span class="pc-goal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>漏洞安全</span>
+            <span class="pc-goal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15,9 22,9 16.5,13.5 18.5,21 12,16.5 5.5,21 7.5,13.5 2,9 9,9"/></svg>软件优选</span>
+            <span class="pc-goal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="1.5"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>来源可信</span>
+            <span class="pc-goal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15.5,14"/></svg>全生命周期管理</span>
+          </div>
+          <div class="pc-cap-row">
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><path d="M9 15c.83.67 1.83 1 3 1s2.17-.33 3-1"/></svg></div>
+              <div class="cname">AI 助手</div>
+              <div class="citems">智能选型推荐、代码生成</div>
+            </div>
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div>
+              <div class="cname">软件库</div>
+              <div class="citems">可信资产中心、出入库追踪</div>
+            </div>
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+              <div class="cname">组件库</div>
+              <div class="citems">开源组件索引、多维评估</div>
+            </div>
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+              <div class="cname">SBOM 分析</div>
+              <div class="citems">物料清单生成、依赖解析</div>
+            </div>
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div>
+              <div class="cname">风险预警</div>
+              <div class="citems">CVE实时同步、自动告警</div>
+            </div>
+            <div class="cap">
+              <div class="cicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2554eb" stroke-width="2.3" stroke-linecap="round"><rect x="1" y="6" width="6" height="12" rx="1"/><rect x="9" y="3" width="6" height="15" rx="1"/><rect x="17" y="8" width="6" height="8" rx="1"/></svg></div>
+              <div class="cname">版本火车</div>
+              <div class="citems">版本编排、补丁发车管理</div>
+            </div>
+          </div>
+
+          <!-- Continuous governance loop -->
+          <div class="loop-row">
+            <span class="loop-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.3"/><polyline points="21,3 21,9 15,9"/></svg>持续治理闭环</span>
+            <div class="loop-tags">
+              <span class="loop-tag">漏洞实时监控</span>
+              <span class="loop-tag">版本火车更新</span>
+              <span class="loop-tag">补丁修复验证</span>
+              <span class="loop-tag">许可证追踪</span>
+            </div>
+            <span class="loop-feedback">反馈至技术评估环节</span>
+          </div>
+        </div>
+
+        <!-- Core → Usage connector -->
+        <div class="vconn green">
+          <div class="vline"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>
+          <span class="vconn-text">平台能力层支撑开发者一站式使用</span>
+          <div class="vline"></div>
+        </div>
+
+        <!-- ===== 数据流 ②: 用户使用 ===== -->
+        <div class="flow-section-label">
+          <div class="fs-icon green"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg></div>
+          <span class="fs-num green">用户使用</span>
+          <span class="fs-desc">— 开发者从搜索发现到上线交付的一站式研发体验</span>
+        </div>
+
+        <div class="flow-row">
+          <div class="fnode use">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1.3"/><circle cx="15" cy="10" r="1.3"/><path d="M9 14.5c.7.6 1.6.9 2.5.9s1.8-.3 2.5-.9"/></svg></div>
+              <div><div class="step-num">STEP 01</div><div class="ftitle">AI 助手推荐</div></div>
+            </div>
+            <div class="fdesc">选型咨询、安全合规问答</div>
+            <div class="ftool">AI助手</div>
+          </div>
+          <div class="farrow green"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#0d9488"/></svg></div>
+          <div class="fnode use">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="10" height="10" rx="2"/><rect x="11" y="11" width="10" height="10" rx="2"/></svg></div>
+              <div><div class="step-num">STEP 02</div><div class="ftitle">引用与集成</div></div>
+            </div>
+            <div class="fdesc">镜像源加速、依赖引入构建</div>
+            <div class="ftool">镜像源服务｜OpenAPI</div>
+          </div>
+          <div class="farrow green"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#0d9488"/></svg></div>
+          <div class="fnode use">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3"/><path d="M17 4h3v3"/><path d="M20 17v3h-3"/><path d="M7 20H4v-3"/><line x1="4" y1="12" x2="20" y2="12" stroke-dasharray="2 2"/></svg></div>
+              <div><div class="step-num">STEP 03</div><div class="ftitle">验证与扫描</div></div>
+            </div>
+            <div class="fdesc">SCA扫描、CI/CD安全卡点</div>
+            <div class="ftool">软件扫描｜CI/CD集成</div>
+          </div>
+          <div class="farrow green"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#0d9488"/></svg></div>
+          <div class="fnode use">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div>
+              <div><div class="step-num">STEP 04</div><div class="ftitle">上线与交付</div></div>
+            </div>
+            <div class="fdesc">可信制品产出、持续风险监控</div>
+            <div class="ftool">检测报告｜风险预警</div>
+          </div>
+          <div class="farrow green"><svg width="16" height="14" viewBox="0 0 16 14"><line x1="2" y1="7" x2="12" y2="7" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/><polygon points="13,7 9,3 9,11" fill="#0d9488"/></svg></div>
+          <div class="fnode use">
+            <div class="fhead">
+              <div class="ficon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.5"/><line x1="14.8" y1="14.8" x2="20" y2="20"/></svg></div>
+              <div><div class="step-num">STEP 05</div><div class="ftitle">精准搜索与选型</div></div>
+            </div>
+            <div class="fdesc">精准检索、多维筛选与对比选型</div>
+            <div class="ftool">软件库｜组件库</div>
+          </div>
+        </div>
+
+        <!-- Scenarios row -->
+        <div class="scenario-row">
+          <div class="scenario-tag">
+            <div class="st-head"><div class="icn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6 8v6l-4 2v-8z"/></svg></div><div class="st-title">选型引入</div></div>
+            <div class="st-flow">AI 推荐 → 精准搜索 → 镜像加速引入</div>
+          </div>
+          <div class="scenario-tag">
+            <div class="st-head"><div class="icn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div><div class="st-title">漏洞应急响应</div></div>
+            <div class="st-flow">预警 → 定位 → AI 修复 → 验证</div>
+          </div>
+          <div class="scenario-tag">
+            <div class="st-head"><div class="icn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9.5 15l1.8 1.8L15 13"/></svg></div><div class="st-title">外包交付验收</div></div>
+            <div class="st-flow">SBOM 交付 → 扫描 → 合规评估</div>
+          </div>
+          <div class="scenario-tag">
+            <div class="st-head"><div class="icn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div><div class="st-title">软件采购评估</div></div>
+            <div class="st-flow">待采扫描 → 风险报告 → 决策</div>
+          </div>
+          <div class="scenario-tag">
+            <div class="st-head"><div class="icn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><div class="st-title">企业开源摸底</div></div>
+            <div class="st-flow">存量扫描 → 资产清单 → 治理</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══ RIGHT: Outputs ═══ -->
+      <div class="right-col">
+        <div class="col-eyebrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#98a2b3" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8a2 2 0 00-2-2H6a2 2 0 00-2 2v4"/><rect x="4" y="12" width="16" height="8" rx="1.5"/></svg>
+          价值产出与交付
+        </div>
+        <div class="out-list">
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9.5 15l1.8 1.8L15 13"/></svg></div>
+          <div>
+            <div class="oname">合规审计报告</div>
+            <div class="odetail">SBOM清单、漏洞评估</div>
+          </div>
+        </div>
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></div>
+          <div>
+            <div class="oname">可信软件资产库</div>
+            <div class="odetail">安全扫描、版本火车维护</div>
+          </div>
+        </div>
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="12" y1="8.5" x2="12" y2="15.5"/></svg></div>
+          <div>
+            <div class="oname">CI/CD 安全集成</div>
+            <div class="odetail">提交即扫描、不合规拦截</div>
+          </div>
+        </div>
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="15"/></svg></div>
+          <div>
+            <div class="oname">数据大屏 & 报表</div>
+            <div class="odetail">态势总览、管理决策支撑</div>
+          </div>
+        </div>
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a4 4 0 000-8 5 5 0 00-9.6-1.5A4 4 0 007 18z"/></svg></div>
+          <div>
+            <div class="oname">双模式交付</div>
+            <div class="odetail">SaaS云服务 + 本地私有化</div>
+          </div>
+        </div>
+        <div class="out-block">
+          <div class="icn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,6 3,12 8,18"/><polyline points="16,6 21,12 16,18"/></svg></div>
+          <div>
+            <div class="oname">OpenAPI 能力输出</div>
+            <div class="odetail">标准接口、集成自有平台</div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

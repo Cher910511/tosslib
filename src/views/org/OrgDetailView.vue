@@ -26,7 +26,8 @@
 
     <!-- ====== Tab 面板 ====== -->
     <div class="org-tab-panel">
-      <OrgInfoTab v-if="activeTab === 'info'" :org="org" />
+      <OrgDashboardTab v-if="activeTab === 'dashboard'" :org="org" @switch-tab="activeTab = $event" />
+      <OrgInfoTab v-else-if="activeTab === 'info'" :org="org" />
       <OrgMembersTab v-else-if="activeTab === 'members'" :org="org" />
       <MemberPermissionsTab v-else-if="activeTab === 'permissions'" :org="org" />
       <SubscriptionListTab v-else-if="activeTab === 'subscriptions'" :org="org" />
@@ -41,6 +42,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getOrgById, ORGS } from '../../data/orgData'
+import OrgDashboardTab from './tabs/OrgDashboardTab.vue'
 import OrgInfoTab from './tabs/OrgInfoTab.vue'
 import OrgMembersTab from './tabs/OrgMembersTab.vue'
 import MemberPermissionsTab from './tabs/MemberPermissionsTab.vue'
@@ -53,6 +55,7 @@ const route = useRoute()
 const router = useRouter()
 
 const tabs = [
+  { key: 'dashboard', label: '工作台', icon: '' },
   { key: 'info', label: '组织信息', icon: '' },
   { key: 'members', label: '组织成员', icon: '' },
   { key: 'permissions', label: '成员权限', icon: '' },
@@ -63,8 +66,8 @@ const tabs = [
 ]
 
 const activeTab = ref(
-  (route.query.tab && ['info','members','permissions','subscriptions','alerts','feedback','trains'].includes(route.query.tab))
-    ? route.query.tab : 'info'
+  (route.query.tab && ['dashboard','info','members','permissions','subscriptions','alerts','feedback','trains'].includes(route.query.tab))
+    ? route.query.tab : 'dashboard'
 )
 
 const org = computed(() => {
