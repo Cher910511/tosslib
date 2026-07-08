@@ -115,9 +115,11 @@
         </div>
 
         <div class="api-grid">
-          <div v-for="(t, idx) in tools" :key="t.name" class="api-card" :style="{ '--i': idx }">
+          <div v-for="(t, idx) in tools" :key="t.name" class="api-card"
+               :style="{ '--i': idx }"
+               @click="goDoc(t.id)">
             <div class="card-overlay">
-              <span class="card-overlay-btn">即将上线</span>
+              <span class="card-overlay-btn">查看文档 →</span>
             </div>
 
             <div class="card-icon">{{ t.icon }}</div>
@@ -158,15 +160,22 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+function goDoc(id) {
+  router.push({ name: 'openapi-doc', query: { api: id } })
+}
+
 const tools = [
-  { icon: '🔌', name: 'SCA 扫描 API', tier: '免费', tierType: 'free', desc: '提供软件组成分析扫描接口，支持上传软件包自动识别组件清单、许可证信息及依赖关系。', features: ['自动识别组件清单', '多语言支持', '依赖树分析'], tags: ['7×24 技术支持', 'SLA 99.9%'] },
-  { icon: '🔒', name: '漏洞预警 API', tier: '热门', tierType: 'hot', desc: '基于 CVE/NVD 数据库实时检测软件漏洞，支持 CVSS 评分、影响范围分析及修复建议。', features: ['实时 CVE 匹配', 'CVSS 评分', '修复建议'], tags: ['实时更新', '专业维护'] },
-  { icon: '📋', name: 'SBOM 生成 API', tier: '免费', tierType: 'free', desc: '根据软件物料清单标准（SPDX/CycloneDX）自动生成 SBOM 文件，支持多种格式导出。', features: ['SPDX 标准', 'CycloneDX', '多格式导出'], tags: ['标准合规', '一键生成'] },
-  { icon: '💬', name: 'AI 智能选型助手 API', tier: '内测', tierType: 'beta', desc: '集成大语言模型能力，提供代码审查、安全缺陷修复建议及自动化注释生成。', features: ['代码审查', '缺陷修复', '注释生成'], tags: ['大模型驱动', '智能提效'] },
-  { icon: '⚖️', name: '开源合规 API', tier: '免费', tierType: 'free', desc: '提供开源许可证法律文本解析、合规条款匹配及风险等级评估服务。', features: ['条款解析', '风险评级', '合规报告'], tags: ['法律级保障', '专家支持'] },
-  { icon: '🤖', name: '恶意代码检测 API', tier: '热门', tierType: 'hot', desc: '基于静态分析与行为沙箱技术，检测软件包中潜在的恶意代码和后门程序。', features: ['静态分析', '沙箱检测', '风险标记'], tags: ['深度检测', '零误报优化'] },
-  { icon: '🔍', name: '组件搜索 API', tier: '免费', tierType: 'free', desc: '提供高性能开源组件索引服务，支持按名称、版本、语言等多维度检索。', features: ['多维检索', '版本追踪', '依赖查询'], tags: ['海量索引', '毫秒响应'] },
-  { icon: '📄', name: '报告生成 API', tier: '免费', tierType: 'free', desc: '自动生成 PDF/HTML 格式的安全检测报告，支持自定义模板和批量导出。', features: ['PDF 导出', 'HTML 导出', '自定义模板'], tags: ['多格式支持', '模板定制'] },
+  { id: 'sca', icon: '🔌', name: 'SCA 扫描 API', tier: '免费', tierType: 'free', desc: '提供软件组成分析扫描接口，支持上传软件包自动识别组件清单、许可证信息及依赖关系。', features: ['自动识别组件清单', '多语言支持', '依赖树分析'], tags: ['7×24 技术支持', 'SLA 99.9%'] },
+  { id: 'vuln', icon: '🔒', name: '漏洞预警 API', tier: '热门', tierType: 'hot', desc: '基于 CVE/NVD 数据库实时检测软件漏洞，支持 CVSS 评分、影响范围分析及修复建议。', features: ['实时 CVE 匹配', 'CVSS 评分', '修复建议'], tags: ['实时更新', '专业维护'] },
+  { id: 'sbom', icon: '📋', name: 'SBOM 生成 API', tier: '免费', tierType: 'free', desc: '根据软件物料清单标准（SPDX/CycloneDX）自动生成 SBOM 文件，支持多种格式导出。', features: ['SPDX 标准', 'CycloneDX', '多格式导出'], tags: ['标准合规', '一键生成'] },
+  { id: 'ai', icon: '💬', name: 'AI 智能选型助手 API', tier: '内测', tierType: 'beta', desc: '集成大语言模型能力，提供代码审查、安全缺陷修复建议及自动化注释生成。', features: ['代码审查', '缺陷修复', '注释生成'], tags: ['大模型驱动', '智能提效'] },
+  { id: 'license', icon: '⚖️', name: '开源合规 API', tier: '免费', tierType: 'free', desc: '提供开源许可证法律文本解析、合规条款匹配及风险等级评估服务。', features: ['条款解析', '风险评级', '合规报告'], tags: ['法律级保障', '专家支持'] },
+  { id: 'malware', icon: '🤖', name: '恶意代码检测 API', tier: '热门', tierType: 'hot', desc: '基于静态分析与行为沙箱技术，检测软件包中潜在的恶意代码和后门程序。', features: ['静态分析', '沙箱检测', '风险标记'], tags: ['深度检测', '零误报优化'] },
+  { id: 'search', icon: '🔍', name: '组件搜索 API', tier: '免费', tierType: 'free', desc: '提供高性能开源组件索引服务，支持按名称、版本、语言等多维度检索。', features: ['多维检索', '版本追踪', '依赖查询'], tags: ['海量索引', '毫秒响应'] },
+  { id: 'report', icon: '📄', name: '报告生成 API', tier: '免费', tierType: 'free', desc: '自动生成 PDF/HTML 格式的安全检测报告，支持自定义模板和批量导出。', features: ['PDF 导出', 'HTML 导出', '自定义模板'], tags: ['多格式支持', '模板定制'] },
 ]
 
 const footerFeatures = [
@@ -418,6 +427,7 @@ const footerFeatures = [
   flex-direction: column;
   animation: cardIn 0.4s ease both;
   animation-delay: calc(var(--i) * 0.04s);
+  cursor: pointer;
 }
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(12px); }
