@@ -244,6 +244,11 @@
             <span class="sep">/</span>
             <span class="current">OpenAPI 工具集</span>
           </template>
+          <template v-else-if="route.name === 'api-keys'">
+            <RouterLink to="/software/home">首页</RouterLink>
+            <span class="sep">/</span>
+            <span class="current">密钥管理</span>
+          </template>
           <template v-else-if="route.name === 'admin-gov'">
             <RouterLink to="/software/home">首页</RouterLink>
             <span class="sep">/</span>
@@ -411,13 +416,36 @@
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </a>
-        <div class="admin-user">
-          <div class="admin-avatar" aria-hidden="true">会</div>
-          <div class="admin-user-meta">
-            <span class="admin-user-name">会饮简</span>
-            <span class="admin-user-mail">xluo6019@gmail.com</span>
+        <div class="admin-user" ref="userMenuRef">
+          <div class="admin-user-trigger" @click="toggleUserMenu">
+            <div class="admin-avatar" aria-hidden="true">会</div>
+            <div class="admin-user-meta">
+              <span class="admin-user-name">会饮简</span>
+              <span class="admin-user-mail">xluo6019@gmail.com</span>
+            </div>
+            <span class="admin-user-caret" aria-hidden="true">{{ userMenuOpen ? '▴' : '▾' }}</span>
           </div>
-          <span class="admin-user-caret" aria-hidden="true">▾</span>
+          <Transition name="dropdown">
+            <div v-if="userMenuOpen" class="admin-user-dropdown">
+              <div class="dropdown-header">
+                <div class="dropdown-avatar">会</div>
+                <div class="dropdown-meta">
+                  <span class="dropdown-name">会饮简</span>
+                  <span class="dropdown-mail">xluo6019@gmail.com</span>
+                </div>
+              </div>
+              <div class="dropdown-divider" />
+              <RouterLink class="dropdown-item" to="/software/api-keys" @click="userMenuOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                密钥管理
+              </RouterLink>
+              <div class="dropdown-divider" />
+              <button class="dropdown-item dropdown-item--danger" @click="handleLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                退出登录
+              </button>
+            </div>
+          </Transition>
         </div>
       </header>
 
@@ -440,6 +468,19 @@ import {
 } from '../composables/useAdminSearch'
 const route = useRoute()
 const router = useRouter()
+
+// 用户菜单下拉
+const userMenuRef = ref(null)
+const userMenuOpen = ref(false)
+
+function toggleUserMenu() {
+  userMenuOpen.value = !userMenuOpen.value
+}
+
+function handleLogout() {
+  userMenuOpen.value = false
+  // 后续集成真实登出逻辑
+}
 
 // 软件管理二级菜单展开状态
 const softwareManageOpen = ref(false)
@@ -501,6 +542,11 @@ function onSearchKindChange() {
 function onDocClick(e) {
   const el = searchWrapRef.value
   if (el && !el.contains(e.target)) closeSearchPanel()
+  // 用户菜单点击外部关闭
+  const menuEl = userMenuRef.value
+  if (menuEl && !menuEl.contains(e.target)) {
+    userMenuOpen.value = false
+  }
 }
 
 onMounted(() => {
@@ -954,15 +1000,130 @@ const manualPageUrl = computed(() => {
 
 .admin-user {
   flex: 0 0 auto;
+  position: relative;
+}
+.admin-user-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.admin-user-trigger:hover {
+  background: #f3f4f6;
 }
 .admin-user-caret {
   font-size: 10px;
   color: #9ca3af;
   line-height: 1;
   margin-left: -4px;
+}
+
+/* —— 下拉菜单 —— */
+.admin-user-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.dropdown-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8b4bc, #da203e);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+  min-width: 0;
+}
+.dropdown-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.dropdown-mail {
+  font-size: 12px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dropdown-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  color: #374151;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.dropdown-item:hover {
+  background: #f9fafb;
+}
+.dropdown-item svg {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+.dropdown-item--danger {
+  color: #dc2626;
+}
+.dropdown-item--danger svg {
+  color: #dc2626;
+}
+.dropdown-item--danger:hover {
+  background: #fef2f2;
+}
+
+/* —— 下拉动画 —— */
+.dropdown-enter-active {
+  transition: all 0.15s ease-out;
+}
+.dropdown-leave-active {
+  transition: all 0.1s ease-in;
+}
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 .admin-avatar {
   width: 40px;

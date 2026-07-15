@@ -116,6 +116,7 @@
 
         <div class="api-grid">
           <div v-for="(t, idx) in tools" :key="t.name" class="api-card"
+               :class="{ clicking: clickingId === t.id }"
                :style="{ '--i': idx }"
                @click="goDoc(t.id)">
             <div class="card-overlay">
@@ -161,10 +162,17 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
 const router = useRouter()
+const clickingId = ref('')
+
+/** 跳 OpenAPI 文档页 */
 function goDoc(id) {
-  router.push({ name: 'openapi-doc', query: { api: id } })
+  clickingId.value = id
+  setTimeout(() => {
+    router.push({ name: 'openapi-doc', params: { docId: `openapi-${id}` } })
+  }, 180)
 }
 
 const tools = [
@@ -411,66 +419,83 @@ const footerFeatures = [
 /* 三列网格 */
 .api-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
 /* 卡片 */
 .api-card {
   position: relative;
   background: #ffffff;
-  border-radius: 14px;
-  padding: 2rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 12px;
+  padding: 1.5rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   display: flex;
   flex-direction: column;
-  animation: cardIn 0.4s ease both;
+  animation: cardIn 0.35s ease both;
   animation-delay: calc(var(--i) * 0.04s);
   cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 @keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .api-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.07);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  border-color: rgba(218, 32, 62, 0.18);
+}
+.api-card:active {
+  transform: translateY(-2px) scale(0.985);
+  transition-duration: 0.08s;
+}
+.api-card.clicking {
+  transform: scale(0.96);
+  box-shadow: 0 2px 10px rgba(218, 32, 62, 0.12);
+  border-color: var(--brand);
 }
 
-/* hover 遮罩 — 极简毛玻璃 + 按钮 */
+/* hover 遮罩 */
 .card-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.3);
-  backdrop-filter: blur(0px);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(218, 32, 62, 0.92), rgba(192, 30, 54, 0.88));
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.35s ease, backdrop-filter 0.35s ease;
+  transition: opacity 0.2s ease;
   pointer-events: none;
   z-index: 5;
 }
-.api-card:hover .card-overlay {
+.api-card:hover .card-overlay,
+.api-card.clicking .card-overlay {
   opacity: 1;
-  backdrop-filter: blur(6px);
   pointer-events: auto;
 }
 .card-overlay-btn {
-  padding: 10px 36px;
+  padding: 10px 32px;
   border-radius: 999px;
-  background: #da203e;
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  transform: translateY(10px);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: #fff;
+  color: #da203e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transform: translateY(8px);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
-.api-card:hover .card-overlay-btn {
+.api-card:hover .card-overlay-btn,
+.api-card.clicking .card-overlay-btn {
   transform: translateY(0);
+}
+.card-overlay-btn:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  background: #fef2f3;
 }
 
 /* 图标 */
@@ -622,7 +647,7 @@ const footerFeatures = [
    响应式
    ============================================================ */
 @media (max-width: 1024px) {
-  .api-grid { grid-template-columns: repeat(2, 1fr); }
+  .api-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .banner-illus { width: 300px; height: 220px; }
 }
 @media (max-width: 768px) {
@@ -638,8 +663,11 @@ const footerFeatures = [
   .banner-meta { gap: 12px; }
   .cards-section { padding: 40px 20px 44px; }
   .section-title { font-size: 1.8rem; }
-  .api-grid { grid-template-columns: 1fr; gap: 20px; }
-  .api-card { padding: 1.8rem; }
+  .api-grid { grid-template-columns: 1fr; gap: 16px; }
+  .api-card { padding: 1.25rem 1rem; }
+  .card-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+  .card-name { font-size: 1rem; }
+  .card-desc { font-size: 0.85rem; }
   .api-footer { padding: 24px 20px; }
   .footer-features { gap: 20px; }
 }

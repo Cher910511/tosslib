@@ -27,6 +27,7 @@ import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
 import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
 import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
 import OpenApiDocView from '../views/admin/OpenApiDocView.vue'
+import ApiKeyManageView from '../views/admin/ApiKeyManageView.vue'
 import ToolsetView from '../views/admin/ToolsetView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
 import IntelOpiView from '../views/intel/IntelOpiView.vue'
@@ -168,10 +169,16 @@ const routes = [
         meta: { adminTitle: 'OpenAPI' },
       },
       {
-        path: 'openapi-doc',
+        path: 'openapi-doc/:docId?',
         name: 'openapi-doc',
         component: OpenApiDocView,
         meta: { adminTitle: 'OpenAPI 文档' },
+      },
+      {
+        path: 'api-keys',
+        name: 'api-keys',
+        component: ApiKeyManageView,
+        meta: { adminTitle: '密钥管理' },
       },
       // ==================== 工具集 ====================
       {

@@ -77,8 +77,18 @@ export function renderMarkdown(md) {
         i++
       }
       i++
+      const codeContent = escapeHtml(codeLines.join('\n'))
       out.push(
-        `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(codeLines.join('\n'))}</code></pre>`,
+        `<div class="code-block-wrap">` +
+        `<button class="code-copy-btn" onclick="(function(el){` +
+        `var t=document.createElement('textarea');` +
+        `t.value=el.parentNode.querySelector('code').textContent;` +
+        `document.body.appendChild(t);t.select();document.execCommand('copy');` +
+        `document.body.removeChild(t);` +
+        `el.textContent='\\u5DF2\\u590D\\u5236';` +
+        `setTimeout(function(){el.textContent='\\u590D\\u5236'},2000)` +
+        `})(this)">复制</button>` +
+        `<pre><code class="language-${escapeHtml(lang)}">${codeContent}</code></pre></div>`,
       )
       continue
     }

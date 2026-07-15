@@ -742,6 +742,39 @@ watch(
   overflow-x: auto;
 }
 
+.manual-md :deep(.code-block-wrap) {
+  position: relative;
+  margin: 0 0 16px;
+}
+.manual-md :deep(.code-block-wrap pre) {
+  margin: 0;
+}
+.manual-md :deep(.code-copy-btn) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  opacity: 0;
+  z-index: 2;
+}
+.manual-md :deep(.code-block-wrap:hover .code-copy-btn) {
+  opacity: 1;
+}
+.manual-md :deep(.code-copy-btn:hover) {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
 .manual-md :deep(pre code) {
   padding: 0;
   background: transparent;
