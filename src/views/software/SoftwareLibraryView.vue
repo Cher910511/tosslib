@@ -107,7 +107,7 @@
           <tbody>
             <tr v-for="row in paginatedList" :key="row.id">
               <td>
-                <span class="shelf-name-cell">{{ row.name }}</span>
+                <span class="shelf-name-cell" @click="onSoftwareClick(row)">{{ row.name }}</span>
               </td>
               <td>
                 <span v-if="row.score != null" class="shelf-score">
@@ -797,7 +797,7 @@ function toggleItem(id) {
 
 
 function onSoftwareClick(row) {
-  router.push({ name: 'software-library', query: { q: row.name } })
+  router.push({ name: 'software-detail', query: { q: row.name } })
 }
 
 function toggleSort(field) {
@@ -1148,6 +1148,17 @@ function showToast(msg, type = 'info') {
 .shelf-comp-name {
   color: #111827;
   font-weight: 500;
+}
+
+.shelf-name-cell {
+  color: #2563eb;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.shelf-name-cell:hover {
+  color: #da203e;
+  text-decoration: underline;
 }
 
 .shelf-group {

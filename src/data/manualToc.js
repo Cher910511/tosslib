@@ -61,24 +61,6 @@ export const manualToc = [
     title: '需求反馈',
     doc: 'feedback',
   },
-  {
-    id: 'openapi',
-    title: 'OpenAPI 接口',
-    children: [
-      { id: 'openapi-overview', title: '概览', doc: 'openapi-overview' },
-      { id: 'openapi-sca', title: 'SCA 扫描', doc: 'openapi-sca' },
-      { id: 'openapi-vuln', title: '漏洞预警', doc: 'openapi-vuln' },
-      { id: 'openapi-sbom', title: 'SBOM 生成', doc: 'openapi-sbom' },
-      { id: 'openapi-ai', title: 'AI 智能选型助手', doc: 'openapi-ai' },
-      { id: 'openapi-license', title: '开源合规分析', doc: 'openapi-license' },
-      { id: 'openapi-malware', title: '恶意代码检测', doc: 'openapi-malware' },
-      { id: 'openapi-search', title: '组件搜索', doc: 'openapi-search' },
-      { id: 'openapi-detail', title: '组件详情', doc: 'openapi-detail' },
-      { id: 'openapi-software-search', title: '软件搜索', doc: 'openapi-software-search' },
-      { id: 'openapi-software-detail', title: '软件详情', doc: 'openapi-software-detail' },
-      { id: 'openapi-report', title: '报告生成', doc: 'openapi-report' },
-    ],
-  },
 ]
 
 /** 扁平化所有带 doc 的叶子节点 */

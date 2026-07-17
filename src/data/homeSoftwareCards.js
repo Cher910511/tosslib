@@ -1,0 +1,68 @@
+/** 首页软件板块 · 卡片网格数据（8个） */
+
+export const HOME_SOFTWARE_CARDS = [
+  {
+    id: 'deap',
+    name: 'Deap',
+    version: '1.4.3',
+    language: 'Python',
+    released: '2025-05-04',
+    developer: 'Distributed Evolutionary Algorithms in Python',
+  },
+  {
+    id: 'controller-runtime',
+    name: 'kubernetes-sigs/controller-runtime',
+    version: 'v0.22.4',
+    language: 'Go',
+    released: '2025-11-03',
+    developer: 'Kubernetes SIGs',
+  },
+  {
+    id: 'postman-sdk',
+    name: 'Postman Collection SDK',
+    version: 'v5.0.2',
+    language: 'JavaScript',
+    released: '2025-03-27',
+    developer: 'Postman Inc.',
+  },
+  {
+    id: 'egg',
+    name: 'egg',
+    version: 'v3.30.1',
+    language: 'JavaScript',
+    released: '2025-01-19',
+    developer: 'alibaba',
+  },
+  {
+    id: 'eslint-plugin-vue',
+    name: 'eslint-plugin-vue',
+    version: 'v9.33.0',
+    language: 'JavaScript',
+    released: '2025-03-05',
+    developer: 'Vue',
+  },
+  {
+    id: 'tmp',
+    name: 'tmp',
+    version: 'v0.2.5',
+    language: 'JavaScript',
+    released: '2020-10-14',
+    developer: 'KARASZI Istvan',
+  },
+  {
+    id: 'node-forge',
+    name: 'node-forge',
+    version: 'v1.3.2',
+    language: 'JavaScript',
+    released: '2025-11-26',
+    developer: 'digitalbazaar',
+  },
+  {
+    id: 'CairoSVG',
+    name: 'CairoSVG',
+    version: '2.7.1',
+    language: 'Python',
+    released: '2025-06-15',
+    developer: 'Courtney Bracefield',
+  },
+]

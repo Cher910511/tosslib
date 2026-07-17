@@ -30,7 +30,7 @@
           </thead>
           <tbody>
             <tr v-if="versionList.length === 0" class="version-empty-row">
-              <td colspan="5">
+              <td colspan="6">
                 <div class="version-empty">
                   <p>暂无版本数据</p>
                 </div>

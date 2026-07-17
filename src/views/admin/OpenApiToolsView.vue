@@ -162,10 +162,14 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const router = useRouter()
 const clickingId = ref('')
+
+onMounted(() => {
+  clickingId.value = ''
+})
 
 /** 跳 OpenAPI 文档页 */
 function goDoc(id) {

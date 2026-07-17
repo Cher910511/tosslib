@@ -1,28 +1,24 @@
 <template>
   <div class="soft-home">
-    <div class="soft-home-decor" aria-hidden="true">
-      <span class="soft-home-shape soft-home-shape--a" />
-      <span class="soft-home-shape soft-home-shape--b" />
-      <span class="soft-home-shape soft-home-shape--c" />
-      <span class="soft-home-shape soft-home-shape--d" />
-    </div>
-
     <div class="soft-home-inner">
+
+      <!-- ========== 标题 ========== -->
       <h1 class="soft-home-title">可信开源代码库</h1>
 
-      <div class="soft-home-search-wrap">
-        <div class="soft-home-search">
-          <select v-model="searchKind" class="soft-home-search-type" aria-label="搜索类型">
+      <!-- ========== 搜索框 ========== -->
+      <div class="soft-search-wrap">
+        <div class="soft-search">
+          <select v-model="searchKind" class="soft-search-type" aria-label="搜索类型">
             <option value="software">软件</option>
             <option value="component">组件</option>
           </select>
-          <span class="soft-home-search-vsep" aria-hidden="true" />
-          <div class="soft-home-search-mid">
+          <span class="soft-search-vsep" aria-hidden="true" />
+          <div class="soft-search-mid">
             <svg
-              class="soft-home-search-ico"
+              class="soft-search-ico"
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -37,178 +33,157 @@
             <input
               v-model="searchQuery"
               type="search"
-              class="soft-home-search-input"
+              class="soft-search-input"
               placeholder="搜索代码仓库…"
               autocomplete="off"
               @keydown.enter.prevent="submitSearch"
             />
           </div>
-          <span class="soft-home-search-vsep" aria-hidden="true" />
+          <span class="soft-search-vsep" aria-hidden="true" />
           <button
             type="button"
-            class="soft-home-search-adv"
+            class="soft-search-adv"
             :aria-expanded="filterOpen"
             @click="filterOpen = !filterOpen"
           >
             高级筛选
-            <span class="soft-home-caret" aria-hidden="true">▾</span>
+            <span class="soft-caret" aria-hidden="true">▾</span>
           </button>
         </div>
-
-        <div v-show="filterOpen" class="soft-home-filter-panel">
-          <p class="soft-home-filter-hint">演示：可按语言、许可证等筛选（接入接口后生效）。</p>
-          <label class="soft-home-filter-row">
+        <div v-show="filterOpen" class="soft-filter-panel">
+          <p class="soft-filter-hint">可按语言、许可证等筛选（接入接口后生效）。</p>
+          <label class="soft-filter-row">
             <input v-model="filterDemo.java" type="checkbox" />
             <span>Java / JVM</span>
           </label>
-          <label class="soft-home-filter-row">
+          <label class="soft-filter-row">
             <input v-model="filterDemo.js" type="checkbox" />
             <span>JavaScript / TypeScript</span>
           </label>
-          <label class="soft-home-filter-row">
+          <label class="soft-filter-row">
             <input v-model="filterDemo.python" type="checkbox" />
             <span>Python</span>
           </label>
         </div>
       </div>
 
-      <section class="soft-home-section" aria-labelledby="soft-home-software-heading">
-        <h2 id="soft-home-software-heading" class="soft-home-section-title">推荐软件</h2>
-        <div class="soft-home-grid">
-          <RouterLink
-            v-for="card in softwareCards"
-            :key="card.id"
-            class="soft-home-card soft-home-card--software"
-            :to="{ name: 'software-library', query: { q: card.name } }"
-          >
-            <span
-              v-if="card.highlight === 'score'"
-              class="soft-home-pill soft-home-pill--score"
-              aria-label="高安全评分推荐"
+      <!-- ========== 左右分栏 ========== -->
+      <div class="home-columns">
+
+        <!-- 左栏：风险预警 · 时间线 -->
+        <section class="col-left">
+          <header class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-ico" aria-hidden="true">&#9888;</span>
+              风险预警
+            </h2>
+            <span class="section-count">{{ alerts.length }} 条预警</span>
+          </header>
+
+          <div class="alert-timeline">
+            <div
+              v-for="(alert, idx) in limitAlerts"
+              :key="alert.id"
+              class="alert-row"
+              :class="{ 'alert-row--last': idx === limitAlerts.length - 1 }"
             >
-              高评分
-            </span>
-            <span
-              v-else-if="card.highlight === 'stars'"
-              class="soft-home-pill soft-home-pill--stars"
-              aria-label="高 Star 数推荐"
-            >
-              高 star 数
-            </span>
-            <div class="soft-home-card-top">
-              <span class="soft-home-card-cube" aria-hidden="true" />
-              <div class="soft-home-card-head">
-                <span class="soft-home-card-name">{{ card.name }}</span>
-                <div class="soft-home-card-badges">
-                  <span class="soft-home-badge">{{ card.version }}</span>
-                  <span class="soft-home-badge">{{ card.language }}</span>
+              <div class="alert-timeline-left">
+                <div class="alert-dot" :class="'alert-dot--' + levelClass(alert.level)" />
+                <div v-if="idx !== alerts.length - 1" class="alert-line" />
+              </div>
+
+              <div class="alert-card">
+                <div class="alert-card-top">
+                  <div class="alert-card-left">
+                    <span class="alert-type-tag">{{ alert.typeLabel }}</span>
+                    <span class="alert-component">
+                      <strong>{{ alert.componentName }}</strong>
+                      <span class="alert-version">{{ alert.componentVersion }}</span>
+                    </span>
+                    <span
+                      class="alert-level"
+                      :class="'alert-level--' + levelClass(alert.level)"
+                    >
+                      {{ alert.level }}
+                    </span>
+                    <span class="alert-cve">{{ alert.cveId }}</span>
+                    <span
+                      class="alert-aff"
+                      :class="alert.affiliation === '组织' ? 'alert-aff--org' : 'alert-aff--personal'"
+                    >
+                      {{ alert.affiliation }}
+                    </span>
+                  </div>
+                  <span class="alert-time">{{ alert.publishTime }}</span>
+                </div>
+                <p class="alert-desc">{{ alert.description }}</p>
+                <div class="alert-card-bottom">
+                  <a class="alert-link" href="#" @click.prevent="onViewDetail(alert)">
+                    查看详情 &rarr;
+                  </a>
                 </div>
               </div>
             </div>
-            <div class="soft-home-card-meta">
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">发布日期</span>
-                <span class="soft-home-card-v">{{ card.released }}</span>
-              </div>
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">开发商</span>
-                <span class="soft-home-card-v">{{ card.developer }}</span>
-              </div>
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">安全评分</span>
-                <span class="soft-home-card-v" :class="scoreTone(card.securityScore)">
-                  {{ card.securityScore }} 分
-                </span>
-              </div>
-              <div class="soft-home-card-row soft-home-card-row--safe">
-                <span class="soft-home-card-k">漏洞风险</span>
-                <span
-                  class="soft-home-safe"
-                  title="经检测，当前版本未发现已知高危漏洞，可放心使用"
-                  aria-label="安全可信：未发现已知高危漏洞"
-                >
-                  <svg
-                    class="soft-home-safe-ico"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"
-                    />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-          </RouterLink>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <section class="soft-home-section" aria-labelledby="soft-home-component-heading">
-        <h2 id="soft-home-component-heading" class="soft-home-section-title">推荐组件</h2>
-        <div class="soft-home-grid">
-          <RouterLink
-            v-for="card in componentCards"
-            :key="card.id"
-            class="soft-home-card soft-home-card--component"
-            :to="{ name: 'component-detail', params: { id: card.id } }"
-          >
-            <div class="soft-home-card-top soft-home-card-top--component">
-              <span class="soft-home-card-gem" aria-hidden="true" />
-              <div class="soft-home-card-head soft-home-card-head--component">
-                <span class="soft-home-card-name" :title="card.name">{{ card.name }}</span>
+        <!-- 右栏：软件 · 卡片网格 -->
+        <section class="col-right">
+          <header class="section-header">
+            <h2 class="section-title">
+              <span class="section-title-ico" aria-hidden="true">&#9632;</span>
+              软件
+            </h2>
+            <span class="section-count">{{ softwareItems.length }} 个组件</span>
+          </header>
+
+          <div class="soft-grid">
+            <article
+              v-for="item in softwareItems"
+              :key="item.id"
+              class="soft-card"
+            >
+              <div class="soft-card-body">
+                <div class="soft-card-top">
+                  <span class="soft-card-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
+                  </span>
+                  <span class="soft-card-name">{{ item.name }}</span>
+                  <span class="soft-card-version">{{ item.version }}</span>
+                </div>
+                <div class="soft-card-meta">
+                  <div class="soft-card-row">
+                    <span class="soft-card-k">编程语言</span>
+                    <span
+                      class="soft-card-lang"
+                      :class="'soft-card-lang--' + langClass(item.language)"
+                    >
+                      {{ item.language }}
+                    </span>
+                  </div>
+                  <div class="soft-card-row">
+                    <span class="soft-card-k">发布日期</span>
+                    <span class="soft-card-v">{{ item.released }}</span>
+                  </div>
+                  <div class="soft-card-row">
+                    <span class="soft-card-k">开发者</span>
+                    <span class="soft-card-v soft-card-dev" :title="item.developer">{{ item.developer }}</span>
+                  </div>
+                </div>
               </div>
-              <span
-                v-if="card.recommendKind === 'premium'"
-                class="soft-home-comp-pill soft-home-comp-pill--premium"
-                aria-label="精品推荐"
-              >
-                精品推荐
-              </span>
-              <span
-                v-else-if="card.recommendKind === 'classic'"
-                class="soft-home-comp-pill soft-home-comp-pill--classic"
-                aria-label="经典推荐"
-              >
-                经典推荐
-              </span>
-              <span
-                v-else-if="card.recommendKind === 'recent'"
-                class="soft-home-comp-pill soft-home-comp-pill--recent"
-                aria-label="最近发布"
-              >
-                最近发布
-              </span>
-            </div>
-            <div class="soft-home-card-meta">
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">组件版本</span>
-                <span class="soft-home-card-v">{{ card.version }}</span>
+              <div class="soft-card-footer">
+                <router-link
+                  class="soft-card-link"
+                  :to="{ name: 'software-library', query: { q: item.name } }"
+                >
+                  查看详情 &rarr;
+                </router-link>
               </div>
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">发布时间</span>
-                <span class="soft-home-card-v">{{ card.released }}</span>
-              </div>
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">编程语言</span>
-                <span class="soft-home-card-v">{{ card.language }}</span>
-              </div>
-              <div class="soft-home-card-row">
-                <span class="soft-home-card-k">groupId</span>
-                <span class="soft-home-card-v soft-home-card-v--mono">{{ card.groupId }}</span>
-              </div>
-            </div>
-          </RouterLink>
-        </div>
-      </section>
+            </article>
+          </div>
+        </section>
+
+      </div>
     </div>
   </div>
 </template>
@@ -216,23 +191,44 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { SOFTWARE_HOME_CARDS } from '../../data/softwareHomeCards.js'
-import { COMPONENT_HOME_CARDS } from '../../data/componentHomeCards.js'
+import { HOME_RISK_ALERTS } from '../../data/homeRiskAlerts.js'
+import { HOME_SOFTWARE_CARDS } from '../../data/homeSoftwareCards.js'
 import { addSearchHistory } from '../../composables/useAdminSearch.js'
 
 const router = useRouter()
-const softwareCards = SOFTWARE_HOME_CARDS
-const componentCards = COMPONENT_HOME_CARDS
+const alerts = HOME_RISK_ALERTS
+const limitAlerts = alerts.slice(0, 5)
+const softwareItems = HOME_SOFTWARE_CARDS
 
-function scoreTone(n) {
-  if (n >= 90) return 'soft-home-tone-good'
-  if (n >= 75) return 'soft-home-tone-mid'
-  return 'soft-home-tone-warn'
-}
 const searchKind = ref('software')
 const searchQuery = ref('')
 const filterOpen = ref(false)
 const filterDemo = reactive({ java: false, js: false, python: false })
+
+function levelClass(level) {
+  if (level === '超危') return 'critical'
+  if (level === '高危') return 'high'
+  if (level === '中危') return 'medium'
+  return 'low'
+}
+
+function langClass(lang) {
+  const map = {
+    Python: 'python',
+    Go: 'go',
+    JavaScript: 'js',
+    TypeScript: 'ts',
+    Java: 'java',
+    Rust: 'rust',
+    'C++': 'cpp',
+    C: 'c',
+  }
+  return map[lang] || 'default'
+}
+
+function onViewDetail(alert) {
+  router.push({ name: 'component-library', query: { q: alert.componentName } })
+}
 
 function submitSearch() {
   const q = searchQuery.value.trim()
@@ -249,517 +245,617 @@ function submitSearch() {
 <style scoped>
 .soft-home {
   position: relative;
-  margin: -24px;
-  min-height: calc(100% + 48px);
-  padding: 40px 24px 48px;
-  overflow: hidden;
-  background: linear-gradient(
-    165deg,
-    #fff5f4 0%,
-    #ffeef0 18%,
-    #fff7ed 42%,
-    #fef3f2 70%,
-    #f8fafc 100%
-  );
-}
-
-.soft-home-decor {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.soft-home-shape {
-  position: absolute;
-  border-radius: 12px;
-  opacity: 0.35;
-  filter: blur(0.5px);
-}
-
-.soft-home-shape--a {
-  width: 120px;
-  height: 120px;
-  left: 8%;
-  top: 12%;
-  background: linear-gradient(135deg, rgba(218, 32, 62, 0.25), rgba(255, 180, 160, 0.4));
-  transform: rotate(-18deg) perspective(400px) rotateX(12deg);
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5);
-}
-
-.soft-home-shape--b {
-  width: 72px;
-  height: 72px;
-  right: 12%;
-  top: 18%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(251, 207, 232, 0.5));
-  transform: rotate(12deg);
-}
-
-.soft-home-shape--c {
-  width: 90px;
-  height: 90px;
-  right: 22%;
-  top: 8%;
-  background: linear-gradient(145deg, rgba(254, 215, 170, 0.55), rgba(252, 165, 165, 0.35));
-  transform: rotate(24deg) skewX(-6deg);
-}
-
-.soft-home-shape--d {
-  width: 56px;
-  height: 56px;
-  left: 18%;
-  top: 28%;
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 228, 230, 0.9), rgba(254, 202, 202, 0.45));
-  transform: rotate(36deg);
+  min-height: 100%;
 }
 
 .soft-home-inner {
-  position: relative;
-  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
 }
 
+/* ========== 标题 ========== */
 .soft-home-title {
-  margin: 0 0 32px;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
-  font-weight: 700;
+  margin: 0 0 24px;
+  font-size: clamp(2rem, 4.5vw, 2.75rem);
+  font-weight: 800;
   color: #111827;
   text-align: center;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.soft-home-search-wrap {
-  max-width: 920px;
-  margin: 0 auto 36px;
+/* ========== 搜索框 ========== */
+.soft-search-wrap {
+  margin-bottom: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.soft-home-section + .soft-home-section {
-  margin-top: 48px;
+/* ========== 左右分栏（等高） ========== */
+.home-columns {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 24px;
+}
+.col-left {
+  min-width: 0;
+}
+.col-right {
+  min-width: 0;
 }
 
-.soft-home-section-title {
-  margin: 0 0 18px;
+/* ========== 通用 ========== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.section-title {
+  margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title-ico {
+  font-size: 16px;
+  opacity: 0.7;
+}
+.section-count {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
-.soft-home-search {
+/* ========== 上板块 · 风险预警时间线 ========== */
+.alert-section {
+  margin-bottom: 36px;
+}
+
+.alert-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.alert-row {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+
+.alert-timeline-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 18px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.alert-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.alert-dot--high,
+.alert-dot--critical {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+.alert-dot--medium {
+  background: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+.alert-dot--low {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.alert-line {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: #e5e7eb;
+}
+
+.alert-row--last .alert-line {
+  display: none;
+}
+
+/* 预警卡片 */
+.alert-card {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.alert-card:hover {
+  border-color: #fecdd3;
+  box-shadow: 0 4px 16px rgba(218, 32, 62, 0.08);
+}
+
+.alert-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.alert-card-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.alert-type-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  white-space: nowrap;
+}
+
+.alert-component {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+  color: #111827;
+  white-space: nowrap;
+}
+.alert-component strong {
+  font-weight: 700;
+}
+.alert-version {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.alert-level {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.alert-level--high,
+.alert-level--critical {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.alert-level--medium {
+  background: #fff7ed;
+  color: #d97706;
+  border: 1px solid #fed7aa;
+}
+
+.alert-cve {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: #da203e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.alert-aff {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.alert-aff--org {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+.alert-aff--personal {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.alert-time {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.alert-desc {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.alert-card-bottom {
+  display: flex;
+  justify-content: flex-end;
+}
+.alert-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #da203e;
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.alert-link:hover {
+  color: #b81c36;
+  text-decoration: underline;
+}
+
+/* ========== 下板块 · 软件卡片网格 ========== */
+.soft-section {
+  margin-bottom: 0;
+}
+
+/* 搜索栏 */
+
+.soft-search {
   display: flex;
   align-items: stretch;
-  min-height: 52px;
+  min-height: 44px;
   background: #fff;
   border: 1px solid rgba(229, 231, 235, 0.95);
   border-radius: 999px;
   box-shadow:
     0 2px 8px rgba(17, 24, 39, 0.06),
-    0 12px 40px rgba(218, 32, 62, 0.08);
+    0 8px 24px rgba(218, 32, 62, 0.06);
 }
 
-.soft-home-search-type {
+.soft-search-type {
   flex-shrink: 0;
-  width: 88px;
-  padding: 0 12px 0 20px;
+  width: 80px;
+  padding: 0 10px 0 18px;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #374151;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 8px center;
 }
 
-.soft-home-search-vsep {
+.soft-search-vsep {
   align-self: stretch;
   width: 1px;
-  margin: 10px 0;
+  margin: 8px 0;
   background: #e5e7eb;
   flex-shrink: 0;
 }
 
-.soft-home-search-mid {
+.soft-search-mid {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 0 8px 0 14px;
+  padding: 0 6px 0 12px;
 }
 
-.soft-home-search-ico {
+.soft-search-ico {
   flex-shrink: 0;
   color: #9ca3af;
 }
 
-.soft-home-search-input {
+.soft-search-input {
   flex: 1;
   min-width: 0;
   height: 100%;
   border: none;
-  font-size: 15px;
+  font-size: 14px;
   color: #111827;
   background: transparent;
 }
-
-.soft-home-search-input::placeholder {
+.soft-search-input::placeholder {
   color: #9ca3af;
 }
-
-.soft-home-search-input:focus {
+.soft-search-input:focus {
   outline: none;
 }
 
-.soft-home-search-adv {
+.soft-search-adv {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 20px 0 16px;
+  gap: 4px;
+  padding: 0 18px 0 14px;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #4b5563;
   cursor: pointer;
   white-space: nowrap;
 }
-
-.soft-home-search-adv:hover {
+.soft-search-adv:hover {
   color: #da203e;
 }
 
-.soft-home-caret {
+.soft-caret {
   font-size: 10px;
   opacity: 0.7;
 }
 
-.soft-home-filter-panel {
-  margin-top: 12px;
-  padding: 16px 20px;
+.soft-filter-panel {
+  margin-top: 10px;
+  padding: 14px 18px;
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
-.soft-home-filter-hint {
-  margin: 0 0 12px;
+.soft-filter-hint {
+  margin: 0 0 10px;
   font-size: 12px;
   color: #6b7280;
 }
 
-.soft-home-filter-row {
+.soft-filter-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 13px;
   color: #374151;
   cursor: pointer;
 }
-
-.soft-home-filter-row:last-child {
+.soft-filter-row:last-child {
   margin-bottom: 0;
 }
 
-.soft-home-grid {
+/* 卡片网格 */
+.soft-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
-@media (max-width: 1100px) {
-  .soft-home-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .soft-home {
-    padding: 28px 16px 36px;
-    margin: -24px -16px;
-    min-height: calc(100% + 48px);
-  }
-
-  .soft-home-search {
-    flex-wrap: wrap;
-    border-radius: 20px;
-    padding: 4px 0;
-  }
-
-  .soft-home-search-type {
-    width: 100%;
-    padding: 10px 16px;
-    border-radius: 16px 16px 0 0;
-  }
-
-  .soft-home-search-vsep {
-    display: none;
-  }
-
-  .soft-home-search-mid {
-    width: 100%;
-    padding: 8px 16px;
-  }
-
-  .soft-home-search-adv {
-    width: 100%;
-    justify-content: center;
-    padding: 10px 16px 14px;
-  }
-
-  .soft-home-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.soft-home-card {
-  position: relative;
+.soft-card {
   display: flex;
   flex-direction: column;
-  padding: 16px 18px 14px;
   background: #fff;
   border: 1px solid #e8eaed;
-  border-radius: 14px;
-  text-decoration: none;
-  color: inherit;
+  border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  overflow: hidden;
 }
-
-.soft-home-pill {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #fff;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.soft-home-pill--score {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  box-shadow:
-    0 1px 4px rgba(109, 40, 217, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.soft-home-pill--stars {
-  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-  box-shadow:
-    0 1px 4px rgba(217, 119, 6, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.soft-home-comp-pill {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #fff;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  white-space: nowrap;
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
-.soft-home-comp-pill--premium {
-  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
-  box-shadow:
-    0 1px 4px rgba(190, 18, 60, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.soft-home-comp-pill--classic {
-  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-  box-shadow:
-    0 1px 4px rgba(67, 56, 202, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.soft-home-comp-pill--recent {
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-  box-shadow:
-    0 1px 4px rgba(13, 148, 136, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.soft-home-card:hover {
+.soft-card:hover {
   border-color: #fecdd3;
   box-shadow: 0 8px 28px rgba(218, 32, 62, 0.1);
   transform: translateY(-2px);
 }
 
-.soft-home-card-top {
+.soft-card-body {
+  flex: 1;
+  padding: 16px 16px 12px;
+}
+
+.soft-card-top {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding-bottom: 14px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #f3f4f6;
 }
 
-.soft-home-card-top--component {
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.soft-home-card-head--component {
-  flex: 1;
-  min-width: 0;
-}
-
-.soft-home-card-cube {
+.soft-card-icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 8px;
   background: linear-gradient(135deg, #fda4af 0%, #fb7185 40%, #e11d48 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    2px 4px 12px rgba(225, 29, 72, 0.25);
-  transform: rotate(-8deg) perspective(80px) rotateX(8deg);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.soft-home-card-gem {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  background: transparent;
-}
-
-.soft-home-card-gem::before {
-  content: '';
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  transform: rotate(45deg);
-  background: linear-gradient(145deg, #c7d2fe 0%, #6366f1 45%, #4338ca 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    2px 4px 12px rgba(67, 56, 202, 0.28);
-}
-
-.soft-home-card-head {
+.soft-card-name {
   flex: 1;
   min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soft-card-version {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #6b7280;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 1px 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.soft-card-meta {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.soft-home-card-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.soft-home-card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.soft-home-badge {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: #f3f4f6;
-}
-
-.soft-home-card-meta {
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.soft-home-card-row {
+.soft-card-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: 10px;
   font-size: 12px;
 }
 
-.soft-home-card-k {
+.soft-card-k {
   color: #9ca3af;
   flex-shrink: 0;
 }
 
-.soft-home-card-v {
+.soft-card-v {
   color: #374151;
   font-weight: 500;
   text-align: right;
 }
 
-.soft-home-card-row--safe {
-  align-items: center;
+.soft-card-dev {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.soft-home-safe {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1;
-  min-width: 0;
-  color: #059669;
-}
-
-.soft-home-safe-ico {
-  flex-shrink: 0;
-  filter: drop-shadow(0 1px 2px rgba(5, 150, 105, 0.25));
-}
-
-.soft-home-tone-good {
-  color: #059669 !important;
-  font-weight: 600 !important;
-}
-
-.soft-home-tone-mid {
-  color: #d97706 !important;
-  font-weight: 600 !important;
-}
-
-.soft-home-tone-warn {
-  color: #dc2626 !important;
-  font-weight: 600 !important;
-}
-
-.soft-home-card-v--mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+/* 编程语言标签 */
+.soft-card-lang {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
   font-size: 11px;
-  word-break: break-all;
-  line-height: 1.35;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.soft-card-lang--python {
+  background: #eef2ff;
+  color: #2563eb;
+  border: 1px solid #c7d2fe;
+}
+.soft-card-lang--go {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.soft-card-lang--js {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fef08a;
+}
+.soft-card-lang--ts {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+.soft-card-lang--java {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.soft-card-lang--rust {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+.soft-card-lang--default {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.soft-card-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #f3f4f6;
+  text-align: right;
+}
+
+.soft-card-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #da203e;
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.soft-card-link:hover {
+  color: #b81c36;
+  text-decoration: underline;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 1100px) {
+  .soft-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+
+  .soft-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-card-top {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .alert-card-left {
+    flex-wrap: wrap;
+  }
+
+  .alert-time {
+    align-self: flex-start;
+  }
+
+  .soft-search {
+    flex-wrap: wrap;
+    border-radius: 16px;
+    padding: 4px 0;
+  }
+
+  .soft-search-type {
+    width: 100%;
+    padding: 8px 16px;
+  }
+
+  .soft-search-vsep {
+    display: none;
+  }
+
+  .soft-search-mid {
+    width: 100%;
+    padding: 6px 14px;
+  }
+
+  .soft-search-adv {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 16px 10px;
+  }
 }
 </style>
