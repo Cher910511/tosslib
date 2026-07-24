@@ -2,11 +2,29 @@
   <div class="org-detail-page">
     <!-- ====== 组织信息卡片 ====== -->
     <div class="org-hero-card">
-      <div class="org-hero-avatar">{{ org.avatar }}</div>
+      <div class="org-hero-avatar" :style="{ background: avatarBg(org.name) }">{{ avatarLetter(org.name) }}</div>
       <div class="org-hero-body">
         <h1 class="org-hero-name">{{ org.name }}</h1>
+        <p class="org-hero-industry">{{ org.industry }}</p>
         <p class="org-hero-desc">{{ org.description }}</p>
+        <div class="org-hero-meta">
+          <span class="org-hero-meta-item">
+            <span class="org-hero-meta-label">管理员</span>
+            <span class="org-hero-meta-value">{{ org.adminIds.length }} 人</span>
+          </span>
+          <span class="org-hero-meta-item">
+            <span class="org-hero-meta-label">成员</span>
+            <span class="org-hero-meta-value">{{ org.memberIds.length }} 人</span>
+          </span>
+          <span class="org-hero-meta-item">
+            <span class="org-hero-meta-label">创建时间</span>
+            <span class="org-hero-meta-value">{{ org.createdAt }}</span>
+          </span>
+        </div>
       </div>
+      <button type="button" class="org-hero-back" @click="goBack">
+        &larr; 返回组织列表
+      </button>
     </div>
 
     <!-- ====== Tab 导航 ====== -->
@@ -73,7 +91,6 @@ const activeTab = ref(
 const org = computed(() => {
   const o = getOrgById(route.params.orgId)
   if (!o) {
-    // 如果找不到组织，回退到第一个
     return ORGS[0] || null
   }
   return o
@@ -81,6 +98,28 @@ const org = computed(() => {
 
 function goBack() {
   router.push({ name: 'org-list' })
+}
+
+/** 与 OrgListView 一致的头像首字 */
+function avatarLetter(name) {
+  return name ? name.charAt(0) : '?'
+}
+
+const AVATAR_COLORS = [
+  { bg: 'linear-gradient(135deg, #fef2f2, #fce4e4)', text: '#da203e' },
+  { bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', text: '#2563eb' },
+  { bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', text: '#16a34a' },
+  { bg: 'linear-gradient(135deg, #fefce8, #fef9c3)', text: '#ca8a04' },
+  { bg: 'linear-gradient(135deg, #faf5ff, #f3e8ff)', text: '#9333ea' },
+]
+
+function avatarBg(name) {
+  if (!name) return AVATAR_COLORS[0].bg
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length].bg
 }
 </script>
 
@@ -94,10 +133,10 @@ function goBack() {
   padding: 24px 28px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border-radius: 12px;
   margin-bottom: 24px;
   position: relative;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .org-hero-avatar {

@@ -65,17 +65,18 @@ export function addSearchHistory(type, text) {
   if (!t) return
   let prev = loadSearchHistory()
   const n = norm(t)
+  /* 过滤重复项 + 追加新记录，一次遍历完成 */
   prev = prev.filter((x) => !(x.type === type && norm(x.text) === n))
   prev.push({ type, text: t, ts: Date.now() })
-  const sw = prev
-    .filter((x) => x.type === 'software')
-    .sort((a, b) => b.ts - a.ts)
-    .slice(0, MAX_PER_TYPE)
-  const cp = prev
-    .filter((x) => x.type === 'component')
-    .sort((a, b) => b.ts - a.ts)
-    .slice(0, MAX_PER_TYPE)
-  persist([...sw, ...cp].sort((a, b) => b.ts - a.ts))
+  /* 按类型分别截取上限后合并 */
+  const byType = (t) => {
+    const items = prev.filter((x) => x.type === t)
+    items.sort((a, b) => b.ts - a.ts)
+    return items.slice(0, MAX_PER_TYPE)
+  }
+  const merged = [...byType('software'), ...byType('component')]
+  merged.sort((a, b) => b.ts - a.ts)
+  persist(merged)
 }
 
 export function historyByType(type, limit = MAX_PER_TYPE) {

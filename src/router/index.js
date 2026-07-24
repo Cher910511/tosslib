@@ -29,11 +29,13 @@ import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
 import OpenApiDocView from '../views/admin/OpenApiDocView.vue'
 import ApiKeyManageView from '../views/admin/ApiKeyManageView.vue'
 import ToolsetView from '../views/admin/ToolsetView.vue'
+import PersonalSettingsView from '../views/admin/PersonalSettingsView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
 import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
+import RequirementFeedbackView from '../views/software/RequirementFeedbackView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
 
 const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
@@ -161,6 +163,13 @@ const routes = [
         component: OrgDetailView,
         meta: { adminTitle: '组织详情' },
       },
+      // ==================== 需求反馈 ====================
+      {
+        path: 'feedback',
+        name: 'requirement-feedback',
+        component: RequirementFeedbackView,
+        meta: { adminTitle: '需求反馈' },
+      },
       // ==================== OpenAPI ====================
       {
         path: 'openapi-tools',
@@ -186,6 +195,13 @@ const routes = [
         name: 'toolset',
         component: ToolsetView,
         meta: { adminTitle: '工具集' },
+      },
+      // ==================== 个人设置 ====================
+      {
+        path: 'personal-settings',
+        name: 'personal-settings',
+        component: PersonalSettingsView,
+        meta: { adminTitle: '个人设置' },
       },
       // ==================== 版本火车 ====================
       {

@@ -11,6 +11,9 @@ export function downloadCsv(filename, columns, rows) {
   const a = document.createElement('a')
   a.href = url
   a.download = filename.endsWith('.csv') ? filename : `${filename}.csv`
+  /* 确保 a 元素在 DOM 中再触发 click，兼容部分浏览器 */
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }

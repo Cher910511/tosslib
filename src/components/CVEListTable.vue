@@ -24,7 +24,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, watch } from 'vue'
+import { useAutoScroll } from '../composables/useAutoScroll'
 
 const props = defineProps({
   list: { type: Array, default: () => [] },
@@ -35,23 +36,12 @@ const props = defineProps({
 const rowH = computed(() => (props.size === 'large' ? 40 : 36))
 
 const doubledList = computed(() => [...props.list, ...props.list])
-const offset = ref(0)
-const pause = ref(false)
-let raf = null
+const { offset, pause } = useAutoScroll({ speed: 0.55 })
 
-function tick() {
-  if (!pause.value) {
-    offset.value += 0.55
-    const total = props.list.length * rowH.value
-    if (offset.value >= total) offset.value = 0
-  }
-  raf = requestAnimationFrame(tick)
-}
-
-onMounted(() => {
-  raf = requestAnimationFrame(tick)
+watch(offset, (v) => {
+  const total = props.list.length * rowH.value
+  if (total > 0 && v >= total) offset.value = 0
 })
-onUnmounted(() => cancelAnimationFrame(raf))
 
 function levelClass(l) {
   if (l === '高危') return 'level-high'

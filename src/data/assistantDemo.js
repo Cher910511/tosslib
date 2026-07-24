@@ -127,8 +127,7 @@ const matchers = [
     test: (q) =>
       (/openssl/i.test(q) && /cve|漏洞|高危/i.test(q)) || /cveid|高危漏洞/i.test(q),
     reply: () => ({
-      text:
-        '是否命中高危与具体 CVE 编号取决于当前版本与情报库匹配结果。以下为演示：请在 OpenSSL 组件详情的「漏洞信息」中查看等级、CVE、影响说明（演示数据，生产环境请以厂商安全通告为准）。\n\n',
+      text: '',
       cards: [componentAssistantCard('openssl')],
     }),
   },
@@ -138,8 +137,7 @@ const matchers = [
       /合规风险/.test(q) ||
       (/license|许可证|开源协议/i.test(q) && /商用|商业|引入|项目/i.test(q)),
     reply: () => ({
-      text:
-        '开源 License 是否「可商用、无合规雷区」需结合使用方式（是否修改、是否再分发、专利与商标条款等）由法务评估。以下为演示：axios 为 MIT，一般允许商用但需保留版权声明；请在详情页核对 SPDX 与多版本许可记录。\n\n',
+      text: '',
       cards: [componentAssistantCard('axios')],
     }),
   },

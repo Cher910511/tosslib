@@ -1,5 +1,6 @@
 <template>
   <div class="assistant">
+    <!-- 侧边栏：对话历史 -->
     <aside class="assistant-side" aria-label="对话历史">
       <button type="button" class="assistant-new" @click="startNewChat">+ 新对话</button>
       <ul class="assistant-history" role="list">
@@ -14,15 +15,12 @@
           </button>
         </li>
       </ul>
-      <!-- <p class="assistant-side-hint" role="note">
-        对话标题会在你发出首条消息后自动生成；新建对话将出现在列表顶部。
-      </p> -->
     </aside>
 
     <section class="assistant-main" aria-label="对话">
       <header class="assistant-head">
         <h1 class="assistant-title">AI 助手</h1>
-        <p class="assistant-sub">可信开源代码库 · 演示对话（回答为预设规则，接入模型后可替换）</p>
+        <p class="assistant-sub">可信开源代码库 · 智能问答</p>
       </header>
 
       <div v-if="isLandingView" class="assistant-landing">
@@ -63,27 +61,17 @@
             </div>
           </form>
 
-          <div
-            class="assistant-landing-suggestions assistant-landing-suggestions--constrained"
-            role="group"
-            aria-labelledby="assistant-landing-suggestions-title"
-          >
-            <h3 id="assistant-landing-suggestions-title" class="assistant-landing-suggestions-title">
-              推荐问题
-            </h3>
-            <div class="assistant-welcome-grid assistant-welcome-grid--landing">
+          <div class="assistant-landing-suggestions" role="group" aria-labelledby="assistant-landing-suggestions-title">
+            <h3 id="assistant-landing-suggestions-title" class="assistant-landing-suggestions-title">推荐问题</h3>
+            <div class="assistant-welcome-grid">
               <button
                 v-for="p in recommendedQuestions.slice(1)"
                 :key="'landing-' + p.id"
                 type="button"
                 class="assistant-welcome-btn"
-                :class="{ 'assistant-welcome-btn--software': p.icon === 'maintain' }"
                 :disabled="thinking"
                 @click="sendPreset(p.text)"
               >
-                <span class="assistant-welcome-btn-icon" aria-hidden="true">
-                  <AssistantPromptIcon :name="p.icon" />
-                </span>
                 <span class="assistant-welcome-btn-text">{{ p.text }}</span>
               </button>
             </div>
@@ -91,68 +79,113 @@
         </div>
       </div>
 
-      <div
-        v-else
-        ref="scrollRef"
-        class="assistant-scroll"
-      >
-        <div
-          v-for="msg in active.messages"
-          :key="msg.id"
-          class="assistant-msg"
-          :class="'assistant-msg--' + msg.role"
-        >
-          <div class="assistant-msg-label">{{ msg.role === 'user' ? '用户昵称' : 'AI助手' }}</div>
-          <div class="assistant-msg-bubble">
-            <p class="assistant-msg-text">{{ msg.text }}</p>
-            <div v-if="msg.cards?.length" class="assistant-cards">
-              <RouterLink
-                v-for="card in msg.cards"
-                :key="assistantCardKey(card)"
-                class="assistant-card"
-                :class="
-                  isSoftwareCard(card) ? 'assistant-card--software' : 'assistant-card--component'
-                "
-                :to="assistantCardTo(card)"
-              >
-                <template v-if="isSoftwareCard(card)">
-                  <div class="assistant-card-row assistant-card-row--head">
-                    <span class="assistant-card-name">{{ card.name }}</span>
-                    <span class="assistant-card-lang">{{ card.language }}</span>
-                  </div>
-                  <div class="assistant-card-row assistant-card-row--meta assistant-card-row--software">
-                    <span>v{{ card.version ?? '—' }}</span>
-                    <span class="assistant-card-dot" aria-hidden="true">·</span>
-                    <span>评分 {{ card.score ?? '—' }}</span>
-                    <span class="assistant-card-dot" aria-hidden="true">·</span>
-                    <span>漏洞 {{ card.vulnCount ?? '—' }}</span>
-                  </div>
-                  <span class="assistant-card-foot assistant-card-foot--software">软件详情</span>
-                </template>
-                <template v-else>
-                  <div class="assistant-card-row assistant-card-row--head">
-                    <span class="assistant-card-name">{{ card.title }}</span>
-                    <span class="assistant-card-lang">{{ card.language }}</span>
-                  </div>
-                  <div class="assistant-card-row assistant-card-row--meta assistant-card-row--component">
-                    <span>v{{ card.version ?? '—' }}</span>
-                  </div>
-                  <span class="assistant-card-foot">组件详情</span>
-                </template>
-              </RouterLink>
+      <!-- 对话内容 -->
+      <div v-else ref="scrollRef" class="assistant-scroll">
+        <template v-for="msg in active.messages" :key="msg.id">
+          <!-- 用户消息 -->
+          <div class="msg-row msg-row--user">
+            <div class="msg-bubble msg-bubble--user">
+              <p class="msg-text">{{ msg.text }}</p>
             </div>
           </div>
-        </div>
 
-        <div v-if="thinking" class="assistant-msg assistant-msg--assistant">
-          <div class="assistant-msg-label">助手</div>
-          <div class="assistant-msg-bubble assistant-msg-bubble--typing">
-            <span class="assistant-dots" aria-hidden="true"><i /><i /><i /></span>
-            正在整理回答…
+          <!-- 助手消息 - 任务工作流卡片 -->
+          <div v-if="msg.role === 'assistant' && msg.tasks" class="assistant-reply">
+            <!-- 提示语：准备中 → 正在制定计划 → 创建任务中（思考过程出现后消失） -->
+            <div class="thinking-indicator" v-if="msg === active.messages[active.messages.length - 1] && thinkingPhase < 3">
+              <span class="think-dot" /><span class="think-dot" /><span class="think-dot" />
+              <span class="think-text">
+                <template v-if="thinkingPhase === 0">准备中</template>
+                <template v-else-if="thinkingPhase === 1">正在制定计划</template>
+                <template v-else>创建任务中</template>
+              </span>
+              <span class="think-seconds">{{ thinkingSeconds }} 秒</span>
+            </div>
+
+            <!-- 思考过程（可折叠展开） -->
+            <div class="reasoning-section" v-if="msg === active.messages[active.messages.length - 1] && thinkingPhase >= 3">
+              <div class="reasoning-header" @click="reasoningExpanded = !reasoningExpanded">
+                <span class="think-dot" /><span class="think-dot" /><span class="think-dot" />
+                <span class="think-text">思考中</span><span class="think-seconds">{{ thinkingSeconds }} 秒</span>
+                <span class="reasoning-toggle-icon" style="margin-left:auto;">{{ reasoningExpanded ? '▾' : '▸' }}</span>
+              </div>
+              <div class="reasoning-content" v-if="reasoningExpanded">
+                <div class="reasoning-stream">{{ reasoningText }}<span class="reasoning-cursor">|</span></div>
+              </div>
+              <div class="reasoning-query" v-if="queryStreamText.length > 0">{{ queryStreamText }}</div>
+            </div>
+
+            <!-- 待办事项卡片 -->
+            <div class="task-card" v-if="msg.tasks && thinkingPhase >= 3 && reasoningText.length >= fullReasoningText.length && queryStreamText.length >= 24">
+              <div class="task-card-header">
+                <h3 class="task-card-title">待办事项</h3>
+                <span class="task-card-count">共 {{ msg.tasks.length }} 项</span>
+              </div>
+
+              <div class="task-summary">
+                <span class="task-summary-item task-summary-pending">待处理 {{ pendingCount(msg.tasks) }}</span>
+                <span class="task-summary-item task-summary-progress">进行中 {{ inProgressCount(msg.tasks) }}</span>
+                <span class="task-summary-item task-summary-done">已完成 {{ doneCount(msg.tasks) }}</span>
+              </div>
+
+              <div class="task-list">
+                <div
+                  v-for="(task, ti) in msg.tasks"
+                  :key="ti"
+                  class="task-item"
+                  :class="'task-item--' + task.status"
+                >
+                  <div class="task-item-head">
+                    <span class="task-item-icon" :class="'task-item-icon--' + task.status">
+                      <svg v-if="task.status === 'done'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg v-else-if="task.status === 'progress'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                    </span>
+                    <span class="task-item-title">{{ task.title }}</span>
+                    <span class="task-item-badge" :class="'task-item-badge--' + task.status">{{ task.statusLabel }}</span>
+                  </div>
+
+                  <div v-if="task.substeps && task.substeps.length" class="task-substeps">
+                    <div
+                      v-for="(sub, si) in task.substeps"
+                      :key="si"
+                      class="task-substep"
+                      :class="{ 'task-substep--done': sub.done }"
+                    >
+                      <span class="task-substep-icon">
+                        <svg v-if="sub.done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                      </span>
+                      <div class="task-substep-body">
+                        <span class="task-substep-label">{{ sub.label }}</span>
+                        <span v-if="sub.tag" class="task-substep-tag">{{ sub.tag }}</span>
+                        <span v-if="sub.desc" class="task-substep-desc">{{ sub.desc }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 旧版助手消息（兼容） -->
+          <div v-else-if="msg.role === 'assistant'" class="msg-row msg-row--assistant">
+            <div class="msg-bubble msg-bubble--assistant">
+              <p class="msg-text">{{ msg.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- 正在思考 - 立即显示 -->
+        <div v-if="thinking && active.messages.length === 0" class="msg-row msg-row--assistant">
+          <div class="thinking-indicator">
+            <span class="thinking-dot" /><span class="thinking-dot" /><span class="thinking-dot" />
+            创建任务中 {{ thinkingSeconds }} 秒
           </div>
         </div>
       </div>
 
+      <!-- 推荐问题 -->
       <div v-if="active.messages.length > 0" class="assistant-prompts" aria-label="推荐问题">
         <span class="assistant-prompts-label">试试问</span>
         <button
@@ -167,17 +200,18 @@
         </button>
       </div>
 
+      <!-- 输入框 -->
       <form v-if="!isLandingView" class="assistant-form" @submit.prevent="sendInput">
         <textarea
           v-model="draft"
           class="assistant-input"
-          rows="4"
+          rows="3"
           placeholder="继续提问…"
           :disabled="thinking"
           @keydown.enter.exact.prevent="sendInput"
         />
         <button type="submit" class="assistant-send" :disabled="thinking || !draft.trim()">
-          发送
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </form>
     </section>
@@ -185,42 +219,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { RECOMMENDED_QUESTIONS, matchAssistantReply } from '../../data/assistantDemo.js'
-import AssistantPromptIcon from './AssistantPromptIcon.vue'
 
 const recommendedQuestions = RECOMMENDED_QUESTIONS
-
-/** @param {unknown} card */
-function isSoftwareCard(card) {
-  return Boolean(card && typeof card === 'object' && card.kind === 'software')
-}
-
-/** @param {unknown} card */
-function assistantCardKey(card) {
-  if (isSoftwareCard(card)) {
-    return `sw-${card.name}-${card.version}`
-  }
-  if (card && typeof card === 'object' && 'componentId' in card) {
-    return `co-${card.componentId}`
-  }
-  return String(Math.random())
-}
-
-/** @param {unknown} card */
-function assistantCardTo(card) {
-  if (isSoftwareCard(card)) {
-    return {
-      name: 'software-detail',
-      query: { tab: 'intro', v: card.version },
-    }
-  }
-  if (card && typeof card === 'object' && 'componentId' in card) {
-    return { name: 'component-detail', params: { id: card.componentId } }
-  }
-  return { name: 'software-home' }
-}
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -238,6 +240,13 @@ const conversations = ref([createConversation()])
 const activeId = ref(conversations.value[0].id)
 const draft = ref('')
 const thinking = ref(false)
+const thinkingSeconds = ref(0)
+const thinkingPhase = ref(0) // 0=等待中 1=准备中 2=思考中 3=创建任务中
+let thinkingTimer = null
+const reasoningText = ref('')
+const reasoningExpanded = ref(false)
+const fullReasoningText = ref('')
+const queryStreamText = ref('')
 const scrollRef = ref(null)
 
 const active = computed(() => {
@@ -245,9 +254,7 @@ const active = computed(() => {
   return c || conversations.value[0]
 })
 
-const isLandingView = computed(
-  () => active.value.messages.length === 0 && !thinking.value,
-)
+const isLandingView = computed(() => active.value.messages.length === 0 && !thinking.value)
 
 function onHeroInputResize(e) {
   const el = e?.target
@@ -263,10 +270,7 @@ function scrollToBottom() {
   })
 }
 
-watch(
-  () => active.value.messages.length,
-  () => scrollToBottom(),
-)
+watch(() => active.value.messages.length, () => scrollToBottom())
 
 function startNewChat() {
   const c = createConversation()
@@ -302,20 +306,147 @@ function sendWithText(text) {
   draft.value = ''
 
   thinking.value = true
+  thinkingSeconds.value = 0
+  thinkingPhase.value = 0 // 准备中
+  thinkingTimer = setInterval(() => { thinkingSeconds.value++ }, 1000)
+  reasoningText.value = ''
+  reasoningExpanded.value = false
   scrollToBottom()
+
+  // 每2秒切换阶段：准备中(0) → 思考中(1) → 创建任务中(2) → 开始推理(3)
+  setTimeout(() => { thinkingPhase.value = 1 }, 2000)  // 思考中
+  setTimeout(() => { thinkingPhase.value = 2 }, 4000)  // 创建任务中
+  setTimeout(() => {
+    thinkingPhase.value = 3 // 开始推理
+
+    // 构建推理内容并开始流式输出（只播一次）
+    const reasoningChunks = buildReasoningChunks()
+    fullReasoningText.value = reasoningChunks.join('')
+    let ri = 0
+    reasoningText.value = ''
+    reasoningExpanded.value = true // 输出时展开
+    const streamReasoning = () => {
+      if (ri < reasoningChunks.length) {
+        reasoningText.value += reasoningChunks[ri]
+        ri++
+        setTimeout(streamReasoning, 50)
+      } else {
+        reasoningExpanded.value = false // 输出完成自动收起
+        // 开始流式输出查询提示
+        const queryText = '我来帮你查找比XStream更安全的Java XML解析库'
+        let qi = 0
+        const streamQuery = () => {
+          if (qi < queryText.length) {
+            queryStreamText.value += queryText[qi]
+            qi++
+            setTimeout(streamQuery, 30)
+          }
+        }
+        streamQuery()
+      }
+    }
+    streamReasoning()
+  }, 6000) // 6秒后开始推理流式输出
 
   window.setTimeout(() => {
     const { text: replyText, cards } = matchAssistantReply(raw)
-    c.messages.push({
+    const tasks = buildDemoTasks(replyText)
+
+    // 先创建空消息，让用户看到首字快速出现
+    const msg = {
       id: uid(),
       role: 'assistant',
-      text: replyText,
+      text: '',
       cards: cards && cards.length ? cards : undefined,
-    })
-    thinking.value = false
+      tasks: tasks.length ? tasks : undefined,
+    }
+    c.messages.push(msg)
     scrollToBottom()
-  }, 650)
+
+    // 流式逐字输出模拟，首字快速出现
+    let idx = 0
+    const step = () => {
+      if (idx < replyText.length) {
+        msg.text += replyText[idx]
+        idx++
+        // 前 10 个字每 30ms 输出一个，之后每 15ms
+        const delay = idx <= 10 ? 30 : 15
+        setTimeout(step, delay)
+        scrollToBottom()
+      }
+    }
+    step()
+  }, 500) // 缩短思考等待时间，让首字更快出现
 }
+
+function buildReasoningChunks() {
+  const raw = [
+    '用户', '问', '的是', '关于', 'GPL', '协议', '的', '库', '引入', '闭', '源', '产品的', '合规', '风险', '问题', '。',
+    '这是一个', '典型的', '开源', '软件', '合规', '评估', '问题', '，', '属于', 'tosshub', '-skill', '的范围', '。\n\n',
+    '根据', '全局', '指令', '中的', '特殊', '例外', '规则', '：\n',
+    '-', ' 开', '源', '软件', '的安全', '与', '合规', '评估', '（', '漏洞', '/', '开源', '协议', '）', '必须', '调用', 'todo', '\n',
+    '-', ' 必', '须', '创建', '3', '~', '5', '个', '合适的', 'todo', '\n',
+    '-', ' 不', '允许', '只', '创建', '1', '个', '笼', '统', '任务', '\n',
+    '-', ' 不', '允许', '跳', '过', 'todo', '直接', '回答', '\n\n',
+    '我', '需要', '：\n',
+    '1', '.', ' 先', '调用', 'tosshub', '-skill', '来', '获取', '相关信息', '\n',
+    '2', '.', ' 创建', '合适的', 'todo', '任务', '清单', '\n',
+    '3', '.', ' 按', '照', '任务', '顺序', '执行', '\n',
+    '4', '.', ' 最后', '根据', 'output', '_format', '.md', '约束', '输出', '格式', '\n\n',
+    '让我', '先', '调用', 'tosshub', '-skill', '。',
+  ]
+  return raw
+}
+
+function buildDemoTasks(replyText) {
+  return [
+    {
+      title: '明确用户问题：查询 Log4j 最新版本的安全漏洞情况',
+      status: 'done',
+      statusLabel: '已完成',
+      substeps: [],
+    },
+    {
+      title: '调用 tosshub-skill 查询 Log4j 组件信息与安全漏洞',
+      status: 'progress',
+      statusLabel: '进行中',
+      substeps: [
+        { label: '调用技能: tosshub-skill', tag: '# 可信开源代码库 AI 助手技能', done: true },
+        { label: '读取文件: sql_templates.md', desc: '[File skeleton: sql_templates.md (305 lines)]', done: true },
+        { label: '读取文件: output_format.md', desc: '1| # 前端 UI 卡片数据渲染格式规范', done: true },
+        { label: '读取文件: sql_templates.md', desc: '170| ### 2.1 漏洞评估逻辑', done: true },
+        { label: '执行命令: python /root/atomcode/skills/tosshub-skill/script/...', desc: '[elapsed: 0.3s, exit: 0]', done: true },
+        { label: '执行命令: python /root/atomcode/skills/tosshub-skill/script/...', done: false },
+      ],
+    },
+    {
+      title: '分析扫描结果并生成安全评估报告',
+      status: 'pending',
+      statusLabel: '待处理',
+      substeps: [],
+    },
+    {
+      title: '汇总最终回答并展示给用户',
+      status: 'pending',
+      statusLabel: '待处理',
+      substeps: [],
+    },
+  ]
+}
+
+function pendingCount(tasks) {
+  return tasks.filter((t) => t.status === 'pending').length
+}
+function inProgressCount(tasks) {
+  return tasks.filter((t) => t.status === 'progress').length
+}
+function doneCount(tasks) {
+  return tasks.filter((t) => t.status === 'done').length
+}
+
+onUnmounted(() => {
+  if (thinkingTimer) clearInterval(thinkingTimer)
+})
 </script>
 
 <style scoped>
@@ -340,6 +471,7 @@ function sendWithText(text) {
   }
 }
 
+/* ===== 侧边栏 ===== */
 .assistant-side {
   width: 260px;
   flex-shrink: 0;
@@ -369,8 +501,8 @@ function sendWithText(text) {
   font-weight: 600;
   color: #374151;
   cursor: pointer;
+  font-family: inherit;
 }
-
 .assistant-new:hover {
   border-color: #da203e;
   color: #da203e;
@@ -398,12 +530,9 @@ function sendWithText(text) {
   color: #4b5563;
   cursor: pointer;
   line-height: 1.35;
+  font-family: inherit;
 }
-
-.assistant-history-item:hover {
-  background: #f3f4f6;
-}
-
+.assistant-history-item:hover { background: #f3f4f6; }
 .assistant-history-item.is-active {
   background: #fff;
   box-shadow: 0 0 0 1px #e5e7eb;
@@ -411,6 +540,7 @@ function sendWithText(text) {
   font-weight: 600;
 }
 
+/* ===== 主区域 ===== */
 .assistant-main {
   flex: 1;
   min-width: 0;
@@ -424,14 +554,12 @@ function sendWithText(text) {
   border-bottom: 1px solid #e5e7eb;
   background: #fff;
 }
-
 .assistant-title {
   margin: 0 0 4px;
   font-size: 18px;
   font-weight: 700;
   color: #111827;
 }
-
 .assistant-sub {
   margin: 0;
   font-size: 12px;
@@ -442,12 +570,366 @@ function sendWithText(text) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== 消息行 ===== */
+.msg-row {
+  display: flex;
+  width: 100%;
+}
+.msg-row--user {
+  justify-content: flex-end;
+}
+.msg-row--assistant {
+  justify-content: flex-start;
+}
+
+.msg-bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.msg-bubble--user {
+  background: #dbeafe;
+  color: #1e40af;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble--assistant {
+  background: transparent;
+  border: none;
+  border-bottom-left-radius: 4px;
+  color: #374151;
+  padding: 0;
+}
+.msg-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ===== 思考中指示器 ===== */
+.assistant-reply {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
 }
 
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #374151;
+  padding: 12px 20px;
+  background: #f8faff;
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+}
+
+/* 统一跳动三点 */
+.think-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #224ebf;
+  animation: think-bounce 1.2s ease-in-out infinite;
+}
+.think-dot:nth-child(2) { animation-delay: 0.2s; }
+.think-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes think-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* 提示文字样式 */
+.think-text {
+  font-weight: 600;
+  color: #224ebf;
+  font-size: 14px;
+}
+.think-seconds {
+  font-weight: 600;
+  color: #224ebf;
+  font-size: 14px;
+  margin-left: 4px;
+}
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #da203e;
+  animation: think-bounce 1.2s ease-in-out infinite;
+}
+.thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes think-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* ===== 思考过程 ===== */
+.reasoning-section {
+  max-width: 720px;
+  margin-top: 8px;
+  background: #fafbfc;
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+.reasoning-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.reasoning-header:hover {
+  background: #f3f6fc;
+}
+.reasoning-query {
+  font-size: 14px;
+  color: #1f2937;
+  padding: 6px 14px 12px;
+  line-height: 1.6;
+  font-weight: 500;
+  border-top: 1px solid #e8edf5;
+  background: #fff;
+}
+.reasoning-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: #f3f6fc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #224ebf;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.reasoning-toggle:hover {
+  background: #e8edf5;
+}
+.reasoning-toggle-icon {
+  font-size: 16px;
+  color: #224ebf;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.reasoning-toggle-icon:hover {
+  background: #e8edf5;
+}
+.reasoning-status {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+.reasoning-content {
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.reasoning-stream {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+.reasoning-cursor {
+  color: #224ebf;
+  animation: blink 0.8s step-end infinite;
+  font-weight: 700;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ===== 任务卡片 ===== */
+.task-card {
+  width: 100%;
+  max-width: 720px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+}
+.task-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.task-card-count {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ===== 任务状态概览 ===== */
+.task-summary {
+  display: flex;
+  gap: 16px;
+  padding: 12px 20px;
+}
+.task-summary-item {
+  font-size: 13px;
+  font-weight: 500;
+}
+.task-summary-pending { color: #d97706; }
+.task-summary-progress { color: #2563eb; }
+.task-summary-done { color: #16a34a; }
+
+/* ===== 任务列表 ===== */
+.task-list {
+  padding: 8px 0;
+}
+
+.task-item {
+  padding: 12px 20px;
+}
+
+.task-item-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+.task-item-icon--pending svg { color: #d1d5db; }
+
+.task-item-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.task-item-badge {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.task-item-badge--done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.task-item-badge--progress {
+  background: #dbeafe;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.task-item-badge--progress::after {
+  content: '↑';
+  font-size: 10px;
+}
+.task-item-badge--pending {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* ===== 子步骤 ===== */
+.task-substeps {
+  margin-top: 10px;
+  margin-left: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 2px solid #e5e7eb;
+}
+
+.task-substep {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.task-substep-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+}
+
+.task-substep-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-substep-label {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.task-substep-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 1px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.task-substep-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+/* ===== 着陆页 ===== */
 .assistant-landing {
   position: relative;
   flex: 1;
@@ -458,8 +940,7 @@ function sendWithText(text) {
   justify-content: center;
   padding: 20px 20px 28px;
   overflow-y: auto;
-  background:
-    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(218, 32, 62, 0.06), transparent 52%),
+  background: radial-gradient(ellipse 100% 70% at 50% 0%, rgba(218, 32, 62, 0.06), transparent 52%),
     radial-gradient(ellipse 55% 45% at 85% 40%, rgba(37, 99, 235, 0.045), transparent 50%),
     linear-gradient(180deg, #eef0f4 0%, #f6f7f9 45%, #f1f2f5 100%);
 }
@@ -479,7 +960,7 @@ function sendWithText(text) {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 100%;
+  max-width: 860px;
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -487,558 +968,188 @@ function sendWithText(text) {
   gap: 28px;
 }
 
-@media (max-height: 720px) {
-  .assistant-landing {
-    justify-content: flex-start;
-    padding-top: 12px;
-  }
-}
-
-@media (max-width: 520px) {
-  .assistant-form--hero {
-    max-width: 100%;
-  }
-
-  .assistant-hero-box {
-    padding: 12px 12px 10px;
-    border-radius: 20px;
-  }
-
-  .assistant-hero-field {
-    min-height: 100px;
-  }
-
-  .assistant-input--hero {
-    min-height: 100px;
-    padding: 8px 48px 44px 10px;
-    font-size: 16px;
-  }
-
-  .assistant-send--hero {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    font-size: 17px;
-  }
-
-  .assistant-landing-inner {
-    gap: 20px;
-  }
-}
-
 .assistant-welcome-plain {
-  margin: 0 auto;
-  padding: 0 8px;
-  max-width: 36rem;
   text-align: center;
 }
-
 .assistant-welcome-plain-title {
-  margin: 0 0 12px;
-  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  margin: 0 0 10px;
+  font-size: 20px;
   font-weight: 700;
   color: #111827;
   line-height: 1.35;
-  letter-spacing: -0.02em;
 }
-
 .assistant-welcome-plain-body {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 14px;
   color: #6b7280;
+  line-height: 1.6;
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 .assistant-form--hero {
-  padding: 0;
-  border: none;
-  background: transparent;
-  align-items: stretch;
   width: 100%;
-  max-width: 920px;
-  margin-left: auto;
-  margin-right: auto;
 }
-
 .assistant-hero-box {
-  width: 100%;
-  padding: 14px 14px 12px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 24px;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 8px 28px rgba(17, 24, 39, 0.08);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  width: 100%;
 }
-
-.assistant-hero-box:focus-within {
-  border-color: #d1d5db;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 10px 36px rgba(17, 24, 39, 0.1),
-    0 0 0 1px rgba(218, 32, 62, 0.08);
-}
-
 .assistant-hero-field {
-  position: relative;
-  min-height: 120px;
+  display: flex;
+  flex-direction: column;
 }
-
 .assistant-input--hero {
-  display: block;
+  border: none;
+  resize: none;
+  padding: 16px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #374151;
+  outline: none;
+  line-height: 1.55;
+  background: transparent;
   width: 100%;
   box-sizing: border-box;
-  min-height: 120px;
-  max-height: 280px;
-  margin: 0;
-  padding: 10px 52px 48px 12px;
-  border: none;
-  border-radius: 0;
-  font-size: 16px;
-  line-height: 1.55;
-  resize: none;
-  background: transparent;
-  box-shadow: none;
 }
-
-.assistant-input--hero:focus {
-  outline: none;
-  border: none;
-  box-shadow: none;
-}
-
+.assistant-input--hero::placeholder { color: #9ca3af; }
+.assistant-input--hero:disabled { background: #f9fafb; }
 .assistant-hero-actions {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
+  justify-content: flex-end;
+  padding: 0 12px 12px;
 }
-
-.assistant-hero-actions .assistant-send--hero {
-  pointer-events: auto;
-}
-
 .assistant-send--hero {
-  flex-shrink: 0;
   width: 40px;
   height: 40px;
-  min-width: 40px;
-  padding: 0;
   border-radius: 10px;
+  border: none;
+  background: #da203e;
+  color: #fff;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  line-height: 1;
+  transition: background 0.15s;
 }
+.assistant-send--hero:hover { background: #b81830; }
+.assistant-send--hero:disabled { background: #d1d5db; cursor: not-allowed; }
+.assistant-send-hero-ico { font-size: 20px; font-weight: 700; line-height: 1; }
 
-.assistant-send-hero-ico {
-  display: block;
-  transform: translateY(-1px);
-  font-weight: 700;
-}
-
-.assistant-landing-suggestions {
-  width: 100%;
-}
-
-.assistant-landing-suggestions--constrained {
-  max-width: 760px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
+.assistant-landing-suggestions { text-align: center; }
 .assistant-landing-suggestions-title {
   margin: 0 0 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
-  text-align: center;
-  letter-spacing: 0.02em;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
 }
-
-.assistant-welcome-grid--landing {
-  margin: 0;
-}
-
 .assistant-welcome-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-@media (min-width: 540px) {
-  .assistant-welcome-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.assistant-welcome-btn {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: 58px;
-  padding: 12px 14px;
-  text-align: left;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  cursor: pointer;
-  font: inherit;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.assistant-welcome-btn:hover:not(:disabled) {
-  border-color: #fecdd3;
-  box-shadow: 0 4px 14px rgba(218, 32, 62, 0.1);
-  background: #fffafb;
-}
-
-.assistant-welcome-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(218, 32, 62, 0.35);
-}
-
-.assistant-welcome-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.assistant-welcome-btn-icon {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: center;
-  background: rgba(218, 32, 62, 0.09);
-  color: #da203e;
 }
-
-.assistant-welcome-btn--software .assistant-welcome-btn-icon {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
-}
-
-.assistant-welcome-btn-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f2937;
-  line-height: 1.45;
-}
-
-.assistant-side-hint {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 12px 2px 4px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: #9ca3af;
-  border-top: 1px solid #ececec;
-}
-
-.assistant-msg {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 92%;
-}
-
-.assistant-msg--user {
-  align-self: flex-end;
-  align-items: flex-end;
-}
-
-.assistant-msg--assistant {
-  align-self: flex-start;
-  align-items: flex-start;
-}
-
-.assistant-msg-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.assistant-msg-bubble {
-  border-radius: 12px;
-  padding: 12px 14px;
-  line-height: 1.65;
-}
-
-.assistant-msg--user .assistant-msg-bubble {
-  background: #111827;
-  color: #f9fafb;
-}
-
-.assistant-msg--assistant .assistant-msg-bubble {
-  background: #fff;
+.assistant-welcome-btn {
+  padding: 8px 16px;
   border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
   color: #374151;
-}
-
-.assistant-msg-text {
-  margin: 0;
-  font-size: 14px;
-  white-space: pre-line;
-}
-
-.assistant-msg-bubble--typing {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.assistant-dots {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.assistant-dots i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #d1d5db;
-  animation: assistant-pulse 1s ease-in-out infinite;
-}
-
-.assistant-dots i:nth-child(2) {
-  animation-delay: 0.15s;
-}
-
-.assistant-dots i:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes assistant-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.assistant-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #f3f4f6;
-}
-
-@media (max-width: 520px) {
-  .assistant-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-.assistant-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #fafafa;
-  text-decoration: none;
-  color: inherit;
-  min-height: 0;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.assistant-card--component {
-  border-left: 3px solid #da203e;
-}
-
-.assistant-card--software {
-  border-left: 3px solid #2563eb;
-  background: #f8fafc;
-}
-
-.assistant-card:hover {
-  border-color: #d1d5db;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.assistant-card--component:hover {
-  border-left-color: #da203e;
-}
-
-.assistant-card--software:hover {
-  border-left-color: #2563eb;
-}
-
-.assistant-card-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.assistant-card-row--head {
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.assistant-card-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111827;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
   white-space: nowrap;
 }
-
-.assistant-card-lang {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #f3f4f6;
-}
-
-.assistant-card-row--meta {
-  font-size: 11px;
-  color: #6b7280;
-  line-height: 1.35;
-  flex-wrap: wrap;
-}
-
-.assistant-card-row--software {
-  font-variant-numeric: tabular-nums;
-}
-
-.assistant-card-row--component {
-  margin-top: 1px;
-}
-
-.assistant-card-dot {
-  color: #d1d5db;
-  user-select: none;
-}
-
-.assistant-card-foot {
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 600;
+.assistant-welcome-btn:hover {
+  border-color: #da203e;
   color: #da203e;
+  background: #fff5f5;
 }
+.assistant-welcome-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.assistant-card-foot--software {
-  color: #2563eb;
-}
-
+/* ===== 推荐问题 ===== */
 .assistant-prompts {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px 12px;
-  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
   background: #fff;
+  border-top: 1px solid #e5e7eb;
+  overflow-x: auto;
+  flex-shrink: 0;
 }
-
 .assistant-prompts-label {
   font-size: 12px;
   color: #9ca3af;
   font-weight: 500;
+  flex-shrink: 0;
 }
-
 .assistant-chip {
-  padding: 6px 12px;
-  border-radius: 999px;
+  flex-shrink: 0;
+  padding: 6px 14px;
   border: 1px solid #e5e7eb;
+  border-radius: 999px;
   background: #f9fafb;
   font-size: 12px;
-  color: #4b5563;
+  color: #6b7280;
   cursor: pointer;
-  line-height: 1.3;
-  text-align: left;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
 }
-
-.assistant-chip:hover:not(:disabled) {
-  border-color: #fca5a5;
-  color: #b91c1c;
-  background: #fff1f2;
+.assistant-chip:hover {
+  border-color: #da203e;
+  color: #da203e;
+  background: #fff5f5;
 }
+.assistant-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.assistant-chip:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+/* ===== 输入框 ===== */
 .assistant-form {
   display: flex;
-  gap: 10px;
-  padding: 12px 20px 16px;
   align-items: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
-
 .assistant-input {
   flex: 1;
-  min-height: 44px;
-  max-height: 120px;
-  padding: 10px 12px;
+  resize: none;
+  padding: 10px 14px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
-  resize: vertical;
-  line-height: 1.5;
-}
-
-.assistant-input:focus {
+  color: #374151;
   outline: none;
-  border-color: #fca5a5;
-  box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.12);
+  line-height: 1.5;
+  min-height: 44px;
+  max-height: 120px;
 }
-
+.assistant-input:focus { border-color: #da203e; }
+.assistant-input:disabled { background: #f9fafb; }
+.assistant-input::placeholder { color: #9ca3af; }
 .assistant-send {
-  flex-shrink: 0;
-  padding: 10px 20px;
-  border: none;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
+  border: none;
   background: #da203e;
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
-
-.assistant-send:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-
-.assistant-send:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.assistant-send:hover { background: #b81830; }
+.assistant-send:disabled { background: #d1d5db; cursor: not-allowed; }
 </style>

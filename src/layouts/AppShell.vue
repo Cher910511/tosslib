@@ -179,6 +179,13 @@ let particleResizeObserver = null
 onMounted(() => {
   const c = particleCanvasRef.value
   if (!c) return
+
+  /* 用户偏好减少动效时跳过 Canvas 粒子动画 */
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    c.style.display = 'none'
+    return
+  }
+
   pCtx = c.getContext('2d')
   particleResize()
   particleResizeObserver = new ResizeObserver(() => particleResize())

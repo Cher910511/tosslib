@@ -85,6 +85,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useClock } from '../composables/useClock'
 import PlatformOverview from '../components/PlatformOverview.vue'
 import VulnerabilityDonut from '../components/VulnerabilityDonut.vue'
 import VulnerabilityTrend from '../components/VulnerabilityTrend.vue'
@@ -125,7 +126,7 @@ function computeScale() {
   return Math.min(sw, sh)
 }
 
-const currentTime = ref('')
+const currentTime = useClock().now
 /** 首屏即用正确缩放，避免先 scale(1) 再变小造成整页「跳闪」 */
 const scale = ref(computeScale())
 const stageStyle = computed(() => ({
@@ -136,20 +137,7 @@ function updateScale() {
   scale.value = computeScale()
 }
 
-let timer = null
 let resizeTimer = null
-function updateTime() {
-  const now = new Date()
-  currentTime.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-}
 function onResize() {
   if (resizeTimer) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
@@ -159,8 +147,6 @@ function onResize() {
 }
 
 onMounted(() => {
-  updateTime()
-  timer = setInterval(updateTime, 1000)
   updateScale()
   /* 等布局/字体稳定后再校正一次，避免首帧与最终布局不一致 */
   requestAnimationFrame(() => {
@@ -170,7 +156,6 @@ onMounted(() => {
   window.addEventListener('resize', onResize)
 })
 onUnmounted(() => {
-  clearInterval(timer)
   window.removeEventListener('resize', onResize)
   if (resizeTimer) clearTimeout(resizeTimer)
 })

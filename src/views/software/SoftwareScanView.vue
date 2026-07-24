@@ -65,7 +65,11 @@
             <template v-for="(row, i) in paginatedList" :key="i">
             <tr>
               <td>{{ (page - 1) * pageSize + i + 1 }}</td>
-              <td class="software-name-cell" @click="goToDetail(row)">{{ row.name }}</td>
+              <td
+                class="software-name-cell"
+                :class="{ 'is-clickable': row.status === 'success' }"
+                @click="row.status === 'success' && goToDetail(row)"
+              >{{ row.name }}</td>
               <td>{{ row.version }}</td>
               <td>{{ row.scanTime }}</td>
               <td>
@@ -81,15 +85,9 @@
                   <span class="progress-text">{{ row.progress }}%</span>
                 </div>
                 <template v-else-if="row.status === 'success'">
-                  <button type="button" class="manage-add-btn manage-add-btn-xs" @click.stop="buildScanResults(); showResultModal = true; showScanProgress = false">查看结果</button>
-                  <button type="button" class="scan-btn scan-btn--rescan" @click="handleScan(row)">再次扫描</button>
+                  <button type="button" class="scan-btn" @click="handleScan(row)">再次扫描</button>
                 </template>
-                <button v-else type="button" class="scan-btn scan-btn--start" @click="handleScan(row)">
-                  <svg viewBox="0 0 20 20" fill="currentColor" class="scan-btn-icon">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                  </svg>
-                  开始扫描
-                </button>
+                <button v-else type="button" class="scan-btn" @click="handleScan(row)">开始扫描</button>
               </td>
             </tr>
           </template>
@@ -403,8 +401,8 @@ const scanList = ref([
 
 // 组件扫描演示数据
 const componentScanList = ref([
-  { name: 'vue', version: '3.4.21', groupId: 'org.vuejs', status: 'completed', progress: 100, scanTime: '2024-03-20 14:35:10' },
-  { name: 'vue-router', version: '4.3.0', groupId: 'org.vuejs.router', status: 'completed', progress: 100, scanTime: '2024-03-20 14:33:42' },
+  { name: 'vue', version: '3.4.21', groupId: 'org.vuejs', status: 'success', progress: 100, scanTime: '2024-03-20 14:35:10' },
+  { name: 'vue-router', version: '4.3.0', groupId: 'org.vuejs.router', status: 'success', progress: 100, scanTime: '2024-03-20 14:33:42' },
   { name: 'react', version: '18.2.0', groupId: 'org.facebook.react', status: 'scanning', progress: 42, scanTime: '2024-03-20 14:30:00' },
   { name: 'spring-boot-starter-web', version: '3.2.3', groupId: 'org.springframework.boot', status: 'pending', progress: 0, scanTime: '2024-03-20 14:25:00' },
   { name: '@angular/core', version: '17.3.4', groupId: 'org.angular.core', status: 'failed', progress: 0, scanTime: '2024-03-20 14:20:30' },
@@ -773,14 +771,27 @@ function refreshList() {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.scan-status--scanning { background: #eff6ff; color: #2563eb; }
-.scan-status--scanning::before { background: #2563eb; animation: pulse-dot 1.2s ease-in-out infinite; }
-.scan-status--success { background: #ecfdf5; color: #059669; }
-.scan-status--success::before { background: #059669; }
+.scan-status--scanning { background: #fef2f2; color: #da203e; }
+.scan-status--scanning::before { background: #da203e; animation: pulse-dot 1.2s ease-in-out infinite; }
+.scan-status--success { background: #fef2f2; color: #da203e; }
+.scan-status--success::before { background: #da203e; }
 .scan-status--failed { background: #fef2f2; color: #dc2626; }
 .scan-status--failed::before { background: #dc2626; }
 .scan-status--pending { background: #f3f4f6; color: #6b7280; }
 .scan-status--pending::before { background: #9ca3af; }
+
+/* 软件名称：扫描成功后可点击跳转 */
+.software-name-cell {
+  cursor: default;
+}
+.software-name-cell.is-clickable {
+  color: var(--admin-primary, #da203e);
+  cursor: pointer;
+  font-weight: 500;
+}
+.software-name-cell.is-clickable:hover {
+  text-decoration: underline;
+}
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
@@ -805,22 +816,28 @@ function refreshList() {
 .scan-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border: 1px solid #e5e7eb;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid #da203e;
   border-radius: 6px;
-  background: #fff;
+  background: #da203e;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  color: #374151;
+  color: #fff;
   font-family: inherit;
+  box-shadow: 0 1px 3px rgba(218, 32, 62, 0.25);
 }
-.scan-btn:hover { border-color: #da203e; color: #da203e; }
-.scan-btn-icon { width: 14px; height: 14px; flex-shrink: 0; }
-.scan-btn--rescan { color: #2563eb; border-color: #bfdbfe; }
-.scan-btn--rescan:hover { color: #1d4ed8; border-color: #93c5fd; }
+.scan-btn:hover {
+  background: #b81830;
+  border-color: #b81830;
+  box-shadow: 0 2px 6px rgba(218, 32, 62, 0.35);
+}
+.scan-btn:active {
+  transform: translateY(1px);
+}
 
 .manage-add-btn-xs {
   height: 28px;
@@ -1644,31 +1661,6 @@ function refreshList() {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.scan-btn--start {
-  background: linear-gradient(135deg, #da203e, #c41835);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(218, 32, 62, 0.3);
-}
-
-.scan-btn--start:hover {
-  background: linear-gradient(135deg, #c41835, #a8102c);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(218, 32, 62, 0.4);
-}
-
-.scan-btn--rescan {
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  color: #374151;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.scan-btn--rescan:hover {
-  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .scan-btn--scanning {

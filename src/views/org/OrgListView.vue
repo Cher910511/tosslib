@@ -19,7 +19,10 @@
         :tabindex="0"
         @keydown.enter="goOrgDetail(org.id)"
       >
-        <div class="org-card-avatar">{{ org.avatar }}</div>
+        <div
+          class="org-card-avatar"
+          :style="{ background: avatarBg(org.name) }"
+        >{{ avatarLetter(org.name) }}</div>
         <div class="org-card-body">
           <h2 class="org-card-name">{{ org.name }}</h2>
           <p class="org-card-industry">{{ org.industry }}</p>
@@ -73,12 +76,38 @@ const filteredOrgs = computed(() => {
 function goOrgDetail(orgId) {
   router.push({ name: 'org-detail', params: { orgId } })
 }
+
+/** 取组织名称首字符作为头像文字 */
+function avatarLetter(name) {
+  return name ? name.charAt(0) : '?'
+}
+
+/** 根据名称生成稳定的色板 */
+const AVATAR_COLORS = [
+  { bg: 'linear-gradient(135deg, #fef2f2, #fce4e4)', text: '#da203e' },
+  { bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', text: '#2563eb' },
+  { bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', text: '#16a34a' },
+  { bg: 'linear-gradient(135deg, #fefce8, #fef9c3)', text: '#ca8a04' },
+  { bg: 'linear-gradient(135deg, #faf5ff, #f3e8ff)', text: '#9333ea' },
+  { bg: 'linear-gradient(135deg, #fdf2f8, #fce7f3)', text: '#db2777' },
+  { bg: 'linear-gradient(135deg, #ecfeff, #cffafe)', text: '#0891b2' },
+  { bg: 'linear-gradient(135deg, #fff7ed, #ffedd5)', text: '#ea580c' },
+]
+
+function avatarBg(name) {
+  if (!name) return AVATAR_COLORS[0].bg
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0
+  }
+  const idx = Math.abs(hash) % AVATAR_COLORS.length
+  return AVATAR_COLORS[idx].bg
+}
 </script>
 
 <style scoped>
 .org-list-page {
   max-width: 1100px;
-  padding: 28px 32px;
 }
 
 .org-list-header {
@@ -89,13 +118,13 @@ function goOrgDetail(orgId) {
   margin: 0 0 4px;
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: var(--admin-text, #111827);
 }
 
 .org-list-subtitle {
   margin: 0 0 18px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
 }
 
 .org-list-search {
@@ -103,15 +132,15 @@ function goOrgDetail(orgId) {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--admin-border, #e5e7eb);
   border-radius: 8px;
-  background: #fff;
+  background: var(--admin-card, #fff);
   max-width: 400px;
   color: #9ca3af;
 }
 
 .org-list-search:focus-within {
-  border-color: #da203e;
+  border-color: var(--admin-primary, #da203e);
   box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.1);
 }
 
@@ -121,7 +150,7 @@ function goOrgDetail(orgId) {
   outline: none;
   font-size: 14px;
   font-family: inherit;
-  color: #374151;
+  color: var(--admin-text, #374151);
   background: transparent;
 }
 
@@ -146,8 +175,8 @@ function goOrgDetail(orgId) {
   align-items: flex-start;
   gap: 18px;
   padding: 20px 22px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--admin-card, #fff);
+  border: 1px solid var(--admin-border, #e5e7eb);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -155,13 +184,13 @@ function goOrgDetail(orgId) {
 }
 
 .org-card:hover {
-  border-color: #da203e;
+  border-color: var(--admin-primary, #da203e);
   box-shadow: 0 4px 14px rgba(218, 32, 62, 0.08);
   transform: translateY(-2px);
 }
 
 .org-card:focus-visible {
-  outline: 2px solid #da203e;
+  outline: 2px solid var(--admin-primary, #da203e);
   outline-offset: 2px;
 }
 
@@ -170,11 +199,11 @@ function goOrgDetail(orgId) {
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fef2f2 0%, #fce4e4 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 22px;
+  font-weight: 700;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
 }
 
@@ -187,20 +216,20 @@ function goOrgDetail(orgId) {
   margin: 0 0 2px;
   font-size: 17px;
   font-weight: 700;
-  color: #111827;
+  color: var(--admin-text, #111827);
 }
 
 .org-card-industry {
   margin: 0 0 8px;
   font-size: 12px;
-  color: #da203e;
+  color: var(--admin-primary, #da203e);
   font-weight: 500;
 }
 
 .org-card-desc {
   margin: 0 0 12px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--admin-muted, #6b7280);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -226,7 +255,7 @@ function goOrgDetail(orgId) {
 }
 
 .org-card-meta-value {
-  color: #374151;
+  color: var(--admin-text, #374151);
   font-weight: 600;
 }
 
@@ -239,7 +268,7 @@ function goOrgDetail(orgId) {
 }
 
 .org-card:hover .org-card-arrow {
-  color: #da203e;
+  color: var(--admin-primary, #da203e);
   transform: translateX(4px);
 }
 

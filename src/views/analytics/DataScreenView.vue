@@ -109,6 +109,8 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
+import { useClock } from '../../composables/useClock'
+import { useAutoScroll } from '../../composables/useAutoScroll'
 import CountUp from '../../components/CountUp.vue'
 import VulnerabilityTrend from '../../components/VulnerabilityTrend.vue'
 import VulnerabilityDonut from '../../components/VulnerabilityDonut.vue'
@@ -129,19 +131,15 @@ import {
   dependencyGraph,
 } from '../../data/mockData.js'
 
-const now = ref('')
-let clockTimer = null
+const now = useClock().now
 
-function tickClock() {
-  now.value = new Date().toLocaleString('zh-CN', {
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+/* —— 所有 echarts 实例统一管理 —— */
+const chartInstances = []
+function registerChart(chart) {
+  if (chart) chartInstances.push(chart)
+}
+function onWindowResize() {
+  chartInstances.forEach((c) => c.resize())
 }
 
 /* —— DevActivityChart —— */
@@ -329,9 +327,23 @@ const vulnScrollRows = computed(() => {
 
 const vulnOffset = ref(0)
 const vulnPause = ref(false)
-let vulnRaf = null
 let vulnRo = null
-let vulnAnimActive = false
+
+const { offset: autoOffset, pause: autoPause } = useAutoScroll({ speed: 0.5 })
+
+/* 同步 autoOffset → vulnOffset，并处理 wrap-around */
+watch(autoOffset, (v) => {
+  const period = vulnSegmentH.value
+  if (period > 0) {
+    const wrapped = v >= period ? v % period : v
+    vulnOffset.value = wrapped
+    /* 当 wrap 发生时，将 autoOffset 拉回，避免累积误差 */
+    if (v >= period) autoOffset.value = 0
+  }
+})
+
+watch(autoPause, (v) => { vulnPause.value = v })
+watch(vulnPause, (v) => { autoPause.value = v })
 
 function vulnMeasureSizes() {
   const tb = vulnTbodyRef.value
@@ -344,26 +356,10 @@ function vulnMeasureSizes() {
     const h = first.getBoundingClientRect().height
     if (h > 0.5) vulnRowH.value = h
   }
-  const period = highVulnDashboardList.length * vulnRowH.value
-  if (period > 0 && vulnOffset.value >= period) {
-    vulnOffset.value = vulnOffset.value % period
-  }
 }
 
 function vulnScheduleMeasure() {
   nextTick(() => vulnMeasureSizes())
-}
-
-function vulnTick() {
-  if (!vulnAnimActive) return
-  if (!vulnPause.value && highVulnDashboardList.length > 0) {
-    const period = vulnSegmentH.value
-    if (period > 0) {
-      vulnOffset.value += 0.5
-      if (vulnOffset.value >= period) vulnOffset.value -= period
-    }
-  }
-  vulnRaf = requestAnimationFrame(vulnTick)
 }
 
 function vulnLevelClass(l) {
@@ -375,30 +371,26 @@ function vulnLevelClass(l) {
 watch(() => developerActivityTrend, updateDevActivityChart, { deep: true })
 
 onMounted(() => {
-  tickClock()
-  clockTimer = setInterval(tickClock, 1000)
-
   if (devActivityChartRef.value) {
     devActivityChart = echarts.init(devActivityChartRef.value)
+    registerChart(devActivityChart)
     updateDevActivityChart()
-    window.addEventListener('resize', () => devActivityChart?.resize())
   }
   if (indRadarChartRef.value) {
     indRadarChart = echarts.init(indRadarChartRef.value)
+    registerChart(indRadarChart)
     updateIndRadarChart()
-    window.addEventListener('resize', () => indRadarChart?.resize())
   }
   if (depGraphChartRef.value) {
     depGraphChart = echarts.init(depGraphChartRef.value)
+    registerChart(depGraphChart)
     updateDepGraphChart()
-    window.addEventListener('resize', () => depGraphChart?.resize())
   }
+  window.addEventListener('resize', onWindowResize)
 
   vulnScheduleMeasure()
   vulnRo = new ResizeObserver(() => vulnMeasureSizes())
   if (vulnTbodyRef.value) vulnRo.observe(vulnTbodyRef.value)
-  vulnAnimActive = true
-  vulnRaf = requestAnimationFrame(vulnTick)
 })
 
 watch(
@@ -414,10 +406,9 @@ watch(
 )
 
 onUnmounted(() => {
-  clearInterval(clockTimer)
-  vulnAnimActive = false
-  if (vulnRaf) cancelAnimationFrame(vulnRaf)
+  window.removeEventListener('resize', onWindowResize)
   if (vulnRo) vulnRo.disconnect()
+  chartInstances.length = 0
   devActivityChart?.dispose()
   indRadarChart?.dispose()
   depGraphChart?.dispose()

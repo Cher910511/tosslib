@@ -102,10 +102,10 @@
             </RouterLink>
           </div>
         </div>
-        <a class="admin-nav-item is-disabled" href="#" @click.prevent>
+        <RouterLink class="admin-nav-item" to="/software/feedback" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">▤</span>
           需求反馈
-        </a>
+        </RouterLink>
         <!-- 后台管理（带二级菜单） -->
         <div class="admin-nav-group">
           <div
@@ -174,100 +174,10 @@
     <div class="admin-main">
       <header class="admin-header">
         <nav class="admin-breadcrumb" aria-label="面包屑">
-          <template v-if="route.name === 'software-home'">
-            <span class="current">首页</span>
-          </template>
-          <template v-else-if="route.name === 'software-library'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">软件库</span>
-          </template>
-          <template v-else-if="route.name === 'component-library'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">组件库</span>
-          </template>
-          <template v-else-if="route.name === 'code-assistant'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">AI 助手</span>
-          </template>
-          <template v-else-if="route.name === 'signature-verify'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">签名验证</span>
-          </template>
-          <template v-else-if="route.name === 'detection-report'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">检测报告</span>
-          </template>
-          <template v-else-if="route.meta.isComponentDetail">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <RouterLink to="/software/components">组件库</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">{{ componentDetailBreadcrumb }}</span>
-          </template>
-          <template v-else-if="route.name === 'software-detail'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <RouterLink to="/software/library">软件库</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">软件详情</span>
-          </template>
-          <template v-else-if="route.name === 'software-manage' || route.name === 'software-scan'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <RouterLink to="/software/manage">软件管理</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">{{ route.name === 'software-scan' ? '软件扫描' : manageListCrumb }}</span>
-          </template>
-          <!-- 版本火车面包屑 -->
-          <template v-else-if="route.name === 'version-train-tree'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">版本火车信息树</span>
-          </template>
-          <template v-else-if="route.name === 'version-train-release'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">版本火车发车</span>
-          </template>
-          <template v-else-if="route.name === 'patch-plan'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">软件出入库</span>
-          </template>
-          <template v-else-if="route.name === 'openapi-tools'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">OpenAPI 工具集</span>
-          </template>
-          <template v-else-if="route.name === 'api-keys'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">密钥管理</span>
-          </template>
-          <template v-else-if="route.name === 'admin-gov'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">软件治理</span>
-          </template>
-          <template v-else-if="route.name === 'admin-gov-detail'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <RouterLink to="/software/admin-flow">软件治理</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">软件详情</span>
-          </template>
-          <template v-else-if="route.name === 'intel-vuln' || route.name === 'intel-opi'">
-            <RouterLink to="/software/home">首页</RouterLink>
-            <span class="sep">/</span>
-            <span class="current">{{ route.meta.adminTitle }}</span>
-          </template>
-          <template v-else>
-            <RouterLink to="/software/home">首页</RouterLink>
+          <template v-for="(c, i) in breadcrumbSegments" :key="i">
+            <RouterLink v-if="c.to" :to="c.to">{{ c.label }}</RouterLink>
+            <span v-else class="current">{{ c.label }}</span>
+            <span v-if="i < breadcrumbSegments.length - 1" class="sep">/</span>
           </template>
         </nav>
         <div v-if="route.name === 'software-home'" class="admin-header-spacer" aria-hidden="true" />
@@ -439,6 +349,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
                 密钥管理
               </RouterLink>
+              <RouterLink class="dropdown-item" to="/software/personal-settings" @click="userMenuOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                个人设置
+              </RouterLink>
               <div class="dropdown-divider" />
               <button class="dropdown-item dropdown-item--danger" @click="handleLogout">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -501,6 +415,70 @@ const manageListCrumb = computed(() => {
   const t = route.query.tab
   const tab = Array.isArray(t) ? t[0] : t
   return tab === 'component' ? '组件列表' : '软件列表'
+})
+
+/**
+ * 面包屑配置：每个条目定义 { currentLabel, parentLabel?, parentTo? }
+ * parentLabel / parentTo 可选，不传则只有"首页 > currentLabel"
+ */
+const breadcrumbConfig = {
+  'software-home':    { homeOnly: true },
+  'software-library': { currentLabel: '软件库' },
+  'component-library': { currentLabel: '组件库' },
+  'code-assistant':   { currentLabel: 'AI 助手' },
+  'signature-verify': { currentLabel: '签名验证' },
+  'detection-report': { currentLabel: '检测报告' },
+  'version-train-tree': { currentLabel: '版本火车信息树' },
+  'version-train-release': { currentLabel: '版本火车发车' },
+  'patch-plan':       { currentLabel: '软件出入库' },
+  'openapi-tools':    { currentLabel: 'OpenAPI 工具集' },
+  'requirement-feedback': { currentLabel: '需求反馈' },
+  'api-keys':         { currentLabel: '密钥管理' },
+  'personal-settings': { currentLabel: '个人设置' },
+  'admin-gov':        { currentLabel: '软件治理' },
+  'software-detail':  { parentLabel: '软件库', parentTo: { name: 'software-library' }, currentLabel: '软件详情' },
+  'admin-gov-detail': { parentLabel: '软件治理', parentTo: { name: 'admin-gov' }, currentLabel: '软件详情' },
+}
+
+const breadcrumbSegments = computed(() => {
+  const name = route.name
+  const cfg = breadcrumbConfig[name]
+
+  /* 特殊路由：动态或组合条件 */
+  if (route.meta.isComponentDetail) {
+    return [
+      { label: '首页', to: { name: 'software-home' } },
+      { label: '组件库', to: { name: 'component-library' } },
+      { label: componentDetailBreadcrumb.value },
+    ]
+  }
+  if (name === 'software-manage' || name === 'software-scan') {
+    return [
+      { label: '首页', to: { name: 'software-home' } },
+      { label: '软件管理', to: { name: 'software-manage' } },
+      { label: name === 'software-scan' ? '软件扫描' : manageListCrumb.value },
+    ]
+  }
+  if (name === 'intel-vuln' || name === 'intel-opi') {
+    return [
+      { label: '首页', to: { name: 'software-home' } },
+      { label: route.meta.adminTitle || '' },
+    ]
+  }
+
+  /* 已配置的路由 */
+  if (cfg) {
+    if (cfg.homeOnly) return [{ label: '首页' }]
+    const segs = [{ label: '首页', to: { name: 'software-home' } }]
+    if (cfg.parentLabel) {
+      segs.push({ label: cfg.parentLabel, to: cfg.parentTo })
+    }
+    segs.push({ label: cfg.currentLabel })
+    return segs
+  }
+
+  /* 兜底：只显示首页链接 */
+  return [{ label: '首页', to: { name: 'software-home' } }]
 })
 
 const searchPlaceholder = computed(() =>

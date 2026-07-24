@@ -10,13 +10,8 @@ const NEEDLE = enc.encode(PLATFORM_DIST_MARKER)
 function includesSubarray(haystack, needle) {
   if (needle.length === 0) return true
   if (haystack.length < needle.length) return false
-  outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
-    for (let j = 0; j < needle.length; j++) {
-      if (haystack[i + j] !== needle[j]) continue outer
-    }
-    return true
-  }
-  return false
+  /* 利用 Uint8Array.indexOf 简化子数组查找 */
+  return haystack.indexOf(needle) !== -1
 }
 
 /**
