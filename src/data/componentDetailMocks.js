@@ -291,12 +291,48 @@ function buildFallbackMock(id) {
 }
 
 /**
+ * 详情页视图期望的字段与 mock 原始字段存在差异，
+ * 这里统一补齐展示所需的扩展字段（演示用默认值），
+ * 保证任意组件都有完整信息可渲染。
+ */
+function enrichExtras(row) {
+  const name = String(row.name || 'component')
+  const lang = row.language || 'Java'
+  const v = String(row.version || '1.0.0')
+  const year = v.split('.')[0] || '2024'
+  const licenseCodes = Array.isArray(row.licenses)
+    ? row.licenses.map((l) => l && l.code).filter(Boolean)
+    : []
+  return {
+    ...row,
+    author: row.author || '开源社区维护',
+    released: row.released || `${year}-01-15`,
+    lastUpdated: row.lastUpdated || '2024-03-20',
+    industry: row.industry || '基础组件',
+    score: row.score ?? 8.0,
+    vulnCount: row.vulnCount ?? 0,
+    stars: row.stars ?? 12800,
+    downloads: row.downloads || '2.4M',
+    license: row.license || { names: licenseCodes.length ? licenseCodes : ['MIT'] },
+    links: row.links || {
+      source: `https://github.com/demo/${name}`,
+      sourceText: 'GitHub',
+      website: `https://${name}.example.com`,
+      websiteText: '官网',
+      docs: `https://docs.${name}.example.com`,
+      docsText: '文档',
+    },
+    tags: row.tags && row.tags.length ? row.tags : [lang, '开源', '稳定', '流行'],
+  }
+}
+
+/**
  * @param {string | undefined} id 路由 param，已解码
  */
 export function getComponentMock(id) {
   const raw = id != null && String(id).trim() !== '' ? String(id).trim() : 'vertx-web-sstore-cookie'
   const row = COMPONENT_MOCKS[raw] || buildFallbackMock(raw)
   const k = row.detailLang
-  if (isDetailLangKey(k)) return row
-  return { ...row, detailLang: 'java' }
+  const base = isDetailLangKey(k) ? row : { ...row, detailLang: 'java' }
+  return enrichExtras(base)
 }

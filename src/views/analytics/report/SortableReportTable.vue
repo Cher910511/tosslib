@@ -11,11 +11,10 @@
           placeholder="筛选（全文）"
           aria-label="筛选"
         />
-        <button type="button" class="btn" @click="exportCsv">导出 CSV</button>
-        <button type="button" class="btn ghost" @click="printBlock">打印</button>
+        <button v-if="!noExport" type="button" class="btn" @click="exportCsv">导出 CSV</button>
       </div>
     </div>
-    <div ref="printRef" class="table-wrap">
+    <div class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -52,12 +51,13 @@ const props = defineProps({
   exportFilename: { type: String, default: 'export' },
   /** 嵌套在外层卡片内时不重复套 glow-card */
   embedded: { type: Boolean, default: false },
+  /** 隐藏导出按钮 */
+  noExport: { type: Boolean, default: false },
 })
 
 const filterText = ref('')
 const sortKey = ref('')
 const sortDir = ref('asc')
-const printRef = ref(null)
 
 const filteredRows = computed(() => {
   const q = filterText.value.trim().toLowerCase()

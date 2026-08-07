@@ -2,8 +2,11 @@
   <div class="soft-home">
     <div class="soft-home-inner">
 
-      <!-- ========== 标题 ========== -->
-      <h1 class="soft-home-title">可信开源代码库</h1>
+      <!-- ========== 欢迎宣传语 ========== -->
+      <div class="soft-home-hero">
+        <h1 class="soft-home-title">可信开源代码库</h1>
+        <p class="soft-home-subtitle">AI 让每一行开源代码更稳健、更可信</p>
+      </div>
 
       <div class="soft-home-search-wrap">
         <div class="soft-home-search">
@@ -197,7 +200,7 @@
                 <span class="soft-home-card-v">{{ card.language }}</span>
               </div>
               <div class="soft-home-card-row">
-                <span class="soft-home-card-k">groupId</span>
+                <span class="soft-home-card-k">组织编号</span>
                 <span class="soft-home-card-v soft-home-card-v--mono">{{ card.groupId }}</span>
               </div>
             </div>
@@ -318,13 +321,28 @@ function submitSearch() {
   margin: 0 auto;
 }
 
+.soft-home-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
 .soft-home-title {
-  margin: 0 0 32px;
+  margin: 0;
   font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
   color: #111827;
   text-align: center;
   letter-spacing: -0.02em;
+}
+
+.soft-home-subtitle {
+  margin: 10px 0 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+  font-weight: 400;
+  color: #6b7280;
+  text-align: center;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
 }
 
 .soft-home-search-wrap {

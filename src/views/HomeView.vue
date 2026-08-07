@@ -64,14 +64,14 @@
             </div>
           </div>
 
-          <div class="cell news-cell glow-card">
-            <div class="panel-title panel-title-lg">最新数据动态</div>
-            <SecurityNewsFeed :list="securityNews" />
+          <div class="cell cve-cell glow-card">
+            <div class="panel-title panel-title-lg">最新漏洞动态</div>
+            <CVEListTable :list="mergedVulnList" size="large" />
           </div>
 
-          <div class="cell cve-cell glow-card">
-            <div class="panel-title panel-title-lg">最新漏洞列表</div>
-            <CVEListTable :list="latestCVEList" size="large" />
+          <div class="cell malware-cell glow-card">
+            <div class="panel-title panel-title-lg">恶意代码</div>
+            <MalwareListTable :list="malwareSoftwareList" />
           </div>
         </main>
 
@@ -90,7 +90,7 @@ import PlatformOverview from '../components/PlatformOverview.vue'
 import VulnerabilityDonut from '../components/VulnerabilityDonut.vue'
 import VulnerabilityTrend from '../components/VulnerabilityTrend.vue'
 import CVEListTable from '../components/CVEListTable.vue'
-import SecurityNewsFeed from '../components/SecurityNewsFeed.vue'
+import MalwareListTable from '../components/MalwareListTable.vue'
 import LicensePie from '../components/LicensePie.vue'
 import IndustryBar from '../components/IndustryBar.vue'
 import TagCloud from '../components/TagCloud.vue'
@@ -103,6 +103,7 @@ import {
   vulnerabilityTrend,
   latestCVEList,
   securityNews,
+  malwareSoftwareList,
   licenseDistribution,
   industrySectors,
   keyIndustries,
@@ -127,6 +128,13 @@ function computeScale() {
 }
 
 const currentTime = useClock().now
+
+/** 合并最新漏洞列表与最新数据动态，按发布时间倒序 */
+const mergedVulnList = computed(() =>
+  [...latestCVEList, ...securityNews].sort((a, b) =>
+    String(b.vuln_created_at || '').localeCompare(String(a.vuln_created_at || '')),
+  ),
+)
 /** 首屏即用正确缩放，避免先 scale(1) 再变小造成整页「跳闪」 */
 const scale = ref(computeScale())
 const stageStyle = computed(() => ({
@@ -333,7 +341,7 @@ onUnmounted(() => {
   min-height: 0;
   overflow: hidden;
 }
-.news-cell {
+.cve-cell {
   grid-column: 2;
   grid-row: 2;
   padding: 12px 14px;
@@ -342,7 +350,7 @@ onUnmounted(() => {
   min-height: 0;
   overflow: hidden;
 }
-.cve-cell {
+.malware-cell {
   grid-column: 2;
   grid-row: 3;
   padding: 12px 14px;

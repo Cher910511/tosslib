@@ -106,6 +106,10 @@
           <span class="nav-ico" aria-hidden="true">▤</span>
           需求反馈
         </RouterLink>
+        <RouterLink class="admin-nav-item" to="/software/standard-build" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">▣</span>
+          指标配置
+        </RouterLink>
         <!-- 后台管理（带二级菜单） -->
         <div class="admin-nav-group">
           <div
@@ -435,6 +439,7 @@ const breadcrumbConfig = {
   'requirement-feedback': { currentLabel: '需求反馈' },
   'api-keys':         { currentLabel: '密钥管理' },
   'personal-settings': { currentLabel: '个人设置' },
+  'standard-build':   { currentLabel: '指标配置' },
   'admin-gov':        { currentLabel: '软件治理' },
   'software-detail':  { parentLabel: '软件库', parentTo: { name: 'software-library' }, currentLabel: '软件详情' },
   'admin-gov-detail': { parentLabel: '软件治理', parentTo: { name: 'admin-gov' }, currentLabel: '软件详情' },

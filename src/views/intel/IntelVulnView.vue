@@ -127,7 +127,7 @@
             <dl class="ic-dl">
               <div class="ic-dl-row"><dt>漏洞名称</dt><dd>{{ vulnDetail.name }}</dd></div>
               <div class="ic-dl-row"><dt>风险等级</dt><dd><span class="ic-level" :class="'ic-level--' + vulnDetail.level">{{ vulnDetail.levelLabel }}</span></dd></div>
-              <div class="ic-dl-row"><dt>CVSS 评分</dt><dd>{{ vulnDetail.cvss }}</dd></div>
+              <div class="ic-dl-row"><dt>风险评分</dt><dd>{{ vulnDetail.cvss }}</dd></div>
               <div class="ic-dl-row"><dt>影响软件</dt><dd>{{ vulnDetail.affectCount }} 个</dd></div>
               <div class="ic-dl-row"><dt>发布时间</dt><dd>{{ vulnDetail.time }}</dd></div>
             </dl>

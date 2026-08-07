@@ -12,7 +12,7 @@
       <div class="ic-header-right">
         <div class="ic-search">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input v-model="searchQuery" type="text" :placeholder="activeTab === 'vuln' ? '搜索 CVE 编号、软件名称...' : '搜索舆情事件、项目名称...'" />
+          <input v-model="searchQuery" type="text" :placeholder="activeTab === 'vuln' ? '搜索漏洞编号、软件名称...' : '搜索舆情事件、项目名称...'" />
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
             <div class="ic-vuln-card-hd">
               <code class="ic-cve">{{ v.cve }}</code>
               <span class="ic-level" :class="'ic-level--' + v.level">{{ v.levelLabel }}</span>
-              <span class="ic-cvss">CVSS {{ v.cvss }}</span>
+              <span class="ic-cvss">风险评分 {{ v.cvss }}</span>
             </div>
             <p class="ic-vuln-name">{{ v.name }}</p>
             <div class="ic-vuln-card-meta">
@@ -199,7 +199,7 @@
             <dl class="ic-dl">
               <div class="ic-dl-row"><dt>漏洞名称</dt><dd>{{ vulnDetail.name }}</dd></div>
               <div class="ic-dl-row"><dt>风险等级</dt><dd><span class="ic-level" :class="'ic-level--' + vulnDetail.level">{{ vulnDetail.levelLabel }}</span></dd></div>
-              <div class="ic-dl-row"><dt>CVSS 评分</dt><dd>{{ vulnDetail.cvss }}</dd></div>
+              <div class="ic-dl-row"><dt>风险评分</dt><dd>{{ vulnDetail.cvss }}</dd></div>
               <div class="ic-dl-row"><dt>影响软件</dt><dd>{{ vulnDetail.affectCount }} 个</dd></div>
               <div class="ic-dl-row"><dt>发布时间</dt><dd>{{ vulnDetail.time }}</dd></div>
             </dl>

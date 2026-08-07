@@ -15,12 +15,12 @@
         <CountUp :end="data.maliciousCode" :duration="2000" class="value warn" />
       </div>
       <div class="metric">
-        <span class="label">SBOM 覆盖率</span>
+        <span class="label">软件物料清单覆盖率</span>
         <CountUp :end="data.sbomCoverage" :decimals="1" :duration="2000" suffix="%" class="value ok" :use-locale="true" />
       </div>
       <div class="metric">
-        <span class="label">高风险组件数量</span>
-        <CountUp :end="data.highRiskComponents" :duration="2200" class="value danger" />
+        <span class="label">签名覆盖率</span>
+        <CountUp :end="data.signatureCoverage" :decimals="1" :duration="2200" suffix="%" class="value ok" :use-locale="true" />
       </div>
     </div>
   </div>

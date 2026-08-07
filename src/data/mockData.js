@@ -1,11 +1,11 @@
 // 平台规模概览
 export const platformOverview = {
-  repoCount: 8650,
+  repoCount: 24897,
   componentCount: 25000,
   developerCount: 892340,
-  hostingPlatforms: 12,
+  licenseCount: 727,
   languageEcosystems: 28,
-  huaweiCenterCoverage: 3750,
+  huaweiCenterCoverage: 8650,
 }
 
 export const developerCountryData = [
@@ -60,8 +60,13 @@ export const vulnerabilityRisk = [
   { name: '低危', value: 8563 },
 ]
 
-// 近五年漏洞趋势
+// 近十年漏洞趋势
 export const vulnerabilityTrend = [
+  { year: '2016', count: 6100 },
+  { year: '2017', count: 7320 },
+  { year: '2018', count: 8165 },
+  { year: '2019', count: 9240 },
+  { year: '2020', count: 11890 },
   { year: '2021', count: 18520 },
   { year: '2022', count: 21240 },
   { year: '2023', count: 24890 },
@@ -69,26 +74,39 @@ export const vulnerabilityTrend = [
   { year: '2025', count: 13702 },
 ]
 
-const cveLevels = ['高危', '中危', '低危', '低危', '中危', '低危', '高危', '中危', '低危', '中危', '低危', '低危', '中危', '低危', '高危', '中危', '低危', '中危', '低危', '低危', '中危', '低危', '中危', '低危']
 const components = ['openssl', 'log4j-core', 'spring-core', 'nginx', 'node-fetch', 'axios', 'lodash', 'jquery', 'tomcat', 'mysql-connector', 'guava', 'commons-text', 'fastjson', 'netty', 'redis']
 const fixStatuses = ['已修复', '待修复', '部分修复', '调查中']
-const vulnDescriptions = [
-  '远程代码执行风险，建议升级至安全版本',
-  '敏感信息泄露，需限制暴露面并打补丁',
-  '拒绝服务攻击向量，影响高并发场景',
-  '权限提升漏洞，需校验访问控制策略',
-  '依赖链传递风险，建议 SBOM 扫描与替换',
-]
 
-// 最新漏洞列表（CVE）
-export const latestCVEList = Array.from({ length: 24 }, (_, i) => ({
-  cveId: `CVE-2025-${String(10000 + i * 437).slice(-5)}`,
-  component: components[i % components.length] + (i > 14 ? `@${(i % 5) + 1}.${i % 10}.${i % 20}` : ''),
-  level: cveLevels[i % cveLevels.length],
-  publishTime: new Date(Date.UTC(2025, 2, 19 - Math.floor(i / 2))).toISOString().slice(0, 10),
-  fixStatus: fixStatuses[i % fixStatuses.length],
-  description: vulnDescriptions[i % vulnDescriptions.length],
-}))
+// 最新漏洞列表（CVE）——字段与「最新漏洞数据」导出格式对齐
+// 真实数据字段：comp_name / version_number / comp_vendor / comp_language / comp_platform /
+//               vuln_created_at / vuln_modified_at / vuln_score / vuln_public_id / vuln_cwe_id / purl
+const compVendors = ['microsoft', 'apache', 'google', 'redis', 'openjs', 'nginx', 'python', 'oracle', 'alibaba', 'square']
+const compLanguages = ['Java', 'JavaScript', 'TypeScript', 'C', 'C++', 'Python', 'Go', 'Rust', 'Shell']
+const compPlatforms = ['Maven', 'NPM', 'github', 'Packagist', 'Pypi', 'CPAN', 'Nuget', 'Go', 'Debian', 'Rubygems', 'Cargo']
+const vulnScores = [10.0, 9.8, 9.1, 8.8, 8.4, 7.8, 7.5, 6.9, 6.5, 5.8, 5.4, 4.9]
+
+export const latestCVEList = Array.from({ length: 24 }, (_, i) => {
+  const name = components[i % components.length]
+  const vendor = compVendors[i % compVendors.length]
+  const platform = compPlatforms[i % compPlatforms.length]
+  const lang = compLanguages[i % compLanguages.length]
+  const version = `${(i % 5) + 1}.${i % 10}.${i % 20}`
+  return {
+    comp_name: name,
+    version_number: version,
+    comp_vendor: vendor,
+    comp_language: lang,
+    comp_platform: platform,
+    vuln_created_at: `2026-05-${String(21 + (i % 4)).padStart(2, '0')}`,
+    vuln_modified_at: `2026-05-${String(24 - (i % 4)).padStart(2, '0')}`,
+    vuln_score: vulnScores[i % vulnScores.length],
+    vuln_public_id: `CVE-2026-${String(40000 + i * 137).slice(-5)}`,
+    vuln_cwe_id: `CWE-${680 + (i % 12)}`,
+    purl: platform === 'github'
+      ? `pkg:github/${vendor}/${name}`
+      : `pkg:${platform.toLowerCase()}/${vendor}/${name}`,
+  }
+})
 
 // 许可证分布
 export const licenseDistribution = [
@@ -97,7 +115,11 @@ export const licenseDistribution = [
   { name: 'GPL-3.0', value: 12 },
   { name: 'BSD-3-Clause', value: 10 },
   { name: 'LGPL-2.1', value: 6 },
-  { name: '其他', value: 10 },
+  { name: 'MPL-2.0', value: 4 },
+  { name: 'EPL-2.0', value: 3 },
+  { name: 'ISC', value: 2 },
+  { name: 'AGPL-3.0', value: 2 },
+  { name: 'BSD-2-Clause', value: 1 },
 ]
 
 // 覆盖行业领域（柱状）
@@ -280,67 +302,91 @@ export const vulnerabilityAlertCards = [
   },
 ]
 
-// 最新数据动态（安全资讯，可对接 API security_news）
+// 最新数据动态（安全资讯，可对接 API security_news）——字段与「最新漏洞数据」导出格式对齐
 export const securityNews = [
   {
     id: 1,
-    level: '高危',
-    title: 'OpenSSL 2026安全更新：发现多个缓冲区溢出漏洞',
-    content: '影响主流加密组件，涉及证书解析与加密通信场景，官方已发布修复版本',
-    cve: ['CVE-2025-15467', 'CVE-2025-11187'],
-    component: 'OpenSSL',
-    status: '已修复',
-    time: '2026-03-01 10:20:00',
+    comp_name: 'openssl',
+    version_number: '3.3.1',
+    comp_vendor: 'openssl',
+    comp_language: 'C',
+    comp_platform: 'github',
+    vuln_created_at: '2026-03-01',
+    vuln_modified_at: '2026-03-02',
+    vuln_score: 9.8,
+    vuln_public_id: 'CVE-2026-43075',
+    vuln_cwe_id: 'CWE-680',
+    purl: 'pkg:github/openssl/openssl',
   },
   {
     id: 2,
-    level: '严重',
-    title: 'Chrome曝光0day漏洞（CVE-2026-2441）',
-    content: '漏洞已被攻击者利用，可能导致远程代码执行与数据泄露风险',
-    cve: ['CVE-2026-2441'],
-    component: 'Chrome',
-    status: '已被利用',
-    time: '2026-02-28 08:15:00',
+    comp_name: 'log4j-core',
+    version_number: '2.23.1',
+    comp_vendor: 'apache',
+    comp_language: 'Java',
+    comp_platform: 'Maven',
+    vuln_created_at: '2026-02-28',
+    vuln_modified_at: '2026-02-28',
+    vuln_score: 8.4,
+    vuln_public_id: 'CVE-2026-40367',
+    vuln_cwe_id: 'CWE-502',
+    purl: 'pkg:maven/apache/log4j-core',
   },
   {
     id: 3,
-    level: '高危',
-    title: 'Redis发现远程执行漏洞',
-    content: '漏洞可能导致攻击者获取服务器控制权限，影响大规模部署实例',
-    cve: ['CVE-2025-49844'],
-    component: 'Redis',
-    status: '待修复',
-    time: '2026-02-25 14:30:00',
+    comp_name: 'redis',
+    version_number: '7.2.4',
+    comp_vendor: 'redis',
+    comp_language: 'C',
+    comp_platform: 'github',
+    vuln_created_at: '2026-02-25',
+    vuln_modified_at: '2026-02-26',
+    vuln_score: 7.8,
+    vuln_public_id: 'CVE-2026-49844',
+    vuln_cwe_id: 'CWE-661',
+    purl: 'pkg:github/redis/redis',
   },
   {
     id: 4,
-    level: '高危',
-    title: 'MongoDB漏洞导致敏感数据泄露风险',
-    content: '攻击者可通过漏洞获取数据库凭证信息，已影响数万实例',
-    cve: ['CVE-2025-14847'],
-    component: 'MongoDB',
-    status: '部分修复',
-    time: '2026-02-20 09:40:00',
+    comp_name: 'mongodb',
+    version_number: '7.0.5',
+    comp_vendor: 'mongodb',
+    comp_language: 'C++',
+    comp_platform: 'github',
+    vuln_created_at: '2026-02-20',
+    vuln_modified_at: '2026-02-21',
+    vuln_score: 9.1,
+    vuln_public_id: 'CVE-2026-14847',
+    vuln_cwe_id: 'CWE-89',
+    purl: 'pkg:github/mongodb/mongo',
   },
   {
     id: 5,
-    level: '中危',
-    title: '7-Zip压缩组件存在远程代码执行风险',
-    content: '通过构造恶意压缩包触发漏洞，建议及时升级版本',
-    cve: ['CVE-2025-11001', 'CVE-2025-11002'],
-    component: '7-Zip',
-    status: '已修复',
-    time: '2026-02-18 16:10:00',
+    comp_name: 'sevenzip',
+    version_number: '24.0.0',
+    comp_vendor: '7-zip',
+    comp_language: 'C++',
+    comp_platform: 'github',
+    vuln_created_at: '2026-02-18',
+    vuln_modified_at: '2026-02-18',
+    vuln_score: 7.5,
+    vuln_public_id: 'CVE-2026-11001',
+    vuln_cwe_id: 'CWE-680',
+    purl: 'pkg:github/ip7z/7zip',
   },
   {
     id: 6,
-    level: '高危',
-    title: 'Wing FTP Server漏洞被列入已利用漏洞清单',
-    content: '漏洞已被攻击利用，可能导致敏感信息泄露及权限提升',
-    cve: ['CVE-2025-47813'],
-    component: 'Wing FTP Server',
-    status: '已被利用',
-    time: '2026-02-15 11:25:00',
+    comp_name: 'wing-ftp-server',
+    version_number: '7.2.5',
+    comp_vendor: 'wftpserver',
+    comp_language: 'C++',
+    comp_platform: 'github',
+    vuln_created_at: '2026-02-15',
+    vuln_modified_at: '2026-02-16',
+    vuln_score: 8.8,
+    vuln_public_id: 'CVE-2026-47813',
+    vuln_cwe_id: 'CWE-269',
+    purl: 'pkg:github/wftpserver/wingftpserver',
   },
 ]
 
@@ -350,13 +396,62 @@ export const securityGovernance = {
   highCount: 1247,         // 高危漏洞数（替代未修复漏洞数）
   maliciousCode: 86,       // 恶意代码检出数（替代漏洞修复率）
   sbomCoverage: 88.3,
-  highRiskComponents: 3420,
+  signatureCoverage: 92.6,
 }
+
+// 含恶意代码的软件列表（字段：软件/恶意类别/恶意类型/恶意类型小类/威胁等级/置信度/检测结果）
+export const malwareSoftwareList = [
+  {
+    software: '2.43.0.tar.gz',
+    category: 'Java',
+    type: '恶意行为',
+    subType: '木马下载执行',
+    threatLevel: '中危',
+    confidence: '高',
+    result: '疑似存在木马下载执行, 包含: 文件下载行为,命令调用执行行为',
+  },
+  {
+    software: 'fastjson-1.2.47.jar',
+    category: 'Java',
+    type: '恶意行为',
+    subType: '反序列化利用',
+    threatLevel: '高危',
+    confidence: '高',
+    result: '疑似存在反序列化利用链, 包含: JNDI 注入行为,反射调用行为',
+  },
+  {
+    software: 'node_modules.tar.gz',
+    category: 'JavaScript',
+    type: '恶意代码',
+    subType: '信息窃取',
+    threatLevel: '高危',
+    confidence: '中',
+    result: '疑似存在敏感信息窃取, 包含: 环境变量读取,网络外传行为',
+  },
+  {
+    software: 'setup.exe',
+    category: 'C/C++',
+    type: '恶意行为',
+    subType: '权限提升',
+    threatLevel: '中危',
+    confidence: '中',
+    result: '疑似存在权限提升行为, 包含: 注册表篡改,计划任务创建',
+  },
+  {
+    software: 'redis-7.2.4.tar.gz',
+    category: 'C',
+    type: '恶意行为',
+    subType: '后门驻留',
+    threatLevel: '低危',
+    confidence: '低',
+    result: '疑似存在后门驻留行为, 包含: 异常网络端口监听',
+  },
+]
 
 // —— 数据分析 · 大屏 KPI（风险色：高红 / 中橙 / 低绿）——
 export const analyticsKpiMetrics = [
-  { id: 'repos', label: '仓库总数', value: 8650, risk: 'low' },
-  { id: 'components', label: '组件总数', value: 25000, risk: 'low' },
+  { id: 'repos', label: '软件制品数', value: 24897, risk: 'low' },
+  { id: 'components', label: '制品总数', value: 25000, risk: 'low' },
   { id: 'developers', label: '开发者总数', value: 892340, risk: 'low' },
   {
     id: 'vulns',
@@ -364,7 +459,7 @@ export const analyticsKpiMetrics = [
     value: vulnerabilityRisk.reduce((s, x) => s + x.value, 0),
     risk: 'high',
   },
-  { id: 'licenses', label: '许可证类型数', value: 156, risk: 'medium' },
+  { id: 'licenses', label: '开源许可证', value: 727, risk: 'medium' },
 ]
 
 // 主语言占比（饼图）
@@ -385,7 +480,11 @@ export const licenseBarCounts = [
   { name: 'GPL-3.0', value: 3100 },
   { name: 'BSD-3-Clause', value: 2550 },
   { name: 'LGPL-2.1', value: 1520 },
-  { name: '其他', value: 2530 },
+  { name: 'MPL-2.0', value: 940 },
+  { name: 'EPL-2.0', value: 620 },
+  { name: 'ISC', value: 410 },
+  { name: 'AGPL-3.0', value: 260 },
+  { name: 'BSD-2-Clause', value: 180 },
 ]
 
 // 开发者活跃度（近 12 月提交趋势）
@@ -404,43 +503,191 @@ export const developerActivityTrend = [
   { label: '2025-03', value: 162050 },
 ]
 
+// 漏洞新增趋势（近 12 月）
+export const vulnAddedTrend = [
+  { label: '2025-08', value: 1860 },
+  { label: '2025-09', value: 2140 },
+  { label: '2025-10', value: 1980 },
+  { label: '2025-11', value: 2420 },
+  { label: '2025-12', value: 2260 },
+  { label: '2026-01', value: 2680 },
+  { label: '2026-02', value: 2540 },
+  { label: '2026-03', value: 2910 },
+  { label: '2026-04', value: 2760 },
+  { label: '2026-05', value: 3120 },
+  { label: '2026-06', value: 2980 },
+  { label: '2026-07', value: 3350 },
+]
+
 // 行业覆盖雷达（与 industrySectors 对齐）
 export const industryRadar = {
   indicators: industrySectors.map((d) => ({ name: d.name, max: Math.max(...industrySectors.map((x) => x.value)) + 40 })),
   values: industrySectors.map((d) => d.value),
 }
 
-// 依赖链网络（可选展示）
-export const dependencyGraph = {
-  nodes: [
-    { id: '0', name: 'spring-boot', category: 0, symbolSize: 42 },
-    { id: '1', name: 'log4j-core', category: 1, symbolSize: 36 },
-    { id: '2', name: 'netty', category: 0, symbolSize: 30 },
-    { id: '3', name: 'jackson', category: 0, symbolSize: 28 },
-    { id: '4', name: 'tomcat', category: 2, symbolSize: 34 },
-    { id: '5', name: 'openssl', category: 1, symbolSize: 38 },
-  ],
-  links: [
-    { source: '0', target: '1' },
-    { source: '0', target: '2' },
-    { source: '0', target: '3' },
-    { source: '4', target: '2' },
-    { source: '5', target: '4' },
-    { source: '1', target: '3' },
-  ],
+// 依赖链网络（多软件切换：键为软件名；节点分类 0=父节点 / 1=二级依赖 / 2=三级依赖）
+// 字段对齐组件依赖接口：component_name/group_id/version/has_children
+export const dependencyGraphs = {
+  'Spring Boot': {
+    nodes: [
+      { id: '0', name: 'spring-boot 3.5.12', category: 0, symbolSize: 46 },
+      { id: '1', name: 'spring-boot-starter-web', category: 1, symbolSize: 38 },
+      { id: '2', name: 'spring-boot-starter-data-jpa', category: 1, symbolSize: 38 },
+      { id: '3', name: 'spring-boot-starter-security', category: 1, symbolSize: 38 },
+      { id: '4', name: 'spring-boot-starter-test', category: 1, symbolSize: 38 },
+      { id: '5', name: 'spring-boot-starter-actuator', category: 1, symbolSize: 36 },
+      { id: '6', name: 'spring-web 6.2.17', category: 2, symbolSize: 30 },
+      { id: '7', name: 'spring-webmvc 6.2.17', category: 2, symbolSize: 28 },
+      { id: '8', name: 'spring-context 6.2.17', category: 2, symbolSize: 28 },
+      { id: '9', name: 'spring-core 6.2.17', category: 2, symbolSize: 30 },
+      { id: '10', name: 'spring-data-jpa 3.5.10', category: 2, symbolSize: 26 },
+      { id: '11', name: 'hibernate-core 6.6.44.Final', category: 2, symbolSize: 26 },
+      { id: '12', name: 'spring-security-core 6.5.9', category: 2, symbolSize: 26 },
+      { id: '13', name: 'spring-security-web 6.5.9', category: 2, symbolSize: 24 },
+      { id: '14', name: 'spring-aop 6.2.17', category: 2, symbolSize: 24 },
+      { id: '15', name: 'jackson-databind 2.19.4', category: 2, symbolSize: 26 },
+      { id: '16', name: 'spring-test 6.2.17', category: 2, symbolSize: 24 },
+      { id: '17', name: 'log4j-core 2.24.3', category: 2, symbolSize: 26 },
+    ],
+    links: [
+      { source: '0', target: '1' },
+      { source: '0', target: '2' },
+      { source: '0', target: '3' },
+      { source: '0', target: '4' },
+      { source: '0', target: '5' },
+      { source: '1', target: '6' },
+      { source: '1', target: '15' },
+      { source: '6', target: '7' },
+      { source: '7', target: '8' },
+      { source: '8', target: '9' },
+      { source: '2', target: '10' },
+      { source: '10', target: '11' },
+      { source: '11', target: '9' },
+      { source: '3', target: '12' },
+      { source: '12', target: '13' },
+      { source: '12', target: '9' },
+      { source: '4', target: '16' },
+      { source: '16', target: '9' },
+      { source: '5', target: '8' },
+      { source: '9', target: '14' },
+      { source: '8', target: '17' },
+    ],
+  },
+  Redis: {
+    nodes: [
+      { id: '0', name: 'redis 7.2.4', category: 0, symbolSize: 46 },
+      { id: '1', name: 'hiredis 1.2.0', category: 1, symbolSize: 34 },
+      { id: '2', name: 'jemalloc 5.3.0', category: 1, symbolSize: 34 },
+      { id: '3', name: 'openssl 3.3.0', category: 1, symbolSize: 34 },
+      { id: '4', name: 'libuv 1.48.0', category: 1, symbolSize: 32 },
+      { id: '5', name: 'lua 5.1.5', category: 2, symbolSize: 28 },
+      { id: '6', name: 'libevent 2.1.12', category: 2, symbolSize: 26 },
+      { id: '7', name: 'libunwind 1.8.0', category: 2, symbolSize: 26 },
+    ],
+    links: [
+      { source: '0', target: '1' },
+      { source: '0', target: '2' },
+      { source: '0', target: '3' },
+      { source: '0', target: '4' },
+      { source: '0', target: '5' },
+      { source: '1', target: '6' },
+      { source: '2', target: '7' },
+      { source: '4', target: '6' },
+    ],
+  },
+  'Vue.js': {
+    nodes: [
+      { id: '0', name: 'vue 3.5.13', category: 0, symbolSize: 46 },
+      { id: '1', name: '@vue/compiler-sfc 3.5.13', category: 1, symbolSize: 36 },
+      { id: '2', name: '@vue/compiler-dom 3.5.13', category: 1, symbolSize: 34 },
+      { id: '3', name: '@vue/runtime-dom 3.5.13', category: 1, symbolSize: 36 },
+      { id: '4', name: '@vue/runtime-core 3.5.13', category: 1, symbolSize: 34 },
+      { id: '5', name: '@vue/reactivity 3.5.13', category: 1, symbolSize: 32 },
+      { id: '6', name: '@vue/shared 3.5.13', category: 2, symbolSize: 28 },
+      { id: '7', name: '@vue/server-renderer 3.5.13', category: 2, symbolSize: 28 },
+      { id: '8', name: '@vue/compiler-core 3.5.13', category: 2, symbolSize: 30 },
+      { id: '9', name: 'estree-walker 2.0.2', category: 2, symbolSize: 24 },
+      { id: '10', name: 'source-map-js 1.2.0', category: 2, symbolSize: 24 },
+      { id: '11', name: 'magic-string 0.30.10', category: 2, symbolSize: 24 },
+    ],
+    links: [
+      { source: '0', target: '1' },
+      { source: '0', target: '2' },
+      { source: '0', target: '3' },
+      { source: '0', target: '4' },
+      { source: '0', target: '5' },
+      { source: '1', target: '8' },
+      { source: '2', target: '8' },
+      { source: '3', target: '4' },
+      { source: '4', target: '5' },
+      { source: '5', target: '6' },
+      { source: '7', target: '4' },
+      { source: '8', target: '9' },
+      { source: '8', target: '10' },
+      { source: '8', target: '11' },
+    ],
+  },
+  OpenSSL: {
+    nodes: [
+      { id: '0', name: 'openssl 3.3.0', category: 0, symbolSize: 46 },
+      { id: '1', name: 'libcrypto 3.3.0', category: 1, symbolSize: 36 },
+      { id: '2', name: 'libssl 3.3.0', category: 1, symbolSize: 36 },
+      { id: '3', name: 'zlib 1.3.1', category: 1, symbolSize: 30 },
+      { id: '4', name: 'crypto-rand', category: 2, symbolSize: 26 },
+      { id: '5', name: 'libcrypto-sha', category: 2, symbolSize: 26 },
+      { id: '6', name: 'libcrypto-aes', category: 2, symbolSize: 26 },
+      { id: '7', name: 'providers', category: 2, symbolSize: 24 },
+      { id: '8', name: 'engines', category: 2, symbolSize: 24 },
+    ],
+    links: [
+      { source: '0', target: '1' },
+      { source: '0', target: '2' },
+      { source: '0', target: '3' },
+      { source: '1', target: '4' },
+      { source: '1', target: '5' },
+      { source: '1', target: '6' },
+      { source: '2', target: '1' },
+      { source: '1', target: '7' },
+      { source: '1', target: '8' },
+    ],
+  },
+  Nginx: {
+    nodes: [
+      { id: '0', name: 'nginx 1.26.0', category: 0, symbolSize: 46 },
+      { id: '1', name: 'pcre2 10.44', category: 1, symbolSize: 34 },
+      { id: '2', name: 'zlib 1.3.1', category: 1, symbolSize: 32 },
+      { id: '3', name: 'openssl 3.3.0', category: 1, symbolSize: 36 },
+      { id: '4', name: 'http-rewrite-module', category: 2, symbolSize: 28 },
+      { id: '5', name: 'http-gzip-module', category: 2, symbolSize: 26 },
+      { id: '6', name: 'http-ssl-module', category: 2, symbolSize: 28 },
+      { id: '7', name: 'core-module', category: 2, symbolSize: 30 },
+      { id: '8', name: 'http-core-module', category: 2, symbolSize: 28 },
+    ],
+    links: [
+      { source: '0', target: '1' },
+      { source: '0', target: '2' },
+      { source: '0', target: '3' },
+      { source: '0', target: '7' },
+      { source: '0', target: '8' },
+      { source: '1', target: '4' },
+      { source: '2', target: '5' },
+      { source: '3', target: '6' },
+      { source: '7', target: '8' },
+    ],
+  },
 }
+// 默认展示第一个软件（兼容旧引用）
+export const dependencyGraph = dependencyGraphs['Spring Boot']
 
-// 高危漏洞列表（大屏表格）
+// 高危漏洞列表（大屏表格）——按 CVSS 评分 ≥ 7 筛选，字段与「最新漏洞数据」导出格式对齐
 export const highVulnDashboardList = (() => {
-  const hi = latestCVEList.filter((r) => r.level === '高危')
+  const hi = latestCVEList.filter((r) => Number(r.vuln_score) >= 7)
   const src = hi.length ? hi : latestCVEList
-  return src.slice(0, 16).map((r, i) => ({
-    ...r,
-    fixStatus: r.fixStatus || fixStatuses[i % fixStatuses.length],
-  }))
+  return src.slice(0, 16)
 })()
 
 // —— 标准报表 · 表格数据 ——
+// 制品统计表：字段对齐组件库表头（制品名称/制品版本/groupId/编程语言/开源许可证/出入库状态）
 export const reportComponentStats = [
   {
     name: 'spring-core',
@@ -448,7 +695,7 @@ export const reportComponentStats = [
     groupId: 'org.springframework',
     language: 'Java',
     license: 'Apache-2.0',
-    industry: '政务',
+    shelfStatus: '已入库',
   },
   {
     name: 'log4j-core',
@@ -456,7 +703,7 @@ export const reportComponentStats = [
     groupId: 'org.apache.logging.log4j',
     language: 'Java',
     license: 'Apache-2.0',
-    industry: '金融',
+    shelfStatus: '已入库',
   },
   {
     name: 'axios',
@@ -464,7 +711,7 @@ export const reportComponentStats = [
     groupId: 'npm',
     language: 'JavaScript',
     license: 'MIT',
-    industry: '互联网',
+    shelfStatus: '已入库',
   },
   {
     name: 'openssl',
@@ -472,7 +719,7 @@ export const reportComponentStats = [
     groupId: 'openssl',
     language: 'C',
     license: 'Apache-2.0',
-    industry: '通信',
+    shelfStatus: '待入库',
   },
   {
     name: 'redis',
@@ -480,7 +727,7 @@ export const reportComponentStats = [
     groupId: 'redis',
     language: 'C',
     license: 'BSD-3-Clause',
-    industry: '工业',
+    shelfStatus: '已入库',
   },
   {
     name: 'fastjson',
@@ -488,45 +735,51 @@ export const reportComponentStats = [
     groupId: 'com.alibaba',
     language: 'Java',
     license: 'Apache-2.0',
-    industry: '教育',
+    shelfStatus: '待入库',
   },
 ]
 
+// 软件统计表：字段对齐软件库表头（软件名称/最新版本评分/行业分类/最新版本漏洞数/开发商/编程语言）
 export const reportRepoStats = [
   {
-    name: 'kubernetes/kubernetes',
-    platform: 'GitHub',
-    country: '美国',
+    name: 'Kubernetes',
+    score: 9.1,
     industry: '云原生',
-    devCount: 3120,
+    vulnCount: 12,
+    developer: 'CNCF',
+    lang: 'Go',
   },
   {
-    name: 'torvalds/linux',
-    platform: 'GitHub',
-    country: '美国',
+    name: 'Linux',
+    score: 9.6,
     industry: '基础软件',
-    devCount: 18500,
+    vulnCount: 8,
+    developer: 'Linus Torvalds',
+    lang: 'C',
   },
   {
-    name: 'apache/spark',
-    platform: 'GitHub',
-    country: '美国',
+    name: 'Apache Spark',
+    score: 8.7,
     industry: '大数据',
-    devCount: 980,
+    vulnCount: 5,
+    developer: 'Apache',
+    lang: 'Scala',
   },
   {
-    name: 'microsoft/vscode',
-    platform: 'GitHub',
-    country: '美国',
+    name: 'VS Code',
+    score: 9.3,
     industry: '工具链',
-    devCount: 2100,
+    vulnCount: 3,
+    developer: 'Microsoft',
+    lang: 'TypeScript',
   },
   {
-    name: 'openharmony/docs',
-    platform: 'Gitee',
-    country: '中国',
+    name: 'OpenHarmony',
+    score: 8.2,
     industry: '物联网',
-    devCount: 420,
+    vulnCount: 7,
+    developer: 'OpenAtom',
+    lang: 'C++',
   },
 ]
 
@@ -538,30 +791,59 @@ export const reportDeveloperStats = [
   { name: 'Lukas Müller', country: '德国', repoCount: 33, componentCount: 102 },
 ]
 
+// 漏洞覆盖组件表——字段与「最新漏洞数据」导出格式对齐
 export const reportVulnCoverage = [
   {
-    component: 'log4j-core',
-    cves: 'CVE-2025-11432; CVE-2024-45105',
-    level: '高危',
-    fixStatus: '已修复',
+    comp_name: 'log4j-core',
+    version_number: '2.23.1',
+    comp_vendor: 'apache',
+    comp_language: 'Java',
+    comp_platform: 'Maven',
+    vuln_created_at: '2026-05-21',
+    vuln_modified_at: '2026-05-22',
+    vuln_score: 9.1,
+    vuln_public_id: 'CVE-2026-11432',
+    vuln_cwe_id: 'CWE-502',
+    purl: 'pkg:maven/apache/log4j-core',
   },
   {
-    component: 'openssl',
-    cves: 'CVE-2025-15467',
-    level: '高危',
-    fixStatus: '部分修复',
+    comp_name: 'openssl',
+    version_number: '3.3.1',
+    comp_vendor: 'openssl',
+    comp_language: 'C',
+    comp_platform: 'github',
+    vuln_created_at: '2026-05-21',
+    vuln_modified_at: '2026-05-23',
+    vuln_score: 8.4,
+    vuln_public_id: 'CVE-2026-15467',
+    vuln_cwe_id: 'CWE-680',
+    purl: 'pkg:github/openssl/openssl',
   },
   {
-    component: 'fastjson',
-    cves: 'CVE-2024-29857',
-    level: '中危',
-    fixStatus: '待修复',
+    comp_name: 'fastjson',
+    version_number: '2.0.47',
+    comp_vendor: 'alibaba',
+    comp_language: 'Java',
+    comp_platform: 'Maven',
+    vuln_created_at: '2026-05-22',
+    vuln_modified_at: '2026-05-24',
+    vuln_score: 7.8,
+    vuln_public_id: 'CVE-2026-29857',
+    vuln_cwe_id: 'CWE-89',
+    purl: 'pkg:maven/alibaba/fastjson',
   },
   {
-    component: 'redis',
-    cves: 'CVE-2025-49844',
-    level: '高危',
-    fixStatus: '调查中',
+    comp_name: 'redis',
+    version_number: '7.2.4',
+    comp_vendor: 'redis',
+    comp_language: 'C',
+    comp_platform: 'github',
+    vuln_created_at: '2026-05-23',
+    vuln_modified_at: '2026-05-24',
+    vuln_score: 9.8,
+    vuln_public_id: 'CVE-2026-49844',
+    vuln_cwe_id: 'CWE-661',
+    purl: 'pkg:github/redis/redis',
   },
 ]
 

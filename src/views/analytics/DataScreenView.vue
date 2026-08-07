@@ -34,7 +34,7 @@
 
       <div class="grid-2 section">
         <div class="glow-card panel">
-          <div class="panel-title">组件主语言占比</div>
+          <div class="panel-title">制品主语言占比</div>
           <LicensePie :data="languageDistribution" />
         </div>
         <div class="glow-card panel">
@@ -50,7 +50,7 @@
 
       <div class="grid-2 section">
         <div class="glow-card panel">
-          <div class="panel-title">开发者活跃度趋势</div>
+          <div class="panel-title">漏洞新增趋势</div>
           <div ref="devActivityChartRef" class="chart-dev-act"></div>
         </div>
         <div class="glow-card panel">
@@ -64,11 +64,10 @@
           <div class="panel-title">高危漏洞列表</div>
           <div class="vuln-wrap">
             <div class="vuln-thead">
-              <span>CVE ID</span>
-              <span>漏洞级别</span>
-              <span>组件</span>
+              <span>风险等级</span>
+              <span>漏洞编号</span>
+              <span>所属软件</span>
               <span>发布时间</span>
-              <span>修复状态</span>
             </div>
             <div
               ref="vulnTbodyRef"
@@ -85,20 +84,29 @@
                   v-for="item in vulnScrollRows"
                   :key="item.key"
                   class="vuln-tr"
-                  :class="{ 'row-alert': item.row.level === '高危' }"
+                  :class="{ 'row-alert': Number(item.row.vuln_score) >= 7 }"
                 >
-                  <span class="vuln-mono">{{ item.row.cveId }}</span>
-                  <span :class="vulnLevelClass(item.row.level)">{{ item.row.level }}</span>
-                  <span class="vuln-comp" :title="item.row.component">{{ item.row.component }}</span>
-                  <span>{{ item.row.publishTime }}</span>
-                  <span class="vuln-status">{{ item.row.fixStatus }}</span>
+                  <span><span :class="['vuln-risk-tag', riskClass(item.row.vuln_score)]">{{ riskLabel(item.row.vuln_score) }}</span></span>
+                  <span class="vuln-mono">{{ item.row.vuln_public_id }}</span>
+                  <span class="vuln-comp" :title="item.row.comp_name">{{ item.row.comp_name }}</span>
+                  <span>{{ (item.row.vuln_created_at || '').slice(0, 10) }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <div class="glow-card panel">
-          <div class="panel-title">依赖链网络</div>
+          <div class="dep-graph-head">
+            <div class="panel-title">依赖链网络</div>
+            <select
+              class="dep-graph-select"
+              :value="activeDepGraph"
+              aria-label="选择软件"
+              @change="onDepGraphChange"
+            >
+              <option v-for="name in depGraphNames" :key="name" :value="name">{{ name }}</option>
+            </select>
+          </div>
           <div ref="depGraphChartRef" class="chart-dep-graph"></div>
         </div>
       </div>
@@ -125,10 +133,10 @@ import {
   licenseBarCounts,
   developerCountryData,
   repoCountryData,
-  developerActivityTrend,
+  vulnAddedTrend,
   industryRadar,
   highVulnDashboardList,
-  dependencyGraph,
+  dependencyGraphs,
 } from '../../data/mockData.js'
 
 const now = useClock().now
@@ -148,8 +156,8 @@ let devActivityChart = null
 
 function updateDevActivityChart() {
   if (!devActivityChart) return
-  const labels = developerActivityTrend.map((d) => d.label)
-  const vals = developerActivityTrend.map((d) => d.value)
+  const labels = vulnAddedTrend.map((d) => d.label)
+  const vals = vulnAddedTrend.map((d) => d.value)
   devActivityChart.setOption({
     backgroundColor: 'transparent',
     tooltip: {
@@ -172,7 +180,7 @@ function updateDevActivityChart() {
     },
     series: [
       {
-        name: '活跃提交量',
+        name: '漏洞新增数',
         type: 'line',
         smooth: true,
         symbol: 'circle',
@@ -239,19 +247,26 @@ const depGraphChartRef = ref(null)
 let depGraphChart = null
 
 const depGraphCategories = [
-  { name: '框架' },
-  { name: '风险组件' },
-  { name: '运行时' },
+  { name: '父节点' },
+  { name: '二级依赖' },
+  { name: '三级依赖' },
 ]
+const depGraphNames = Object.keys(dependencyGraphs)
+const activeDepGraph = ref(depGraphNames[0])
+
+function onDepGraphChange(e) {
+  activeDepGraph.value = e.target.value
+}
 
 function updateDepGraphChart() {
   if (!depGraphChart) return
-  const nodes = (dependencyGraph.nodes || []).map((n) => ({
+  const graph = dependencyGraphs[activeDepGraph.value] || { nodes: [], links: [] }
+  const nodes = (graph.nodes || []).map((n) => ({
     ...n,
     category: n.category ?? 0,
     label: { show: true, color: '#e0f4ff', fontSize: 10 },
   }))
-  const links = dependencyGraph.links || []
+  const links = graph.links || []
   depGraphChart.setOption({
     backgroundColor: 'transparent',
     tooltip: {},
@@ -319,7 +334,7 @@ const vulnScrollRows = computed(() => {
   const out = []
   for (let c = 0; c < vulnCopyCount.value; c++) {
     highVulnDashboardList.forEach((row, r) => {
-      out.push({ row, key: `${c}-${r}-${row.cveId ?? r}` })
+      out.push({ row, key: `${c}-${r}-${row.vuln_public_id ?? r}` })
     })
   }
   return out
@@ -362,13 +377,23 @@ function vulnScheduleMeasure() {
   nextTick(() => vulnMeasureSizes())
 }
 
-function vulnLevelClass(l) {
-  if (l === '高危') return 'vuln-level-high'
-  if (l === '中危') return 'vuln-level-medium'
-  return 'vuln-level-low'
+/** 风险等级：≥9 超危、≥7 高危、≥4 中危、其余低危 */
+function riskClass(s) {
+  const v = Number(s)
+  if (v >= 9) return 'risk-critical'
+  if (v >= 7) return 'risk-high'
+  if (v >= 4) return 'risk-medium'
+  return 'risk-low'
+}
+function riskLabel(s) {
+  const v = Number(s)
+  if (v >= 9) return '超危'
+  if (v >= 7) return '高危'
+  if (v >= 4) return '中危'
+  return '低危'
 }
 
-watch(() => developerActivityTrend, updateDevActivityChart, { deep: true })
+watch(() => vulnAddedTrend, updateDevActivityChart, { deep: true })
 
 onMounted(() => {
   if (devActivityChartRef.value) {
@@ -400,7 +425,7 @@ watch(
 )
 
 watch(
-  () => dependencyGraph,
+  () => activeDepGraph,
   () => updateDepGraphChart(),
   { deep: true }
 )
@@ -467,10 +492,10 @@ onUnmounted(() => {
 }
 .vuln-panel {
   min-height: 0;
-  align-self: start;
+  align-self: stretch;
 }
 .bottom-grid {
-  align-items: start;
+  align-items: stretch;
 }
 
 /* KPI 原 AnalyticsKpiCards */
@@ -536,6 +561,38 @@ onUnmounted(() => {
   min-height: 280px;
 }
 
+/* 依赖链网络 · 标题与软件下拉同行 */
+.dep-graph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dep-graph-head .panel-title {
+  margin-bottom: 0;
+}
+.dep-graph-select {
+  padding: 4px 12px;
+  border: 1px solid rgba(0, 180, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(0, 40, 90, 0.4);
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dep-graph-select:hover,
+.dep-graph-select:focus {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 60, 120, 0.5);
+}
+.dep-graph-select option {
+  background: #0a1a38;
+  color: #e0f4ff;
+}
+
 /* 高危列表 */
 .vuln-wrap {
   flex: 0 0 auto;
@@ -550,7 +607,7 @@ onUnmounted(() => {
 }
 .vuln-thead {
   display: grid;
-  grid-template-columns: 1.1fr 0.55fr 1fr 0.75fr 0.75fr;
+  grid-template-columns: 0.8fr 1.1fr 1fr 0.75fr;
   gap: 8px;
   padding: 10px 14px;
   background: var(--vuln-thead-gradient);
@@ -571,7 +628,7 @@ onUnmounted(() => {
 }
 .vuln-tr {
   display: grid;
-  grid-template-columns: 1.1fr 0.55fr 1fr 0.75fr 0.75fr;
+  grid-template-columns: 0.8fr 1.1fr 1fr 0.75fr;
   gap: 8px;
   padding: 8px 14px;
   height: 40px;
@@ -599,21 +656,35 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.vuln-status {
-  color: var(--text-status-soft);
-  font-size: 11px;
+.vuln-risk-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  white-space: nowrap;
 }
-.vuln-level-high {
+.vuln-risk-tag.risk-critical {
+  color: #ff6b9d;
+  background: rgba(255, 50, 120, 0.2);
+  border-color: rgba(255, 80, 140, 0.45);
+}
+.vuln-risk-tag.risk-high {
   color: var(--danger);
-  font-weight: 700;
+  background: rgba(255, 71, 87, 0.15);
+  border-color: rgba(255, 71, 87, 0.4);
 }
-.vuln-level-medium {
+.vuln-risk-tag.risk-medium {
   color: var(--warning);
-  font-weight: 600;
+  background: rgba(255, 165, 2, 0.12);
+  border-color: rgba(255, 165, 2, 0.35);
 }
-.vuln-level-low {
+.vuln-risk-tag.risk-low {
   color: var(--success);
-  font-weight: 600;
+  background: rgba(46, 213, 115, 0.12);
+  border-color: rgba(46, 213, 115, 0.35);
 }
 
 @media (max-width: 1200px) {

@@ -250,7 +250,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">Copyright检测</label>
+          <label class="gov-filter-label">版权检测</label>
           <span class="gov-filter-wrap">
             <select v-model="s2Copyright" class="gov-filter-input">
               <option value="">全部</option>
@@ -378,6 +378,9 @@
               <th v-if="activeStep !== 0">主语言</th>
               <th v-if="activeStep !== 0">开源许可证</th>
               <th v-if="activeStep === 4">漏洞数</th>
+              <th v-if="activeStep === 4">国标评分</th>
+              <th v-if="activeStep === 2">国标评分</th>
+              <th v-if="activeStep === 3">国标评分</th>
               <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">仓库地址</th>
               <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">备份仓库地址</th>
               <th v-if="activeStep === 1">选型时间</th>
@@ -386,7 +389,7 @@
               <th v-if="activeStep === 4">入库时间</th>
               <th v-if="activeStep === 1">备份状态</th>
               <th v-if="activeStep === 2">SCA 检测</th>
-              <th v-if="activeStep === 2">Copyright 检测</th>
+              <th v-if="activeStep === 2">版权检测</th>
               <th v-if="activeStep === 2">恶意代码检测</th>
               <th v-if="activeStep === 3">审核状态</th>
               <th v-if="activeStep === 3">审核意见</th>
@@ -424,8 +427,28 @@
                 </td>
                 <td v-if="activeStep !== 0">{{ item.lang || '—' }}</td>
                 <td v-if="activeStep !== 0">{{ item.license || '—' }}</td>
+                <td v-if="activeStep === 2">
+                  <button
+                    type="button"
+                    class="gov-link"
+                    :class="scoreToneClass(item)"
+                    @click="openScoreDialog(item)"
+                  >
+                    {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
+                  </button>
+                </td>
                 <td v-if="activeStep === 4">
                   <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
+                </td>
+                <td v-if="activeStep === 4">
+                  <span class="gov-score-readonly" :class="scoreToneClass(item)">
+                    {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
+                  </span>
+                </td>
+                <td v-if="activeStep === 3">
+                  <span class="gov-score-readonly" :class="scoreToneClass(item)">
+                    {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
+                  </span>
                 </td>
                 <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">
                   <code class="gov-code">{{ item.repoUrl }}</code>
@@ -464,7 +487,7 @@
                 </template>
                 <template v-if="!(activeStep === 4 && item.warehouseStatus === '已入库')">
                   <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="removeItem(item)">移除</button>
+                  <button type="button" class="gov-link-sub" @click="openRemoveConfirm(item)">移除</button>
                 </template>
                 <template v-if="activeStep === 3">
                   <span class="gov-sep">|</span>
@@ -475,6 +498,8 @@
                   <button type="button" class="gov-link-sub" @click="singleWarehouse(item, '已入库')">入库</button>
                 </template>
                 <template v-if="activeStep === 2">
+                  <span class="gov-sep">|</span>
+                  <button type="button" class="gov-link-sub" @click="openScoreDialog(item)">评分</button>
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="toggleScan(item)">{{ item._scanOpen ? '▾' : '▸' }}</button>
                 </template>
@@ -497,7 +522,7 @@
                   </div>
                   <div class="gov-scan-item">
                     <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">Copyright 检测</span>
+                      <span class="gov-scan-item-label">版权检测</span>
                       <span class="gov-scan-item-status" :class="scanPhase(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
                     </div>
                     <div class="gov-scan-item-bar">
@@ -708,7 +733,7 @@ Commit：{{ detailItem.commitId || '--' }}
               <div class="gd-meta-row"><dt>开发商</dt><dd>{{ detailItem.developer || '--' }}</dd></div>
               <div class="gd-meta-row"><dt>发布日期</dt><dd>{{ detailItem.createdAt ? detailItem.createdAt.slice(0, 10) : '--' }}</dd></div>
               <div class="gd-meta-row gd-meta-row-license">
-                <dt>开源License</dt>
+                <dt>开源许可证</dt>
                 <dd class="gd-meta-dd-license">
                   <span class="gd-license-pill">{{ detailItem.license || '--' }}</span>
                 </dd>
@@ -742,7 +767,7 @@ Commit：{{ detailItem.commitId || '--' }}
         <section class="gd-block" style="margin-top:20px">
           <h2 class="gd-section-title">治理报告</h2>
           <div class="gd-report-list">
-            <div class="gd-report-item"><span>SBOM 报告</span><span class="gd-badge-sm gd-badge-sm--ok">已生成</span></div>
+            <div class="gd-report-item"><span>软件物料清单报告</span><span class="gd-badge-sm gd-badge-sm--ok">已生成</span></div>
             <div class="gd-report-item"><span>漏洞扫描报告</span><span class="gd-badge-sm gd-badge-sm--ok">已生成</span></div>
             <div class="gd-report-item"><span>许可证分析报告</span><span class="gd-badge-sm gd-badge-sm--ok">已生成</span></div>
           </div>
@@ -791,6 +816,14 @@ Commit：{{ detailItem.commitId || '--' }}
               <span class="review-software-name">{{ reviewItem.name }}</span>
               <span class="review-software-ver">v{{ reviewItem.version }}</span>
               <span class="review-software-lang">{{ reviewItem.lang }}</span>
+            </div>
+            <!-- 国标评分：作为验收依据展示（评分未完成时提示） -->
+            <div class="review-score">
+              <span class="review-score-label">国标评分</span>
+              <span class="review-score-val" :class="{ 'is-empty': reviewItem.nationalScore == null }">
+                {{ reviewItem.nationalScore == null ? '未评分' : reviewItem.nationalScore.toFixed(1) }}
+              </span>
+              <span class="review-score-hint" v-if="reviewItem.nationalScore == null">该软件尚未完成评分，建议先评分再验收</span>
             </div>
             <div class="review-field">
               <label class="review-field-label">审核结果</label>
@@ -860,6 +893,27 @@ Commit：{{ detailItem.commitId || '--' }}
       </div>
     </Teleport>
 
+    <!-- ===== 移除确认弹窗 ===== -->
+    <Teleport to="body">
+      <div v-if="removeConfirmItem" class="gov-overlay" @click.self="cancelRemove">
+        <div class="review-modal" style="width:480px;">
+          <div class="review-modal-hd">
+            <h3 class="review-modal-title">移除软件</h3>
+            <button type="button" class="review-modal-close" @click="cancelRemove">&times;</button>
+          </div>
+          <div class="review-modal-body">
+            <p class="review-modal-desc">
+              确定移除 <strong>{{ removeConfirmItem.name }} v{{ removeConfirmItem.version }}</strong> 吗？移除后将从治理流程中删除且不可恢复。
+            </p>
+          </div>
+          <div class="review-modal-ft">
+            <button type="button" class="gov-btn" @click="cancelRemove">取消</button>
+            <button type="button" class="gov-btn gov-btn--danger-fill" @click="confirmRemove">确认移除</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ===== 审核意见历史弹窗 ===== -->
     <Teleport to="body">
       <div v-if="opinionHistoryItem" class="gov-overlay" @click.self="opinionHistoryItem = null">
@@ -904,11 +958,21 @@ Commit：{{ detailItem.commitId || '--' }}
         </div>
       </div>
     </Teleport>
+
+    <!-- ===== 指标评分弹窗 ===== -->
+    <IndicatorScoreDialog
+      :visible="!!scoreItem"
+      :item="scoreItem"
+      @update:visible="(v) => { if (!v) scoreItem = null }"
+      @save="saveScore"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
+import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
 
 const logItem = ref(null)
 const detailItem = ref(null)
@@ -923,6 +987,7 @@ const batchReviewTarget = ref(null)
 const batchReviewOpinion = ref('')
 const opinionHistoryItem = ref(null)
 const importError = ref('')
+const scoreItem = ref(null)
 
 // 步骤1筛选
 const filterName = ref('')
@@ -1112,7 +1177,8 @@ const selectedAdvanceableCount = computed(() => {
   if (list.length === 0) return 0
   if (activeStep.value === 0) return list.length
   if (activeStep.value === 1) return list.filter(i => i.backupStatus === '备份成功').length
-  if (activeStep.value === 2) return list.filter(i => i.assessStatus === '评估完成').length
+  // 步骤3 → 4：需评估完成且已完成国标评分（评分是准入必要条件）
+  if (activeStep.value === 2) return list.filter(i => i.assessStatus === '评估完成' && isBaselineEligible(i)).length
   if (activeStep.value === 3) return list.filter(i => i.reviewStatus === '评审通过').length
   if (activeStep.value === 4) return list.length
   return 0
@@ -1135,9 +1201,9 @@ const selectedApprovedCount = computed(() =>
   stepList.value.filter(i => i.selected && i.reviewStatus === '评审通过').length,
 )
 
-// 表格列数
+// 表格列数（步骤3 技术评估、步骤5 入库均含「国标评分」列）
 const colSpan = computed(() => {
-  const counts = [9, 10, 10, 9, 10]
+  const counts = [9, 10, 11, 9, 11]
   return counts[activeStep.value] || 9
 })
 
@@ -1387,6 +1453,8 @@ function startScan() {
         intervals.forEach(i => clearInterval(i))
         setTimeout(() => {
           item.assessStatus = '评估完成'
+          // 扫描完成：自动指标自动算分并汇总国标评分
+          applyAutoScores(item)
           item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '评估完成，生成治理报告' })
         }, 500)
       }
@@ -1477,6 +1545,11 @@ function confirmWarehouse(status) {
   const selected = stepList.value.filter(i => i.selected)
   const now = fmtNow()
   selected.forEach(item => {
+    // 入库前校验：未完成国标评分的软件不允许入库
+    if (item.nationalScore == null) {
+      item.logs.push({ time: now, level: 'warn', msg: '未完成国标评分，无法入库' })
+      return
+    }
     item.selected = false
     item.warehouseStatus = status
     item.logs.push({ time: now, level: status === '待发布' ? 'ok' : 'warn', msg: `入库操作：${status}` })
@@ -1485,8 +1558,70 @@ function confirmWarehouse(status) {
 
 function singleWarehouse(item, status) {
   const now = fmtNow()
+  // 入库前校验：未完成国标评分的软件不允许入库
+  if (item.nationalScore == null) {
+    item.logs.push({ time: now, level: 'warn', msg: '未完成国标评分，无法入库' })
+    return
+  }
   item.warehouseStatus = status
   item.logs.push({ time: now, level: status === '待发布' ? 'ok' : 'warn', msg: `入库操作：${status}` })
+}
+
+// ===== 指标评分 =====
+function openScoreDialog(item) {
+  scoreItem.value = item
+}
+
+function saveScore(scores) {
+  if (!scoreItem.value) return
+  const item = scoreItem.value
+  item.indicatorScores = scores
+  item.nationalScore = calcNationalScore(scores)
+  item.logs.push({
+    time: fmtNow(),
+    level: 'ok',
+    msg: `国标评分完成：${item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1)} 分`,
+  })
+}
+
+// ===== 基线准入判断：基线指标全部合格 + 持续供应能力(bl-14) ≥ 6 分 =====
+// 基线指标全部合格 = 每项基线指标均已评分且得分 > 0（0 分视为不合格）
+function isBaselineEligible(item) {
+  const scores = item?.indicatorScores || {}
+  const baseline = INDICATORS.filter(i => i.level === '基线')
+  const allPassed = baseline.every(ind => {
+    const s = scores[ind.id]?.score
+    return typeof s === 'number' && s > 0
+  })
+  if (!allPassed) return false
+  // 持续供应能力（bl-14）需 ≥ 6 分
+  const supplyScore = scores['bl-14']?.score
+  return typeof supplyScore === 'number' && supplyScore >= 6
+}
+
+// 国标评分列色调：达标（基线合格 + bl-14≥6）绿 / 未达标红 / 未评分置灰
+function scoreToneClass(item) {
+  if (item.nationalScore == null) return 'gov-score-empty'
+  return isBaselineEligible(item) ? 'gov-score-ok' : 'gov-score-bad'
+}
+
+// 扫描完成后自动算分：对具备自动评分能力的指标按扫描数据打分，并汇总国标评分
+function applyAutoScores(item) {
+  const scores = { ...(item.indicatorScores || {}) }
+  INDICATORS.forEach((ind) => {
+    if (!ind.capable) return
+    const auto = autoScoreRecord(ind, item)
+    if (auto) {
+      scores[ind.id] = { score: auto.score, params: { ...auto.params } }
+    }
+  })
+  item.indicatorScores = scores
+  item.nationalScore = calcNationalScore(scores)
+  item.logs.push({
+    time: fmtNow(),
+    level: 'info',
+    msg: '扫描完成，自动指标已评分',
+  })
 }
 
 // ===== 推进到下一步（只推进选中的且状态已完成的条目） =====
@@ -1498,7 +1633,8 @@ function advanceToStep(targetStepIndex) {
   } else if (activeStep.value === 1) {
     eligible = list.filter(i => i.backupStatus === '备份成功')
   } else if (activeStep.value === 2) {
-    eligible = list.filter(i => i.assessStatus === '评估完成')
+    // 步骤3 → 4：需评估完成且基线准入通过（基线全部合格 + bl-14 ≥ 6）
+    eligible = list.filter(i => i.assessStatus === '评估完成' && isBaselineEligible(i))
   } else if (activeStep.value === 3) {
     eligible = list.filter(i => i.reviewStatus === '评审通过')
   }
@@ -1539,9 +1675,9 @@ const assessCards = computed(() => {
   const p = detailItem.value.scanProgress || 0
   return [
     { key: 'sca', name: 'SCA 检测', ok: p >= 33 },
-    { key: 'copyright', name: 'Copyright 检测', ok: p >= 66 },
+    { key: 'copyright', name: '版权检测', ok: p >= 66 },
     { key: 'malware', name: '恶意代码检测', ok: p >= 100 },
-    { key: 'sbom', name: 'SBOM 分析', ok: p >= 33 },
+    { key: 'sbom', name: '软件物料清单分析', ok: p >= 33 },
     { key: 'vuln', name: '漏洞分析', ok: p >= 66 },
     { key: 'license', name: '许可证分析', ok: p >= 66 },
   ]
@@ -1561,11 +1697,36 @@ function detailTimeline(item) {
   ]
 }
 
-// 移除软件
-function removeItem(item) {
+// ===== 移除软件（二次确认 + 审计记录） =====
+const removeConfirmItem = ref(null)
+
+function openRemoveConfirm(item) {
+  removeConfirmItem.value = item
+}
+
+function cancelRemove() {
+  removeConfirmItem.value = null
+}
+
+function confirmRemove() {
+  const item = removeConfirmItem.value
+  if (!item) return
+  // 审计记录（写入日志并保留在审计列表）
+  const now = fmtNow()
+  item.logs.push({ time: now, level: 'warn', msg: `移除软件：${item.name} v${item.version}` })
+  removedAudit.value.unshift({
+    time: now,
+    name: item.name,
+    version: item.version,
+    action: '移除',
+  })
   const idx = softwareList.value.indexOf(item)
   if (idx !== -1) softwareList.value.splice(idx, 1)
+  removeConfirmItem.value = null
 }
+
+/** 审计记录列表（仅本次会话，前端演示） */
+const removedAudit = ref([])
 
 function toggleScan(item) {
   item._scanOpen = !item._scanOpen
@@ -2037,6 +2198,8 @@ select.gov-filter-input {
   cursor: pointer;
 }
 .gov-link:hover { text-decoration: underline; }
+.gov-link.is-empty { color: #d1d5db; font-weight: 400; }
+.gov-link.is-empty:hover { color: #da203e; }
 
 .gov-link-sub {
   padding: 0;
@@ -2629,6 +2792,39 @@ select.gov-filter-input {
   color: #4b5563;
 }
 
+/* 审核弹窗：国标评分展示 */
+.review-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1px solid #eceef2;
+  border-left: 3px solid #da203e;
+  border-radius: 8px;
+}
+.review-score-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+.review-score-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.review-score-val.is-empty {
+  color: #d1d5db;
+}
+.review-score-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #d97706;
+}
+
 .review-field {
   margin-bottom: 16px;
 }
@@ -2764,5 +2960,31 @@ select.gov-filter-input {
 .gov-vuln-badge.vuln--has {
   background: #fee2e2;
   color: #991b1b;
+}
+/* 国标评分只读展示（入库阶段不允许修改评分） */
+.gov-score-readonly {
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+.gov-score-readonly.is-empty {
+  color: #d1d5db;
+  font-weight: 500;
+}
+/* 国标评分列色调：达标绿 / 不达标红 / 未评分置灰 */
+.gov-link.gov-score-ok,
+.gov-score-readonly.gov-score-ok {
+  color: #16a34a;
+}
+.gov-link.gov-score-bad,
+.gov-score-readonly.gov-score-bad {
+  color: #dc2626;
+}
+.gov-link.gov-score-empty,
+.gov-score-readonly.gov-score-empty {
+  color: #d1d5db;
+  font-weight: 500;
 }
 </style>

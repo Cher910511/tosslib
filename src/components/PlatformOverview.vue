@@ -15,8 +15,8 @@
         <CountUp :end="data.developerCount" :duration="2200" class="value" />
       </div>
       <div class="item">
-        <span class="label">覆盖托管平台数</span>
-        <CountUp :end="data.hostingPlatforms" :duration="1800" class="value" />
+        <span class="label">开源许可证</span>
+        <CountUp :end="data.licenseCount" :duration="1800" class="value" />
       </div>
       <div class="item">
         <span class="label">覆盖语言生态数</span>

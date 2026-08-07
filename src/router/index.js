@@ -30,6 +30,7 @@ import OpenApiDocView from '../views/admin/OpenApiDocView.vue'
 import ApiKeyManageView from '../views/admin/ApiKeyManageView.vue'
 import ToolsetView from '../views/admin/ToolsetView.vue'
 import PersonalSettingsView from '../views/admin/PersonalSettingsView.vue'
+import StandardBuildView from '../views/standard/StandardBuildView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
 import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
@@ -202,6 +203,13 @@ const routes = [
         name: 'personal-settings',
         component: PersonalSettingsView,
         meta: { adminTitle: '个人设置' },
+      },
+      // ==================== 指标配置 ====================
+      {
+        path: 'standard-build',
+        name: 'standard-build',
+        component: StandardBuildView,
+        meta: { adminTitle: '指标配置' },
       },
       // ==================== 版本火车 ====================
       {

@@ -257,7 +257,7 @@
               </th>
               <th>组件名称</th>
               <th>组件版本</th>
-              <th>groupId</th>
+              <th>组织编号</th>
               <th>编程语言</th>
               <th>开源许可证</th>
               <th>出入库状态</th>

@@ -10,10 +10,11 @@
     </section> -->
 
     <SortableReportTable
-      title="1. 组件统计表"
+      title="1. 制品统计表"
       :columns="colsComponent"
       :rows="rowsComponent"
-      export-filename="组件统计表"
+      export-filename="制品统计表"
+      no-export
     />
 
     <SortableReportTable
@@ -21,6 +22,7 @@
       :columns="colsRepo"
       :rows="rowsRepo"
       export-filename="软件统计表"
+      no-export
     />
 
     <SortableReportTable
@@ -30,23 +32,9 @@
       export-filename="最新漏洞报表"
     />
 
-    <SortableReportTable
-      title="4. 开发者分布表"
-      :columns="colsDev"
-      :rows="rowsDev"
-      export-filename="开发者分布表"
-    />
-
-    <SortableReportTable
-      title="5. 漏洞覆盖组件表"
-      :columns="colsCoverage"
-      :rows="rowsCoverage"
-      export-filename="漏洞覆盖组件表"
-    />
-
     <section class="annual glow-card">
       <div class="annual-head">
-        <h3 class="annual-title">6. 年度趋势表</h3>
+        <h3 class="annual-title">4. 年度趋势表</h3>
         <span class="annual-hint">附：近五年漏洞总数趋势</span>
       </div>
       <div class="annual-chart">
@@ -70,49 +58,35 @@ import {
   latestCVEList,
   reportComponentStats,
   reportRepoStats,
-  reportDeveloperStats,
-  reportVulnCoverage,
   reportAnnualTrends,
 } from '../../../data/mockData.js'
 
 const colsVuln = [
-  { key: 'cveId', label: 'CVE ID' },
-  { key: 'level', label: '漏洞级别' },
-  { key: 'component', label: '影响组件' },
-  { key: 'fixStatus', label: '修复状态' },
-  { key: 'publishTime', label: '发布时间' },
-  { key: 'description', label: '漏洞描述' },
+  { key: 'vuln_public_id', label: '漏洞编号' },
+  { key: 'comp_name', label: '软件名称' },
+  { key: 'version_number', label: '版本号' },
+  { key: 'comp_vendor', label: '厂商' },
+  { key: 'comp_platform', label: '平台' },
+  { key: 'vuln_score', label: '风险评分' },
+  { key: 'vuln_created_at', label: '发布时间' },
+  { key: 'vuln_cwe_id', label: 'CWE 弱点类型' },
 ]
 
 const colsComponent = [
-  { key: 'name', label: '组件名称' },
-  { key: 'version', label: '版本' },
-  { key: 'groupId', label: 'GroupID' },
-  { key: 'language', label: '主语言' },
-  { key: 'license', label: '许可证' },
-  { key: 'industry', label: '行业分类' },
+  { key: 'name', label: '制品名称' },
+  { key: 'version', label: '制品版本' },
+  { key: 'groupId', label: '组织编号' },
+  { key: 'language', label: '编程语言' },
+  { key: 'license', label: '开源许可证' },
 ]
 
 const colsRepo = [
-  { key: 'name', label: '仓库名称' },
-  { key: 'platform', label: '托管平台' },
-  { key: 'country', label: '所属国家' },
-  { key: 'industry', label: '行业' },
-  { key: 'devCount', label: '开发者数量' },
-]
-
-const colsDev = [
-  { key: 'name', label: '开发者名称' },
-  { key: 'country', label: '所在国家' },
-  { key: 'repoCount', label: '参与仓库数' },
-  { key: 'componentCount', label: '贡献组件数' },
-]
-
-const colsCoverage = [
-  { key: 'component', label: '组件名称' },
-  { key: 'cves', label: '涉及漏洞' },
-  { key: 'level', label: '漏洞级别' },
-  { key: 'fixStatus', label: '修复状态' },
+  { key: 'name', label: '软件名称' },
+  { key: 'score', label: '最新版本评分' },
+  { key: 'industry', label: '行业分类' },
+  { key: 'vulnCount', label: '最新版本漏洞数' },
+  { key: 'developer', label: '开发商' },
+  { key: 'lang', label: '编程语言' },
 ]
 
 const colsAnnual = [
@@ -121,18 +95,14 @@ const colsAnnual = [
   { key: 'high', label: '高危' },
   { key: 'medium', label: '中危' },
   { key: 'low', label: '低危' },
-  { key: 'newRepos', label: '仓库新增数' },
-  { key: 'newComponents', label: '组件新增数' },
 ]
 
 /** 标准表格每表最多展示条数 */
-const ROW_LIMIT = 10
+const ROW_LIMIT = 5
 
 const rowsComponent = computed(() => reportComponentStats.slice(0, ROW_LIMIT))
 const rowsRepo = computed(() => reportRepoStats.slice(0, ROW_LIMIT))
 const rowsVuln = computed(() => latestCVEList.slice(0, ROW_LIMIT))
-const rowsDev = computed(() => reportDeveloperStats.slice(0, ROW_LIMIT))
-const rowsCoverage = computed(() => reportVulnCoverage.slice(0, ROW_LIMIT))
 const rowsAnnual = computed(() => reportAnnualTrends.slice(0, ROW_LIMIT))
 
 const annualVulnTrend = computed(() =>

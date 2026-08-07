@@ -127,11 +127,11 @@
               <dd class="mono">{{ comp.componentCode }}</dd>
             </div>
             <div v-if="comp.groupId" class="meta-row">
-              <dt>groupId</dt>
+              <dt>组织编号</dt>
               <dd class="mono">{{ comp.groupId }}</dd>
             </div>
             <div class="meta-row">
-              <dt>artifactId</dt>
+              <dt>制品编号</dt>
               <dd class="mono">{{ comp.artifactId }}</dd>
             </div>
             <div class="meta-row">
@@ -341,7 +341,7 @@
 
     <div v-show="activeTab === 'license'" class="tab-panel">
       <section class="block license-tab-block">
-        <h2 class="readme-title">License 信息</h2>
+        <h2 class="readme-title">开源许可证信息</h2>
         <!-- <p class="readme-p readme-note license-tab-hint">
           以下为许可证完整字段；「版本信息」中仅展示 SPDX 等短标签，超过 5 条时以「…」折叠。
         </p> -->

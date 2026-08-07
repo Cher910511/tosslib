@@ -1,13 +1,14 @@
 <template>
   <div class="feedback-page">
-    <div class="feedback-page-header">
-      <h1 class="feedback-page-title">需求反馈</h1>
-      <p class="feedback-page-subtitle">
-        向我们提交您在使用过程中遇到的问题、缺失的资源或改进建议，我们会尽快处理您的反馈
-      </p>
-    </div>
-
     <form class="feedback-form-card" novalidate @submit.prevent="submitFeedback">
+      <!-- 标题 -->
+      <div class="feedback-page-header">
+        <h1 class="feedback-page-title">需求反馈</h1>
+        <p class="feedback-page-subtitle">
+          您可随时提交需求或问题反馈，请描述具体使用场景及问题信息；如未找到所需软件或制品，请选择"代码、制品需求"类型提交；如需补充说明，支持上传代码包、制品包、图片、文档等附件，帮助我们快速定位问题。
+        </p>
+      </div>
+
       <!-- 联系方式 -->
       <div class="feedback-field">
         <label class="feedback-label" for="feedback-contact">
@@ -37,7 +38,6 @@
           v-model="form.type"
           class="feedback-select"
           :class="{ 'is-invalid': shouldValidate && errors.type }"
-          @change="touch"
         >
           <option v-for="item in FEEDBACK_TYPES" :key="item.value" :value="item.value">
             {{ item.label }}
@@ -46,7 +46,7 @@
         <p v-if="shouldValidate && errors.type" class="feedback-error">{{ errors.type }}</p>
       </div>
 
-      <!-- 缺失资源名称（仅「资源缺失」时出现） -->
+      <!-- 缺失资源名称（仅「代码、制品需求」时出现） -->
       <Transition name="feedback-collapse">
         <div v-if="isResourceMissing" class="feedback-field">
           <label class="feedback-label" for="feedback-res-name">
@@ -68,7 +68,7 @@
         </div>
       </Transition>
 
-      <!-- 缺失资源开源社区托管地址（仅「资源缺失」时出现） -->
+      <!-- 缺失资源开源社区托管地址（仅「代码、制品需求」时出现） -->
       <Transition name="feedback-collapse">
         <div v-if="isResourceMissing" class="feedback-field">
           <label class="feedback-label" for="feedback-res-url">
@@ -115,6 +115,40 @@
         <p v-if="shouldValidate && errors.content" class="feedback-error">{{ errors.content }}</p>
       </div>
 
+      <!-- 上传文件 -->
+      <div class="feedback-field">
+        <label class="feedback-label" for="feedback-files">上传文件</label>
+        <div
+          class="feedback-upload"
+          :class="{ 'is-dragover': isDragOver }"
+          @dragover.prevent="onDragOver(true)"
+          @dragleave.prevent="onDragOver(false)"
+          @drop.prevent="onDrop"
+        >
+          <input
+            id="feedback-files"
+            ref="fileInputRef"
+            type="file"
+            multiple
+            class="feedback-upload-input"
+            @change="onFileChange"
+          />
+          <button type="button" class="feedback-upload-btn" @click="fileInputRef?.click()">
+            点击选择文件
+          </button>
+          <p class="feedback-upload-hint">支持上传源码包、制品包、图片、文档、日志等类型文件，单个文件大小限制为 1GB</p>
+        </div>
+        <ul v-if="form.files.length" class="feedback-file-list">
+          <li class="feedback-file-item" v-for="(f, i) in form.files" :key="`${f.name}-${i}`">
+            <span class="feedback-file-ico">📄</span>
+            <span class="feedback-file-name" :title="f.name">{{ f.name }}</span>
+            <span class="feedback-file-size">{{ formatSize(f.size) }}</span>
+            <button type="button" class="feedback-file-remove" @click="removeFile(i)">✕</button>
+          </li>
+        </ul>
+        <p v-if="errors.files" class="feedback-error">{{ errors.files }}</p>
+      </div>
+
       <!-- 提交按钮 -->
       <div class="feedback-actions">
         <button type="submit" class="feedback-submit" :disabled="!canSubmit">
@@ -133,7 +167,7 @@ import { reactive, ref, computed, onUnmounted } from 'vue'
 
 // 反馈类型：集中维护，模板与校验共用，避免魔法字符串
 const FEEDBACK_TYPES = [
-  { value: 'resource-missing', label: '资源缺失' },
+  { value: 'resource-need', label: '代码、制品需求' },
   { value: 'feature', label: '功能需求' },
   { value: 'experience', label: '使用体验' },
   { value: 'exception', label: '异常反馈' },
@@ -142,7 +176,8 @@ const FEEDBACK_TYPES = [
   { value: 'other', label: '其他' },
 ]
 
-const RESOURCE_MISSING = 'resource-missing'
+// 需要填写资源信息的反馈类型（代码、制品需求）
+const NEED_TYPES = new Set(['resource-need'])
 
 // 联系方式：手机号或邮箱
 const CONTACT_PHONE_RE = /^1[3-9]\d{9}$/
@@ -151,6 +186,9 @@ const CONTACT_EMAIL_RE = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/
 const URL_RE = /^https?:\/\/.+/i
 
 const MAX_CONTENT = 300
+// 上传文件限制：单个 ≤ 1GB，最多 5 个
+const MAX_FILE_SIZE = 1024 * 1024 * 1024
+const MAX_FILE_COUNT = 5
 
 const DEFAULT_FORM = () => ({
   contact: '',
@@ -158,16 +196,19 @@ const DEFAULT_FORM = () => ({
   resourceName: '',
   resourceUrl: '',
   content: '',
+  files: [],
 })
 
 const submitting = ref(false)
 const submitted = ref(false)
 const touched = ref(false)
+const fileInputRef = ref(null)
+const isDragOver = ref(false)
 
 const form = reactive(DEFAULT_FORM())
 
 // 用 computed 而非内联表达式，模板更干净、响应式更精确
-const isResourceMissing = computed(() => form.type === RESOURCE_MISSING)
+const isResourceMissing = computed(() => NEED_TYPES.has(form.type))
 const contentLength = computed(() => form.content.length)
 const isContentMax = computed(() => contentLength.value >= MAX_CONTENT)
 // 表单被blur/提交过才显示错误，避免字段一出现就标红
@@ -194,6 +235,10 @@ const errors = computed(() => {
   }
   // 反馈内容：trim 后为空才算未填，避免与计数器割裂
   if (!form.content.trim()) err.content = '请输入反馈内容'
+  // 上传文件：超过数量/大小上限时提示
+  if (form.files.length > MAX_FILE_COUNT) {
+    err.files = `最多上传 ${MAX_FILE_COUNT} 个文件`
+  }
   return err
 })
 
@@ -214,6 +259,41 @@ onUnmounted(clearDismissTimer)
 
 function touch() {
   touched.value = true
+}
+
+/* ===== 文件上传 ===== */
+// 过滤超限文件并加入列表，超限文件在 errors 中提示
+function addFiles(fileList) {
+  if (!fileList || !fileList.length) return
+  const incoming = [...fileList].slice(0, MAX_FILE_COUNT - form.files.length)
+  const oversized = [...fileList].filter((f) => f.size > MAX_FILE_SIZE)
+  for (const f of incoming) {
+    form.files.push(f)
+  }
+  if (oversized.length) {
+    touched.value = true
+  }
+}
+function onFileChange(e) {
+  addFiles(e.target.files)
+  // 允许重复选择同一文件
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+function onDragOver(over) {
+  isDragOver.value = over
+}
+function onDrop(e) {
+  isDragOver.value = false
+  addFiles(e.dataTransfer?.files)
+}
+function removeFile(index) {
+  form.files.splice(index, 1)
+}
+function formatSize(size) {
+  if (size == null) return ''
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function resetForm() {
@@ -245,13 +325,13 @@ async function submitFeedback() {
 
 <style scoped>
 .feedback-page {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
+  width: 100%;
+  padding: 8px 24px 32px;
 }
 
 .feedback-page-header {
-  margin-bottom: 24px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .feedback-page-title {
@@ -367,6 +447,108 @@ async function submitFeedback() {
   font-size: 12px;
   color: #dc2626;
   line-height: 1.4;
+}
+
+/* ===== 文件上传 ===== */
+.feedback-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 16px;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  background: #fafafa;
+  transition: border-color 0.2s, background 0.2s;
+}
+.feedback-upload.is-dragover {
+  border-color: #da203e;
+  background: rgba(218, 32, 62, 0.04);
+}
+.feedback-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.feedback-upload-btn {
+  padding: 7px 18px;
+  border: 1px solid #da203e;
+  border-radius: 8px;
+  background: #fff;
+  color: #da203e;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.feedback-upload-btn:hover {
+  background: #da203e;
+  color: #fff;
+}
+.feedback-upload-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.5;
+}
+.feedback-file-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.feedback-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #f9fafb;
+  border: 1px solid #eceef2;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.feedback-file-ico {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.feedback-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+}
+.feedback-file-size {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+}
+.feedback-file-remove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.feedback-file-remove:hover {
+  background: #fee2e2;
+  color: #da203e;
 }
 
 .feedback-actions {

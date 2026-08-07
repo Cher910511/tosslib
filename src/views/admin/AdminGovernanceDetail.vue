@@ -116,7 +116,7 @@
         <!-- SBOM -->
         <div class="detail-assess-card" @click="expandSection('sbom')">
           <div class="detail-assess-hd">
-            <span class="detail-assess-name">SBOM</span>
+            <span class="detail-assess-name">软件物料清单</span>
             <span class="detail-assess-count">{{ sbomData.length }} 个组件</span>
             <span class="detail-assess-toggle">{{ expandSbom ? '收起' : '展开' }}</span>
           </div>
@@ -138,7 +138,7 @@
           </div>
           <div v-if="expandVuln" class="detail-assess-body">
             <table class="gov-table gov-table--sm">
-              <thead><tr><th>CVE</th><th>严重等级</th><th>CVSS</th><th>状态</th></tr></thead>
+              <thead><tr><th>漏洞编号</th><th>严重等级</th><th>风险评分</th><th>状态</th></tr></thead>
               <tbody>
                 <tr v-for="v in vulnData" :key="v.cve">
                   <td class="detail-link" @click.stop>{{ v.cve }}</td>
@@ -208,7 +208,7 @@
         <h3 class="detail-sub-title">治理报告</h3>
         <div class="detail-report-list">
           <div class="detail-report-item">
-            <span class="detail-report-name">SBOM 报告</span>
+            <span class="detail-report-name">软件物料清单报告</span>
             <span class="gov-badge badge--ok">已生成</span>
           </div>
           <div class="detail-report-item">

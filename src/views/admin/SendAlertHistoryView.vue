@@ -9,7 +9,7 @@
       <table class="va-table">
         <thead>
           <tr>
-            <th>CVE 编号</th>
+            <th>漏洞编号</th>
             <th>风险等级</th>
             <th>预警标题</th>
             <th>影响版本数</th>
