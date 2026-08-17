@@ -1,0 +1,217 @@
+/* ==========================================================
+   数据报表（Grafana 风格）共享样式
+   供访问行为 / 下载与接口 / 业务与系统 等报表子页复用
+   ========================================================== */
+
+.report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 22px 32px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* ===== 工具栏 ===== */
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.report-toolbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.report-logo { color: #da203e; flex-shrink: 0; }
+.report-title { margin: 0; font-size: 16px; font-weight: 700; color: #111827; white-space: nowrap; }
+.report-subtitle { font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.report-toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.report-refresh-hint { font-size: 11px; color: #9ca3af; }
+.report-range {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+}
+.report-range:focus { border-color: #da203e; }
+/* 自定义时间段：起止日期输入框 */
+.report-date {
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #374151;
+  background: #fff;
+  outline: none;
+}
+.report-date:focus { border-color: #da203e; }
+.report-date-sep {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.report-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid #da203e;
+  border-radius: 6px;
+  background: #da203e;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.report-refresh:hover { background: #b81830; }
+/* 导出按钮 */
+.report-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.report-export:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* ===== KPI 行 ===== */
+/* auto-fit 自适应列数：KPI 数量变化（5/6 个）都能占满整行 */
+.report-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.report-kpi {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.report-kpi-hd { display: flex; align-items: center; gap: 8px; }
+.report-kpi-ico { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.report-kpi-label { font-size: 12px; color: #6b7280; }
+.report-kpi-value { font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.report-kpi-foot { display: flex; gap: 6px; font-size: 11px; color: #9ca3af; border-top: 1px solid #f9fafb; padding-top: 6px; }
+.trend-up { color: #16a34a; font-weight: 600; }
+.trend-down { color: #dc2626; font-weight: 600; }
+
+/* ===== 面板网格 ===== */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.rpanel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* 所有 wide/full 面板均占满整行，避免图表卡片半宽挤压 */
+.rpanel--wide { grid-column: 1 / -1; }
+.rpanel--full { grid-column: 1 / -1; }
+/* 半宽面板：列数少的简单表格可一行放两个 */
+.rpanel--half { grid-column: span 2; }
+.rpanel-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
+}
+.rpanel-title { margin: 0; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpanel-ops { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.rpanel-tag { font-size: 10px; font-weight: 600; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; }
+.rpanel-menu {
+  width: 22px; height: 22px;
+  border: none; border-radius: 5px;
+  background: transparent; color: #9ca3af;
+  font-size: 15px; line-height: 1;
+  cursor: pointer;
+}
+.rpanel-menu:hover { background: #f3f4f6; color: #374151; }
+.rpanel-body { flex: 1; padding: 6px 8px; min-height: 0; }
+.rpanel-body--table { padding: 0 0 4px; overflow-x: auto; }
+/* 页面访问明细：限制高度与相邻表格（Top10）等高，超出纵向滚动 */
+.page-detail-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.rchart { width: 100%; height: 240px; }
+
+/* ===== 表格 ===== */
+.rtable { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
+.rtable th { padding: 8px 12px; text-align: left; font-weight: 600; color: #6b7280; background: #f9fafb; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+.rtable td { padding: 8px 12px; border-bottom: 1px solid #f9fafb; color: #374151; white-space: nowrap; }
+.rtable tbody tr:hover { background: #fafafa; }
+.rtable-rank { color: #9ca3af; font-weight: 700; }
+.rtable-org { font-weight: 600; color: #111827; }
+.rtable-text { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; }
+.rtable-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.rtable-badge--ok { background: #dcfce7; color: #16a34a; }
+.rtable-badge--warn { background: #fef3c7; color: #d97706; }
+
+/* ===== 面板菜单 ===== */
+.report-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 130px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.report-menu button {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.report-menu button:hover { background: #f3f4f6; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 1200px) {
+  .report-kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .report-grid { grid-template-columns: repeat(2, 1fr); }
+  .rpanel--wide { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .report-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .report-grid { grid-template-columns: 1fr; }
+  .rpanel--wide { grid-column: 1 / -1; }
+  .rpanel--half { grid-column: 1 / -1; }
+}

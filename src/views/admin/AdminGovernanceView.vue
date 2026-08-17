@@ -602,6 +602,7 @@
           <div class="gov-drawer-body">
             <h4 class="detail-section-title">版本信息</h4>
             <table class="detail-table detail-table--pairs">
+              <tbody>
               <tr><td class="dt-label">软件名称</td><td class="dt-value">{{ drawerItem.name }}</td></tr>
               <tr><td class="dt-label">版本号</td><td class="dt-value">{{ drawerItem.version }}</td></tr>
               <tr><td class="dt-label">主语言</td><td class="dt-value">{{ drawerItem.lang || '--' }}</td></tr>
@@ -609,12 +610,14 @@
               <tr><td class="dt-label">发布日期</td><td class="dt-value">{{ drawerItem.createdAt ? drawerItem.createdAt.slice(0, 10) : '--' }}</td></tr>
               <tr><td class="dt-label">开发商</td><td class="dt-value">{{ drawerItem.developer || '--' }}</td></tr>
               <tr><td class="dt-label">许可证ID</td><td class="dt-value">{{ drawerItem.licenseId || '--' }}</td></tr>
+              </tbody>
             </table>
             <div class="detail-desc-block">
               {{ drawerItem.desc || '暂无描述信息' }}
             </div>
             <h4 class="detail-section-title">参考信息</h4>
             <table class="detail-table detail-table--pairs">
+              <tbody>
               <tr><td class="dt-label">官网地址</td><td class="dt-value">{{ drawerItem.repoUrl || '--' }}</td></tr>
               <tr><td class="dt-label">分支</td><td class="dt-value">{{ drawerItem.branch || '--' }}</td></tr>
               <tr><td class="dt-label">社区标签 (Tag)</td><td class="dt-value">{{ drawerItem.tag || '--' }}</td></tr>
@@ -624,6 +627,7 @@
               <tr><td class="dt-label">源码托管地址</td><td class="dt-value">{{ drawerItem.repoUrl || '--' }}</td></tr>
               <tr><td class="dt-label">备份仓库地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}</td></tr>
               <tr><td class="dt-label">漏洞披露地址</td><td class="dt-value">{{ drawerItem.vulnUrl || '--' }}</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -1605,7 +1609,8 @@ function scoreToneClass(item) {
   return isBaselineEligible(item) ? 'gov-score-ok' : 'gov-score-bad'
 }
 
-// 扫描完成后自动算分：对具备自动评分能力的指标按扫描数据打分，并汇总国标评分
+// 扫描完成后自动算分：仅对具备自动评分能力的指标按扫描数据打分，并汇总国标评分。
+// 非自动（人工）指标保持未评分（null），需在评分弹窗中手动评定后方可满足基线准入。
 function applyAutoScores(item) {
   const scores = { ...(item.indicatorScores || {}) }
   INDICATORS.forEach((ind) => {

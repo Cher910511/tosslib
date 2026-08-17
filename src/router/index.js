@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppShell from '../layouts/AppShell.vue'
 import AdminShell from '../layouts/AdminShell.vue'
 import HomeView from '../views/HomeView.vue'
+import WorkbenchView from '../views/WorkbenchView.vue'
 import DataScreenView from '../views/analytics/DataScreenView.vue'
 import ReportTablesView from '../views/analytics/report/ReportTablesView.vue'
 import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
@@ -26,6 +27,7 @@ import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
 import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
 import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
 import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
+import BoardsPage from '../views/admin/report/BoardsPage.vue'
 import OpenApiDocView from '../views/admin/OpenApiDocView.vue'
 import ApiKeyManageView from '../views/admin/ApiKeyManageView.vue'
 import ToolsetView from '../views/admin/ToolsetView.vue'
@@ -45,8 +47,8 @@ const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
 }))
 
 const routes = [
-  /* 部署后默认进入浅色「软件详情」；原态势总览大屏改到 /dash */
-  { path: '/', redirect: '/software/home' },
+  /* 登录后默认进入「工作台」（按当前用户角色渲染普通成员/组织管理员视图） */
+  { path: '/', redirect: '/software/workbench' },
   {
     path: '/dash',
     component: AppShell,
@@ -65,6 +67,12 @@ const routes = [
     path: '/software',
     component: AdminShell,
     children: [
+      {
+        path: 'workbench',
+        name: 'workbench',
+        component: WorkbenchView,
+        meta: { adminTitle: '工作台' },
+      },
       {
         path: 'home',
         name: 'software-home',
@@ -196,6 +204,13 @@ const routes = [
         name: 'toolset',
         component: ToolsetView,
         meta: { adminTitle: '工具集' },
+      },
+      // ==================== 数据看板 ====================
+      {
+        path: 'board',
+        name: 'board',
+        component: BoardsPage,
+        meta: { adminTitle: '数据看板' },
       },
       // ==================== 个人设置 ====================
       {

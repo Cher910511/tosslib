@@ -131,6 +131,13 @@
             </RouterLink>
             <RouterLink
               class="admin-nav-item admin-nav-item--sub"
+              to="/software/board"
+              active-class="is-active"
+            >
+              <span class="nav-label">数据看板</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
               to="/software/patch-plan"
               active-class="is-active"
             >
@@ -320,6 +327,14 @@
         >
           数据大屏
         </a>
+        <RouterLink
+          class="admin-help-btn"
+          to="/software/workbench"
+          title="工作台"
+          aria-label="进入工作台"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </RouterLink>
         <a
           class="admin-help-btn"
           :href="manualPageUrl"
@@ -426,6 +441,8 @@ const manageListCrumb = computed(() => {
  * parentLabel / parentTo 可选，不传则只有"首页 > currentLabel"
  */
 const breadcrumbConfig = {
+  'workbench':        { currentLabel: '工作台' },
+  'board':            { currentLabel: '数据看板' },
   'software-home':    { homeOnly: true },
   'software-library': { currentLabel: '软件库' },
   'component-library': { currentLabel: '组件库' },

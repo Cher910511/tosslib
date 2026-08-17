@@ -58,24 +58,24 @@ export const ORGS = [
 
 export const USERS = [
   // 超级管理员
-  { id: 'user-super-1', name: '平台管理员', avatar: '', role: 'superadmin', orgId: null },
-  // 组织管理员
-  { id: 'user-admin-1', name: '张建国', avatar: '', role: 'org-admin', orgId: 'org-001' },
-  { id: 'user-admin-2', name: '王明远', avatar: '', role: 'org-admin', orgId: 'org-002' },
-  { id: 'user-admin-3', name: '李思远', avatar: '', role: 'org-admin', orgId: 'org-003' },
-  { id: 'user-admin-4', name: '陈晓峰', avatar: '', role: 'org-admin', orgId: 'org-004' },
-  // 组织成员
-  { id: 'user-mem-1', name: '赵小明', avatar: '', role: 'member', orgId: 'org-001' },
-  { id: 'user-mem-2', name: '钱丽华', avatar: '', role: 'member', orgId: 'org-001' },
-  { id: 'user-mem-3', name: '孙一鸣', avatar: '', role: 'member', orgId: 'org-001' },
-  { id: 'user-mem-4', name: '周雅琴', avatar: '', role: 'member', orgId: 'org-002' },
-  { id: 'user-mem-5', name: '吴浩然', avatar: '', role: 'member', orgId: 'org-002' },
-  { id: 'user-mem-6', name: '郑子轩', avatar: '', role: 'member', orgId: 'org-003' },
-  { id: 'user-mem-7', name: '冯雨萱', avatar: '', role: 'member', orgId: 'org-003' },
-  { id: 'user-mem-8', name: '王逸飞', avatar: '', role: 'member', orgId: 'org-003' },
-  { id: 'user-mem-9', name: '李梦涵', avatar: '', role: 'member', orgId: 'org-003' },
-  { id: 'user-mem-10', name: '刘子涵', avatar: '', role: 'member', orgId: 'org-004' },
-  { id: 'user-mem-11', name: '杨思琪', avatar: '', role: 'member', orgId: 'org-004' },
+  { id: 'user-super-1', name: '平台管理员', avatar: '', role: 'superadmin', orgId: null, orgIds: [] },
+  // 组织管理员（单组织为主；orgIds[0] = 主组织）
+  { id: 'user-admin-1', name: '张建国', avatar: '', role: 'org-admin', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-admin-2', name: '王明远', avatar: '', role: 'org-admin', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-admin-3', name: '李思远', avatar: '', role: 'org-admin', orgId: 'org-003', orgIds: ['org-003', 'org-001'] },
+  { id: 'user-admin-4', name: '陈晓峰', avatar: '', role: 'org-admin', orgId: 'org-004', orgIds: ['org-004'] },
+  // 组织成员（单组织为主）
+  { id: 'user-mem-1', name: '赵小明', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-2', name: '钱丽华', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-3', name: '孙一鸣', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-4', name: '周雅琴', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-mem-5', name: '吴浩然', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-mem-6', name: '郑子轩', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003', 'org-004'] },
+  { id: 'user-mem-7', name: '冯雨萱', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-8', name: '王逸飞', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-9', name: '李梦涵', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-10', name: '刘子涵', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
+  { id: 'user-mem-11', name: '杨思琪', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
 ]
 
 /** 当前模拟登录用户 ID（切换角色时修改此值） */
@@ -90,7 +90,20 @@ export function getUserById(userId) {
 }
 
 export function getUsersByOrgId(orgId) {
-  return USERS.filter((u) => u.orgId === orgId)
+  return USERS.filter((u) => (u.orgIds?.length ? u.orgIds.includes(orgId) : u.orgId === orgId))
+}
+
+/** 用户所属组织 ID 列表：多组织用 orgIds（[0] 为主组织），单组织兼容 orgId */
+export function getUserOrgIds(user) {
+  if (!user) return []
+  if (Array.isArray(user.orgIds) && user.orgIds.length) return user.orgIds.filter(Boolean)
+  if (user.orgId) return [user.orgId]
+  return []
+}
+
+/** 用户所属组织列表（按 getUserOrgIds 顺序，主组织在前） */
+export function getUserOrgs(user) {
+  return getUserOrgIds(user).map((id) => getOrgById(id)).filter(Boolean)
 }
 
 export function getCurrentUser() {

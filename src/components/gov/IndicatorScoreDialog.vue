@@ -19,6 +19,11 @@
                 {{ totalScore === null ? '--' : totalScore.toFixed(1) }}
               </span>
               <span class="score-summary-total-max">/ 100</span>
+              <span
+                v-if="totalScore !== null"
+                class="score-summary-badge"
+                :class="baselineEligible ? 'badge--pass' : 'badge--fail'"
+              >{{ baselineEligible ? '合格' : '不合格' }}</span>
             </div>
             <div class="score-summary-meta">
               <span class="score-summary-meta-item">已评 {{ scoredCount }}/{{ INDICATORS.length }} 项</span>
@@ -345,6 +350,18 @@ const enhancedScoreText = computed(() => {
   return s === null ? '--' : s.toFixed(1)
 })
 
+// 基线准入：基线指标全部合格（每项 score > 0）+ 持续供应能力(bl-14) ≥ 6 分
+const baselineEligible = computed(() => {
+  const baseline = INDICATORS.filter((i) => i.level === '基线')
+  const allPassed = baseline.every((ind) => {
+    const s = records.value[ind.id]?.score
+    return typeof s === 'number' && s > 0
+  })
+  if (!allPassed) return false
+  const supply = records.value['bl-14']?.score
+  return typeof supply === 'number' && supply >= 6
+})
+
 function save() {
   const scores = {}
   INDICATORS.forEach((ind) => {
@@ -452,6 +469,24 @@ function save() {
 .score-summary-total-max {
   font-size: 13px;
   color: #9ca3af;
+}
+.score-summary-badge {
+  margin-left: 8px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  align-self: center;
+}
+.score-summary-badge.badge--pass {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.score-summary-badge.badge--fail {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 .score-summary-meta {
   display: flex;
