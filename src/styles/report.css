@@ -157,6 +157,9 @@
 .rpanel-menu:hover { background: #f3f4f6; color: #374151; }
 .rpanel-body { flex: 1; padding: 6px 8px; min-height: 0; }
 .rpanel-body--table { padding: 0 0 4px; overflow-x: auto; }
+/* 图表容器：弹性撑满卡片高度（与并排表格等高，不再下方留白）；表格容器不受影响 */
+.rpanel-body:not(.rpanel-body--table) { display: flex; flex-direction: column; }
+.rchart { width: 100%; flex: 1; min-height: 240px; }
 /* 页面访问明细：限制高度与相邻表格（Top10）等高，超出纵向滚动 */
 .page-detail-scroll {
   max-height: 360px;

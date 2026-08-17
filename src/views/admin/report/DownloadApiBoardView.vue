@@ -8,7 +8,6 @@
         <span class="report-subtitle">下载行为 · 制品分发 · OpenAPI 调用</span>
       </div>
       <div class="report-toolbar-right">
-        <span class="report-refresh-hint">上次刷新：{{ lastRefresh }}</span>
         <select v-model="range" class="report-range" aria-label="时间范围" @change="onRangeChange">
           <option value="24h">最近 24 小时</option>
           <option value="7d">最近 7 天</option>
@@ -31,10 +30,6 @@
           <span class="report-kpi-label">{{ k.label }}</span>
         </div>
         <div class="report-kpi-value" :style="{ color: k.color }">{{ k.value }}</div>
-        <div v-if="range !== 'custom'" class="report-kpi-foot">
-          <span :class="k.trend >= 0 ? 'trend-up' : 'trend-down'">{{ k.trend >= 0 ? '▲' : '▼' }} {{ Math.abs(k.trend) }}%</span>
-          <span>较上周期</span>
-        </div>
       </div>
     </div>
 
@@ -43,7 +38,7 @@
       <!-- 下载趋势（图表） -->
       <section class="rpanel rpanel--wide">
         <header class="rpanel-hd">
-          <h3 class="rpanel-title">下载趋势（软件 / 组件）</h3>
+          <h3 class="rpanel-title">下载趋势（{{ rangeTitle }}）</h3>
           <div class="rpanel-ops"><span class="rpanel-tag">下载</span></div>
         </header>
         <div class="rpanel-body"><div ref="downloadChartRef" class="rchart"></div></div>
@@ -114,7 +109,7 @@
       <!-- OpenAPI 调用趋势（图表） -->
       <section class="rpanel rpanel--wide">
         <header class="rpanel-hd">
-          <h3 class="rpanel-title">OpenAPI 调用趋势</h3>
+          <h3 class="rpanel-title">OpenAPI 调用趋势（{{ rangeTitle }}）</h3>
           <div class="rpanel-ops"><span class="rpanel-tag">接口</span></div>
         </header>
         <div class="rpanel-body"><div ref="openapiChartRef" class="rchart"></div></div>
@@ -196,6 +191,12 @@ function onDateChange(which, val) {
 const RANGE_LABEL = { '24h': '今日', '7d': '近7天', '30d': '近30天', '90d': '近90天', custom: '区间' }
 const RANGE_DAYS = { '24h': 1, '7d': 7, '30d': 30, '90d': 90 }
 
+/** 趋势图标题的时间区间标注（自定义时显示起止日期） */
+const rangeTitle = computed(() => {
+  if (range.value === 'custom') return `${customStart.value} 至 ${customEnd.value}`
+  return RANGE_LABEL[range.value] || '近30天'
+})
+
 /** KPI 随时间范围联动：总量类指标按范围天数放大，比率/均值类指标不变 */
 const kpiList = computed(() => {
   const prefix = RANGE_LABEL[range.value] || '近30天'
@@ -265,21 +266,23 @@ function genTrends(base, count, seed) {
   return out
 }
 function genLabels() {
-  if (range.value === 'custom') {
-    // 自定义时间段：按起止日期生成每日标签（如 07-15 … 08-14）
-    const start = new Date(customStart.value)
-    const end = new Date(customEnd.value)
-    const days = Math.max(1, Math.round((end - start) / 86400000) + 1)
-    const pad = (n) => String(n).padStart(2, '0')
-    return Array.from({ length: days }, (_, i) => {
-      const d = new Date(start.getTime() + i * 86400000)
-      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    })
+  const pad = (n) => String(n).padStart(2, '0')
+  const fmt = (d) => `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const end = new Date()
+  // 24h：当天日期 + 小时
+  if (range.value === '24h') {
+    return Array.from({ length: 24 }, (_, i) => `${fmt(end)} ${pad(i)}:00`)
   }
-  const count = range.value === '24h' ? 24 : range.value === '7d' ? 7 : range.value === '90d' ? 12 : 30
-  if (range.value === '24h') return Array.from({ length: count }, (_, i) => `${String(i).padStart(2, '0')}:00`)
-  if (range.value === '7d') return Array.from({ length: count }, (_, i) => `周${'一二三四五六日'[i % 7]}`)
-  return Array.from({ length: count }, (_, i) => `${i + 1}日`)
+  // 自定义时间段：按起止日期生成每日标签（如 07-15 … 08-14）
+  if (range.value === 'custom') {
+    const start = new Date(customStart.value)
+    const cEnd = new Date(customEnd.value)
+    const days = Math.max(1, Math.round((cEnd - start) / 86400000) + 1)
+    return Array.from({ length: days }, (_, i) => fmt(new Date(start.getTime() + i * 86400000)))
+  }
+  // 7d/30d/90d：以今天为终点往前推，显示日期 MM-DD
+  const count = range.value === '7d' ? 7 : range.value === '90d' ? 12 : 30
+  return Array.from({ length: count }, (_, i) => fmt(new Date(end.getTime() - (count - 1 - i) * 86400000)))
 }
 
 /* 仅保留两个趋势图表 */

@@ -8,7 +8,6 @@
         <span class="report-subtitle">需求反馈 · 订阅 · 版本火车 · AI 助手</span>
       </div>
       <div class="report-toolbar-right">
-        <span class="report-refresh-hint">上次刷新：{{ lastRefresh }}</span>
         <select v-model="range" class="report-range" aria-label="时间范围" @change="onRangeChange">
           <option value="24h">最近 24 小时</option>
           <option value="7d">最近 7 天</option>
@@ -31,12 +30,17 @@
           <span class="report-kpi-label">{{ k.label }}</span>
         </div>
         <div class="report-kpi-value" :style="{ color: k.color }">{{ k.value }}</div>
-        <div v-if="range !== 'custom'" class="report-kpi-foot">
-          <span :class="k.trend >= 0 ? 'trend-up' : 'trend-down'">{{ k.trend >= 0 ? '▲' : '▼' }} {{ Math.abs(k.trend) }}%</span>
-          <span>较上周期</span>
-        </div>
       </div>
     </div>
+
+    <!-- ===== AI 助手对话趋势（KPI 条下方） ===== -->
+    <section class="rpanel rpanel--wide">
+      <header class="rpanel-hd">
+        <h3 class="rpanel-title">AI 助手对话趋势（{{ rangeTitle }}）</h3>
+        <div class="rpanel-ops"><span class="rpanel-tag">后端统计</span></div>
+      </header>
+      <div class="rpanel-body"><div ref="aiChartRef" class="rchart"></div></div>
+    </section>
 
     <!-- ===== 面板网格 ===== -->
     <div class="report-grid">
@@ -69,7 +73,7 @@
       <!-- 需求反馈提交趋势（图表，替代无数据的订阅统计） -->
       <section class="rpanel rpanel--half">
         <header class="rpanel-hd">
-          <h3 class="rpanel-title">需求反馈提交趋势</h3>
+          <h3 class="rpanel-title">需求反馈提交趋势（{{ rangeTitle }}）</h3>
           <div class="rpanel-ops"><span class="rpanel-tag">反馈</span></div>
         </header>
         <div class="rpanel-body"><div ref="feedbackTrendChartRef" class="rchart"></div></div>
@@ -127,15 +131,6 @@
         </div>
       </section>
 
-      <!-- AI 助手对话趋势（图表） -->
-      <section class="rpanel rpanel--wide">
-        <header class="rpanel-hd">
-          <h3 class="rpanel-title">AI 助手对话趋势</h3>
-          <div class="rpanel-ops"><span class="rpanel-tag">后端统计</span></div>
-        </header>
-        <div class="rpanel-body"><div ref="aiChartRef" class="rchart"></div></div>
-      </section>
-
       <!-- AI 组织使用排行（表格） -->
       <section class="rpanel rpanel--half">
         <header class="rpanel-hd">
@@ -164,30 +159,13 @@
         </div>
       </section>
 
-      <!-- AI 提问次数分布（表格） -->
+      <!-- AI 提问次数分布（图表） -->
       <section class="rpanel rpanel--half">
         <header class="rpanel-hd">
-          <h3 class="rpanel-title">AI 提问次数分布</h3>
+          <h3 class="rpanel-title">人均提问次数（{{ rangeTitle }}）</h3>
           <div class="rpanel-ops"><span class="rpanel-tag">后端统计</span></div>
         </header>
-        <div class="rpanel-body rpanel-body--table">
-          <table class="rtable">
-            <thead>
-              <tr>
-                <th>提问次数</th>
-                <th>用户数</th>
-                <th>占比</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in aiScaleDist" :key="r.range">
-                <td>{{ r.range }}</td>
-                <td>{{ r.count }}</td>
-                <td>{{ r.pct }}%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="rpanel-body"><div ref="aiScaleChartRef" class="rchart"></div></div>
       </section>
 
       <!-- 纯表格：需求反馈明细 -->
@@ -237,8 +215,8 @@
                 <th>登录人数</th>
                 <th>PV</th>
                 <th>下载量</th>
-                <th>OpenAPI 调用</th>
                 <th>AI 对话</th>
+                <th>OpenAPI 调用</th>
                 <th>明细</th>
               </tr>
             </thead>
@@ -249,8 +227,8 @@
                 <td>{{ r.login }}</td>
                 <td>{{ r.pv }}</td>
                 <td>{{ r.download }}</td>
-                <td>{{ r.api }}</td>
                 <td>{{ r.ai }}</td>
+                <td>{{ r.api }}</td>
                 <td><button type="button" class="rtable-link" @click="openOrgDetail(r)">查看</button></td>
               </tr>
             </tbody>
@@ -274,7 +252,6 @@
                     <th>用户</th>
                     <th>登录次数</th>
                     <th>PV</th>
-                    <th>UV</th>
                     <th>下载量</th>
                     <th>OpenAPI</th>
                     <th>AI 对话</th>
@@ -287,7 +264,6 @@
                     <td class="rtable-org">{{ m.user }}</td>
                     <td>{{ m.login }}</td>
                     <td>{{ m.pv }}</td>
-                    <td>{{ m.uv }}</td>
                     <td>{{ m.download }}</td>
                     <td>{{ m.api }}</td>
                     <td>{{ m.ai }}</td>
@@ -344,6 +320,12 @@ function onDateChange(which, val) {
 const RANGE_LABEL = { '24h': '今日', '7d': '近7天', '30d': '近30天', '90d': '近90天', custom: '区间' }
 const RANGE_DAYS = { '24h': 1, '7d': 7, '30d': 30, '90d': 90 }
 
+/** 趋势图标题的时间区间标注（自定义时显示起止日期） */
+const rangeTitle = computed(() => {
+  if (range.value === 'custom') return `${customStart.value} 至 ${customEnd.value}`
+  return RANGE_LABEL[range.value] || '近30天'
+})
+
 /** KPI 随时间范围联动：增量类（需求反馈/AI 对话）按天数缩放，存量类（订阅/版本火车/活跃组织）保持原值 */
 const kpiList = computed(() => {
   const prefix = RANGE_LABEL[range.value] || '近30天'
@@ -354,8 +336,8 @@ const kpiList = computed(() => {
   return [
     { label: `${prefix}需求反馈`, value: Math.round(186 * k), icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>', color: '#da203e', bg: '#fef2f2', trend: 3.4 },
     { label: `${prefix}订阅总数`, value: 12840, icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', color: '#2563eb', bg: '#eff6ff', trend: 6.8 },
-    { label: `${prefix}版本火车`, value: 50, icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M8 21l2-5M16 21l-2-5M4 13h16"/></svg>', color: '#16a34a', bg: '#f0fdf4', trend: 4.2 },
     { label: `${prefix}AI 对话次数`, value: Math.round(6840 * k), icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="14" rx="2"/><rect x="9" y="8" width="6" height="4" rx="1"/><path d="M9 15h6M12 2v2M12 20v2"/></svg>', color: '#d97706', bg: '#fff7ed', trend: 18.6 },
+    { label: `${prefix}活跃用户`, value: Math.round(1280 * k), icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>', color: '#dc2626', bg: '#fef2f2', trend: 5.2 },
     { label: `${prefix}活跃组织`, value: 48, icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/></svg>', color: '#0891b2', bg: '#ecfeff', trend: 7.1 },
   ]
 })
@@ -434,25 +416,18 @@ function genQuestionCounts(n) {
 }
 const userQuestionCounts = genQuestionCounts(100)
 
-/** AI 提问次数分布：按实际数据自动分档（固定 10 档） */
-const aiScaleDist = computed(() => {
-  const vals = userQuestionCounts
-  const n = vals.length
-  const max = Math.max(...vals)
-  const bins = 10
-  const width = Math.max(1, Math.ceil(max / bins))
-  const buckets = Array.from({ length: bins }, () => 0)
-  vals.forEach((v) => {
-    const idx = Math.min(bins - 1, Math.floor((v - 1) / width))
-    buckets[idx]++
-  })
-  return buckets.map((count, idx) => {
-    const start = idx * width + 1
-    const end = (idx + 1) * width
-    const range = idx === bins - 1 ? `${start}+ 次` : `${start}-${end} 次`
-    return { range, count, pct: Math.round((count / n) * 100) }
-  })
-})
+/** 四分位计算：返回 [min, Q1, median, Q3, max] */
+function boxplotStats(vals) {
+  const sorted = [...vals].sort((a, b) => a - b)
+  const n = sorted.length
+  const q = (p) => {
+    const pos = (n - 1) * p
+    const base = Math.floor(pos)
+    const rest = pos - base
+    return sorted[base] + (sorted[base + 1] !== undefined ? (sorted[base + 1] - sorted[base]) * rest : 0)
+  }
+  return [sorted[0], q(0.25), q(0.5), q(0.75), sorted[n - 1]]
+}
 
 /** 纯表格数据：需求反馈明细 */
 const feedbackDetail = [
@@ -478,21 +453,23 @@ function genTrends(base, count, seed) {
   return out
 }
 function genLabels() {
-  if (range.value === 'custom') {
-    // 自定义时间段：按起止日期生成每日标签（如 07-15 … 08-14）
-    const start = new Date(customStart.value)
-    const end = new Date(customEnd.value)
-    const days = Math.max(1, Math.round((end - start) / 86400000) + 1)
-    const pad = (n) => String(n).padStart(2, '0')
-    return Array.from({ length: days }, (_, i) => {
-      const d = new Date(start.getTime() + i * 86400000)
-      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    })
+  const pad = (n) => String(n).padStart(2, '0')
+  const fmt = (d) => `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const end = new Date()
+  // 24h：当天日期 + 小时
+  if (range.value === '24h') {
+    return Array.from({ length: 24 }, (_, i) => `${fmt(end)} ${pad(i)}:00`)
   }
-  const count = range.value === '24h' ? 24 : range.value === '7d' ? 7 : range.value === '90d' ? 12 : 30
-  if (range.value === '24h') return Array.from({ length: count }, (_, i) => `${String(i).padStart(2, '0')}:00`)
-  if (range.value === '7d') return Array.from({ length: count }, (_, i) => `周${'一二三四五六日'[i % 7]}`)
-  return Array.from({ length: count }, (_, i) => `${i + 1}日`)
+  // 自定义时间段：按起止日期生成每日标签（如 07-15 … 08-14）
+  if (range.value === 'custom') {
+    const start = new Date(customStart.value)
+    const cEnd = new Date(customEnd.value)
+    const days = Math.max(1, Math.round((cEnd - start) / 86400000) + 1)
+    return Array.from({ length: days }, (_, i) => fmt(new Date(start.getTime() + i * 86400000)))
+  }
+  // 7d/30d/90d：以今天为终点往前推，显示日期 MM-DD
+  const count = range.value === '7d' ? 7 : range.value === '90d' ? 12 : 30
+  return Array.from({ length: count }, (_, i) => fmt(new Date(end.getTime() - (count - 1 - i) * 86400000)))
 }
 
 /** 活跃组织排行（PV/下载/OpenAPI/AI 均来自埋点统计） */
@@ -558,6 +535,7 @@ function closeOrgDetail() {
 const feedbackTrendChartRef = ref(null)
 const aiChartRef = ref(null)
 const trainChartRef = ref(null)
+const aiScaleChartRef = ref(null)
 let charts = []
 
 const axisStyle = { axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11 }, axisTick: { show: false } }
@@ -613,6 +591,20 @@ function renderAll() {
     series: [
       { name: '对话次数', type: 'line', smooth: true, symbolSize: 5, data: genTrends(220, labels.length, 220), areaStyle: { opacity: 0.08 } },
     ],
+  })
+
+  // AI 提问次数分布：人均提问折线图（按时间区间）
+  initChart(aiScaleChartRef, {
+    tooltip: { ...tooltipBase, trigger: 'axis' },
+    color: ['#8b5cf6'],
+    grid: { left: 40, right: 14, top: 24, bottom: 36 },
+    xAxis: { type: 'category', data: labels, ...axisStyle },
+    yAxis: { type: 'value', ...splitLine, axisLabel: { color: '#9ca3af', fontSize: 10 } },
+    series: [{
+      name: '人均提问次数', type: 'line', smooth: true, symbolSize: 5,
+      areaStyle: { opacity: 0.08 },
+      data: genTrends(12, labels.length, 12),
+    }],
   })
 }
 
