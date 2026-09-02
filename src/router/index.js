@@ -39,6 +39,8 @@ import UserManualView from '../views/manual/UserManualView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
 import RequirementFeedbackView from '../views/software/RequirementFeedbackView.vue'
+import InboundRequestView from '../views/software/InboundRequestView.vue'
+import FeedbackAuditView from '../views/admin/FeedbackAuditView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
 
 const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
@@ -178,6 +180,20 @@ const routes = [
         name: 'requirement-feedback',
         component: RequirementFeedbackView,
         meta: { adminTitle: '需求反馈' },
+      },
+      // 开源软件项目入库需求清单（需求反馈下的子页面）
+      {
+        path: 'feedback/inbound-request',
+        name: 'inbound-request',
+        component: InboundRequestView,
+        meta: { adminTitle: '开源软件项目入库需求清单' },
+      },
+      // ==================== 反馈与审核（后台管理） ====================
+      {
+        path: 'feedback-audit',
+        name: 'feedback-audit',
+        component: FeedbackAuditView,
+        meta: { adminTitle: '反馈与审核' },
       },
       // ==================== OpenAPI ====================
       {

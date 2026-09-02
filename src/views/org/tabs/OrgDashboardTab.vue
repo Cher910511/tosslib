@@ -102,135 +102,107 @@
 
       <!-- 图表区域 -->
       <div class="dash-panels">
-        <!-- 第一行：风险等级 / 漏洞软件排行 / 成员统计 三个独立卡片 -->
-        <div class="dash-panel dash-panel--third">
-          <div class="dash-panel-hd">
-            <h3>风险等级分布</h3>
-          </div>
-          <div class="dash-panel-body">
-            <div ref="levelChartRef" class="dash-echart"></div>
-          </div>
-        </div>
-
-        <div class="dash-panel dash-panel--third">
-          <div class="dash-panel-hd">
-            <h3>漏洞软件排行</h3>
-            <label class="dash-rank-filter">
-              <input type="checkbox" v-model="showOffShelf" />
-              <span>包含已下架</span>
-            </label>
-          </div>
-          <div class="dash-panel-body">
-            <template v-if="orgHasData">
-            <div class="dash-rank-list">
-              <div class="dash-rank-item">
-                <span class="dash-rank-num dash-rank-num--1">1</span>
-                <span class="dash-rank-name">Log4j 2</span>
-                <span class="dash-rank-ver">2.23.1</span>
-                <span class="dash-rank-vuln-badge">12 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num dash-rank-num--2">2</span>
-                <span class="dash-rank-name">OpenSSL</span>
-                <span class="dash-rank-ver">3.3.0</span>
-                <span class="dash-rank-vuln-badge">9 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num dash-rank-num--3">3</span>
-                <span class="dash-rank-name">Spring Framework</span>
-                <span class="dash-rank-ver">6.1.5</span>
-                <span class="dash-rank-vuln-badge">7 漏洞</span>
-              </div>
-              <div v-if="showOffShelf" class="dash-rank-item">
-                <span class="dash-rank-num">4</span>
-                <span class="dash-rank-name">Grafana</span>
-                <span class="dash-rank-ver">11.1.0</span>
-                <span class="dash-rank-vuln-badge dash-rank-vuln-badge--off">6 漏洞</span>
-                <span class="dash-rank-off-badge">下架</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">4</span>
-                <span class="dash-rank-name">Nginx</span>
-                <span class="dash-rank-ver">1.26.0</span>
-                <span class="dash-rank-vuln-badge">5 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">5</span>
-                <span class="dash-rank-name">Redis</span>
-                <span class="dash-rank-ver">7.2.4</span>
-                <span class="dash-rank-vuln-badge">4 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">6</span>
-                <span class="dash-rank-name">Elasticsearch</span>
-                <span class="dash-rank-ver">8.15.0</span>
-                <span class="dash-rank-vuln-badge">4 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">7</span>
-                <span class="dash-rank-name">Prometheus</span>
-                <span class="dash-rank-ver">2.54.0</span>
-                <span class="dash-rank-vuln-badge">3 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">8</span>
-                <span class="dash-rank-name">RabbitMQ</span>
-                <span class="dash-rank-ver">3.13.6</span>
-                <span class="dash-rank-vuln-badge">3 漏洞</span>
-              </div>
-              <div class="dash-rank-item">
-                <span class="dash-rank-num">9</span>
-                <span class="dash-rank-name">PostgreSQL</span>
-                <span class="dash-rank-ver">16.3</span>
-                <span class="dash-rank-vuln-badge">2 漏洞</span>
-              </div>
-              <div v-if="!showOffShelf" class="dash-rank-item">
-                <span class="dash-rank-num">10</span>
-                <span class="dash-rank-name">Vue.js</span>
-                <span class="dash-rank-ver">3.4.31</span>
-                <span class="dash-rank-vuln-badge">1 漏洞</span>
-              </div>
+        <!-- 第一行：风险等级分布 + 漏洞软件排行（同一卡片，灰色分割线隔开） -->
+        <div class="dash-panel dash-panel--full dash-panel--merged">
+          <div class="dash-merged-left">
+            <div class="dash-panel-hd">
+              <h3>风险等级分布</h3>
             </div>
-            </template>
-            <div v-else class="dash-rank-empty">
-              <span class="dash-empty-icon">🔒</span>
-              <p class="dash-empty-text">暂无漏洞数据</p>
-              <p class="dash-empty-hint">该组织暂无存在漏洞的软件</p>
+            <div class="dash-panel-body">
+              <div ref="levelChartRef" class="dash-echart"></div>
             </div>
           </div>
-        </div>
-
-        <!-- 成员与角色统计（独立卡片） -->
-        <div class="dash-member-card">
-          <div class="dash-member-card-hd">
-            <span class="dash-member-card-title">成员与角色统计</span>
-            <span class="dash-member-card-total">{{ memberStats.total }} 人</span>
-          </div>
-          <div class="dash-member-card-body">
-            <div class="dash-member-nums">
-              <div class="dash-member-num">
-                <span class="dash-member-num-value">{{ memberStats.admins }}</span>
-                <span class="dash-member-num-label">管理员</span>
-              </div>
-              <div class="dash-member-num">
-                <span class="dash-member-num-value">{{ memberStats.members }}</span>
-                <span class="dash-member-num-label">普通成员</span>
-              </div>
-              <div class="dash-member-num dash-member-num--sub">
-                <span class="dash-member-num-value dash-member-num-value--green">+5</span>
-                <span class="dash-member-num-label">近 7 天新增</span>
-              </div>
+          <div class="dash-merged-divider" aria-hidden="true"></div>
+          <div class="dash-merged-right">
+            <div class="dash-panel-hd">
+              <h3>漏洞软件排行</h3>
+              <label class="dash-rank-filter">
+                <input type="checkbox" v-model="showOffShelf" />
+                <span>包含已下架</span>
+              </label>
             </div>
-            <div class="dash-member-mini">
-              <template v-if="hasMemberTrend">
-                <div v-for="(v, i) in memberStats.trend" :key="i" class="dash-member-dot" :class="{ 'is-empty': v === 0 }" :title="v + ' 人'">{{ v }}</div>
+            <div class="dash-panel-body">
+              <template v-if="orgHasData">
+              <div class="dash-rank-list">
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num dash-rank-num--1">1</span>
+                  <span class="dash-rank-name">Log4j 2</span>
+                  <span class="dash-rank-ver">2.23.1</span>
+                  <span class="dash-rank-vuln-badge">12 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num dash-rank-num--2">2</span>
+                  <span class="dash-rank-name">OpenSSL</span>
+                  <span class="dash-rank-ver">3.3.0</span>
+                  <span class="dash-rank-vuln-badge">9 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num dash-rank-num--3">3</span>
+                  <span class="dash-rank-name">Spring Framework</span>
+                  <span class="dash-rank-ver">6.1.5</span>
+                  <span class="dash-rank-vuln-badge">7 漏洞</span>
+                </div>
+                <div v-if="showOffShelf" class="dash-rank-item">
+                  <span class="dash-rank-num">4</span>
+                  <span class="dash-rank-name">Grafana</span>
+                  <span class="dash-rank-ver">11.1.0</span>
+                  <span class="dash-rank-vuln-badge dash-rank-vuln-badge--off">6 漏洞</span>
+                  <span class="dash-rank-off-badge">下架</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">4</span>
+                  <span class="dash-rank-name">Nginx</span>
+                  <span class="dash-rank-ver">1.26.0</span>
+                  <span class="dash-rank-vuln-badge">5 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">5</span>
+                  <span class="dash-rank-name">Redis</span>
+                  <span class="dash-rank-ver">7.2.4</span>
+                  <span class="dash-rank-vuln-badge">4 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">6</span>
+                  <span class="dash-rank-name">Elasticsearch</span>
+                  <span class="dash-rank-ver">8.15.0</span>
+                  <span class="dash-rank-vuln-badge">4 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">7</span>
+                  <span class="dash-rank-name">Prometheus</span>
+                  <span class="dash-rank-ver">2.54.0</span>
+                  <span class="dash-rank-vuln-badge">3 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">8</span>
+                  <span class="dash-rank-name">RabbitMQ</span>
+                  <span class="dash-rank-ver">3.13.6</span>
+                  <span class="dash-rank-vuln-badge">3 漏洞</span>
+                </div>
+                <div class="dash-rank-item">
+                  <span class="dash-rank-num">9</span>
+                  <span class="dash-rank-name">PostgreSQL</span>
+                  <span class="dash-rank-ver">16.3</span>
+                  <span class="dash-rank-vuln-badge">2 漏洞</span>
+                </div>
+                <div v-if="!showOffShelf" class="dash-rank-item">
+                  <span class="dash-rank-num">10</span>
+                  <span class="dash-rank-name">Vue.js</span>
+                  <span class="dash-rank-ver">3.4.31</span>
+                  <span class="dash-rank-vuln-badge">1 漏洞</span>
+                </div>
+              </div>
               </template>
-              <p v-else class="dash-member-mini-empty">近 7 天无新增成员</p>
+              <div v-else class="dash-rank-empty">
+                <span class="dash-empty-icon">🔒</span>
+                <p class="dash-empty-text">暂无漏洞数据</p>
+                <p class="dash-empty-hint">该组织暂无存在漏洞的软件</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 第二行 -->
+        <!-- 第二行：软件与组件概况 + 近 30 天预警趋势 + 最新预警 -->
         <div class="dash-panel dash-panel--third">
           <div class="dash-panel-hd">
             <h3>软件与组件概况</h3>
@@ -317,26 +289,68 @@
           <div class="dash-panel-body dash-panel-body--table">
             <table class="dash-table">
               <thead>
-                <tr>
-                  <th>类型</th>
-                  <th>名称</th>
-                  <th>版本</th>
-                  <th>所属火车</th>
+                <!-- 软件 Tab -->
+                <tr v-if="releaseTab === 'software'">
+                  <th>软件名称</th>
+                  <th>版本号</th>
+                  <th>语言</th>
                   <th>许可证</th>
+                  <th class="dash-th-sort" @click="toggleReleaseSort('vulnCount')">
+                    漏洞数
+                    <svg class="dash-sort-svg" viewBox="0 0 1024 1024" width="16" height="16">
+                      <path d="M692.705882 572.235294l-180.705882 240.941177-180.705882-240.941177h361.411764z" :fill="releaseSortField === 'vulnCount' && releaseSortDir === 'desc' ? '#374151' : '#d1d5db'" />
+                      <path d="M512 150.588235l180.705882 240.941177H331.294118L512 150.588235z" :fill="releaseSortField === 'vulnCount' && releaseSortDir === 'asc' ? '#374151' : '#d1d5db'" />
+                    </svg>
+                  </th>
+                  <th>开发商</th>
+                  <th>版本发布时间</th>
+                  <th class="dash-th-sort" @click="toggleReleaseSort('score')">
+                    版本评分
+                    <svg class="dash-sort-svg" viewBox="0 0 1024 1024" width="16" height="16">
+                      <path d="M692.705882 572.235294l-180.705882 240.941177-180.705882-240.941177h361.411764z" :fill="releaseSortField === 'score' && releaseSortDir === 'desc' ? '#374151' : '#d1d5db'" />
+                      <path d="M512 150.588235l180.705882 240.941177H331.294118L512 150.588235z" :fill="releaseSortField === 'score' && releaseSortDir === 'asc' ? '#374151' : '#d1d5db'" />
+                    </svg>
+                  </th>
+                  <th>状态</th>
+                </tr>
+                <!-- 组件 Tab -->
+                <tr v-else>
+                  <th>组件名称</th>
+                  <th>组件版本</th>
+                  <th>组织编号</th>
+                  <th>编程语言</th>
+                  <th>开源许可证</th>
                   <th>状态</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in pagedReleaseItems" :key="item.key">
-                  <td><span class="dash-table-tag" :class="item.kind === '软件' ? 'dash-table-tag--soft' : 'dash-table-tag--comp'">{{ item.kind }}</span></td>
-                  <td class="dash-table-name">{{ item.name }}</td>
-                  <td>{{ item.version }}</td>
-                  <td>{{ trainName(item.trainCode) }}</td>
-                  <td>{{ item.license }}</td>
-                  <td><span class="dash-table-status dash-table-status--on">发车中</span></td>
-                </tr>
+                <template v-if="releaseTab === 'software'">
+                  <tr v-for="item in pagedReleaseItems" :key="item.key">
+                    <td class="dash-table-name">{{ item.name }}</td>
+                    <td><span class="dash-version-link" @click="goDetail(item)">{{ item.version }}</span></td>
+                    <td><span class="dash-lang">{{ item.lang }}</span></td>
+                    <td>{{ item.license }}</td>
+                    <td>
+                      <span class="dash-vuln" :class="{ 'dash-vuln--zero': item.vulnCount === 0, 'dash-vuln--risk': item.vulnCount > 0 }">{{ item.vulnCount }}</span>
+                    </td>
+                    <td class="dash-dev" :title="item.developer">{{ item.developer }}</td>
+                    <td>{{ item.publishTime }}</td>
+                    <td><span class="dash-score">{{ item.score }}</span></td>
+                    <td><span class="dash-table-status dash-table-status--on">发车中</span></td>
+                  </tr>
+                </template>
+                <template v-else>
+                  <tr v-for="item in pagedReleaseItems" :key="item.key">
+                    <td class="dash-table-name">{{ item.name }}</td>
+                    <td><span class="dash-version-link" @click="goDetail(item)">{{ item.version }}</span></td>
+                    <td class="dash-org" :title="item.orgId">{{ item.orgId }}</td>
+                    <td><span class="dash-lang">{{ item.lang }}</span></td>
+                    <td>{{ item.license }}</td>
+                    <td><span class="dash-table-status dash-table-status--on">发车中</span></td>
+                  </tr>
+                </template>
                 <tr v-if="!filteredReleaseItems.length">
-                  <td colspan="6" class="dash-table-empty">当前没有发车中的软件或组件</td>
+                  <td :colspan="releaseTab === 'software' ? 9 : 6" class="dash-table-empty">当前没有发车中的软件或组件</td>
                 </tr>
               </tbody>
             </table>
@@ -364,10 +378,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 
 const props = defineProps({ org: { type: Object, required: true } })
 const emit = defineEmits(['switchTab'])
+const router = useRouter()
 const isAdmin = true
 
 // 根据组织ID区分数据：org-001(工商银行)和org-003(华为)有完整数据，其他组织数据为空
@@ -376,16 +392,16 @@ const showOffShelf = ref(false)
 
 /* —— 发车中软件/组件列表 —— */
 const releasingSoftware = [
-  { id: 1, name: 'Spring Boot', version: '3.5.12', trainCode: 'VT-2026-07-001', license: 'Apache-2.0' },
-  { id: 2, name: 'Redis', version: '7.2.4', trainCode: 'VT-2026-07-001', license: 'BSD-3-Clause' },
-  { id: 3, name: 'Vue.js', version: '3.5.13', trainCode: 'VT-2026-07-002', license: 'MIT' },
-  { id: 4, name: 'OpenSSL', version: '3.3.0', trainCode: 'VT-2026-07-002', license: 'Apache-2.0' },
+  { id: 1, name: 'Spring Boot', version: '3.5.12', trainCode: 'VT-2026-07-001', license: 'Apache-2.0', lang: 'Java', vulnCount: 0, developer: 'VMware', publishTime: '2026-06-15', score: 9.2 },
+  { id: 2, name: 'Redis', version: '7.2.4', trainCode: 'VT-2026-07-001', license: 'BSD-3-Clause', lang: 'C', vulnCount: 1, developer: 'Redis Ltd.', publishTime: '2026-05-20', score: 8.7 },
+  { id: 3, name: 'Vue.js', version: '3.5.13', trainCode: 'VT-2026-07-002', license: 'MIT', lang: 'JavaScript', vulnCount: 0, developer: 'Vue.js', publishTime: '2026-07-01', score: 9.0 },
+  { id: 4, name: 'OpenSSL', version: '3.3.0', trainCode: 'VT-2026-07-002', license: 'Apache-2.0', lang: 'C', vulnCount: 3, developer: 'OpenSSL Project', publishTime: '2026-04-18', score: 7.4 },
 ]
 const releasingComponents = [
-  { id: 1, name: 'spring-core', version: '6.2.17', trainCode: 'VT-2026-07-001', license: 'Apache-2.0' },
-  { id: 2, name: 'log4j-core', version: '2.24.3', trainCode: 'VT-2026-07-001', license: 'Apache-2.0' },
-  { id: 3, name: 'jackson-databind', version: '2.19.4', trainCode: 'VT-2026-07-002', license: 'Apache-2.0' },
-  { id: 4, name: 'hibernate-core', version: '6.6.44.Final', trainCode: 'VT-2026-07-002', license: 'LGPL-2.1' },
+  { id: 1, name: 'spring-core', version: '6.2.17', orgId: 'org.springframework', trainCode: 'VT-2026-07-001', license: 'Apache-2.0', lang: 'Java', vulnCount: 0, developer: 'VMware', publishTime: '2026-06-10', score: 8.9 },
+  { id: 2, name: 'log4j-core', version: '2.24.3', orgId: 'org.apache.logging.log4j', trainCode: 'VT-2026-07-001', license: 'Apache-2.0', lang: 'Java', vulnCount: 4, developer: 'Apache', publishTime: '2026-06-22', score: 6.8 },
+  { id: 3, name: 'jackson-databind', version: '2.19.4', orgId: 'com.fasterxml.jackson.core', trainCode: 'VT-2026-07-002', license: 'Apache-2.0', lang: 'Java', vulnCount: 2, developer: 'FasterXML', publishTime: '2026-07-05', score: 7.9 },
+  { id: 4, name: 'hibernate-core', version: '6.6.44.Final', orgId: 'org.hibernate.orm', trainCode: 'VT-2026-07-002', license: 'LGPL-2.1', lang: 'Java', vulnCount: 0, developer: 'Hibernate', publishTime: '2026-05-30', score: 8.2 },
 ]
 
 /** 根据火车编号（code）查火车名称 */
@@ -406,6 +422,17 @@ const releaseKeyword = ref('')
 const RELEASE_PAGE_SIZE = 5
 const releasePage = ref(1)
 
+/** 漏洞数 / 版本评分 排序状态（参考软件库表头排序） */
+const releaseSortField = ref('')
+const releaseSortDir = ref('asc')
+
+function toggleReleaseSort(field) {
+  if (releaseSortField.value === field) {
+    if (releaseSortDir.value === 'asc') { releaseSortDir.value = 'desc' }
+    else { releaseSortField.value = ''; releaseSortDir.value = 'asc' }
+  } else { releaseSortField.value = field; releaseSortDir.value = 'asc' }
+}
+
 const releaseTabs = computed(() => [
   { key: 'software', label: '软件', count: releasingSoftware.length },
   { key: 'component', label: '组件', count: releasingComponents.length },
@@ -416,14 +443,24 @@ const releaseTabItems = computed(() =>
   releaseTab.value === 'software' ? releasingSoftware : releasingComponents,
 )
 
-/** 按版本火车 + 关键词过滤 */
+/** 按版本火车 + 关键词过滤 + 漏洞数/评分排序 */
 const filteredReleaseItems = computed(() => {
   const kw = releaseKeyword.value.trim().toLowerCase()
-  return releaseTabItems.value.filter((item) => {
+  let list = releaseTabItems.value.filter((item) => {
     const okTrain = !releaseTrain.value || item.trainCode === releaseTrain.value
     const okKw = !kw || item.name.toLowerCase().includes(kw)
     return okTrain && okKw
   })
+  if (releaseSortField.value === 'vulnCount') {
+    list = [...list].sort((a, b) => releaseSortDir.value === 'asc'
+      ? (a.vulnCount || 0) - (b.vulnCount || 0)
+      : (b.vulnCount || 0) - (a.vulnCount || 0))
+  } else if (releaseSortField.value === 'score') {
+    list = [...list].sort((a, b) => releaseSortDir.value === 'asc'
+      ? (a.score || 0) - (b.score || 0)
+      : (b.score || 0) - (a.score || 0))
+  }
+  return list
 })
 
 const releasePageCount = computed(() => Math.max(1, Math.ceil(filteredReleaseItems.value.length / RELEASE_PAGE_SIZE)))
@@ -442,17 +479,14 @@ function goReleasePage(p) {
   releasePage.value = p
 }
 
-const memberStats = {
-  total: 186,
-  admins: 3,
-  members: 183,
-  adminPct: 2,
-  memberPct: 98,
-  trend: [2, 3, 1, 4, 2, 3, 5],
+/** 点击版本跳转：软件 → 软件详情，组件 → 组件库（与软件库页一致） */
+function goDetail(item) {
+  if (releaseTab.value === 'software') {
+    router.push({ name: 'software-detail', query: { q: item.name } })
+  } else {
+    router.push({ name: 'component-library', query: { q: item.name } })
+  }
 }
-
-/** 近 7 天是否有新增成员（全 0 时迷你柱显示空态，避免全 0 矮柱难看） */
-const hasMemberTrend = computed(() => memberStats.trend.some((v) => v > 0))
 
 const levelChartRef = ref(null)
 const overviewChartRef = ref(null)
@@ -738,103 +772,6 @@ onUnmounted(() => {
 }
 .dash-todo-more:hover { text-decoration: underline; }
 
-/* 成员与角色统计（小卡片） */
-.dash-member-card {
-  flex: 0 1 320px;
-  min-width: 260px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.dash-member-card-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid #f3f4f6;
-  flex-shrink: 0;
-}
-.dash-member-card-title { font-size: 13px; font-weight: 600; color: #374151; }
-.dash-member-card-total {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 99px;
-  background: #f3f4f6;
-  color: #6b7280;
-}
-.dash-member-card-body {
-  flex: 1;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 0;
-}
-.dash-member-nums {
-  flex: 1;
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-.dash-member-num {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 18px 6px;
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-}
-.dash-member-num--sub { background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border-color: #dcfce7; }
-.dash-member-num-value { display: block; font-size: 28px; font-weight: 700; color: #111827; line-height: 1.2; }
-.dash-member-num-value--green { color: #16a34a; }
-.dash-member-num-label { display: block; font-size: 12px; color: #6b7280; margin-top: 4px; }
-.dash-member-mini {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  height: 44px;
-  margin-top: 12px;
-  padding: 0 4px;
-  border-top: 1px dashed #eef0f2;
-  padding-top: 10px;
-}
-.dash-member-dot {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 700;
-  transition: background 0.2s, color 0.2s;
-}
-.dash-member-dot.is-empty {
-  background: #f3f4f6;
-  color: #9ca3af;
-}
-.dash-member-mini-empty {
-  margin: 0;
-  width: 100%;
-  text-align: center;
-  font-size: 11px;
-  color: #9ca3af;
-  align-self: center;
-}
-
 /* 最近操作日志 */
 .dash-log-list { display: flex; flex-direction: column; }
 .dash-log-row {
@@ -959,6 +896,14 @@ onUnmounted(() => {
 .dash-panel--two-thirds { flex: 1 1 calc(66.67% - 6px); min-width: 360px; }
 .dash-panel--full { flex: 1 1 100%; }
 
+/* 合并卡片：风险等级 + 漏洞排行，左右两栏 + 灰色竖线分割 */
+.dash-panel--merged { display: flex; align-items: stretch; }
+.dash-merged-left { flex: 3 1 30%; min-width: 0; display: flex; flex-direction: column; }
+.dash-merged-right { flex: 7 1 70%; min-width: 0; display: flex; flex-direction: column; }
+.dash-merged-divider { width: 1px; flex-shrink: 0; background: #e5e7eb; }
+.dash-merged-left .dash-panel-hd, .dash-merged-right .dash-panel-hd { border-bottom: 1px solid #f3f4f6; }
+.dash-merged-left .dash-panel-body, .dash-merged-right .dash-panel-body { flex: 1; min-height: 0; overflow: hidden; }
+
 .dash-panel-hd {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
@@ -972,12 +917,31 @@ onUnmounted(() => {
 
 .dash-panel-body { padding: 6px 8px 4px; }
 .dash-panel-body--table { padding: 0 0 4px; overflow-x: auto; }
-.dash-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
 .dash-table th { padding: 8px 12px; text-align: left; font-weight: 600; color: #6b7280; background: #f9fafb; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
 .dash-table td { padding: 8px 12px; border-bottom: 1px solid #f9fafb; color: #374151; white-space: nowrap; }
 .dash-table tbody tr:hover { background: #fafafa; }
 .dash-table-name { font-weight: 600; color: #111827; }
+.dash-version-link { color: #2563eb; cursor: pointer; transition: color 0.12s; }
+.dash-version-link:hover { color: #da203e; text-decoration: underline; }
 .dash-table-empty { text-align: center; color: #9ca3af; padding: 16px 12px; }
+.dash-th-sort { cursor: pointer; user-select: none; white-space: nowrap; }
+.dash-sort-svg { vertical-align: middle; width: 16px; height: 16px; display: inline-block; margin-left: 2px; }
+.dash-lang { color: #374151; }
+.dash-vuln {
+  display: inline-block; min-width: 24px; text-align: center;
+  padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums; line-height: 18px;
+}
+.dash-vuln--zero { color: #166534; background: #f0fdf4; }
+.dash-vuln--risk { color: #991b1b; background: #fef2f2; }
+.dash-dev { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-org {
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px; color: #4b5563;
+}
+.dash-score { font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; }
 .dash-table-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .dash-table-tag--soft { background: #eff6ff; color: #2563eb; }
 .dash-table-tag--comp { background: #f5f3ff; color: #8b5cf6; }

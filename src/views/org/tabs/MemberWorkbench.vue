@@ -265,8 +265,8 @@
         <div class="mw-card-body">
           <div class="mw-charts-row">
             <div class="mw-chart-block">
-              <p class="mw-chart-label">订阅类型分布</p>
-              <div ref="subTypeChartRef" class="mw-chart mw-chart--sm"></div>
+              <p class="mw-chart-label">订阅软件语言分布</p>
+              <div ref="langChartRef" class="mw-chart mw-chart--sm"></div>
             </div>
             <div class="mw-chart-block">
               <p class="mw-chart-label">软件评分分布</p>
@@ -495,8 +495,8 @@ function goManual() {
   router.push({ name: 'user-manual' })
 }
 
-/* ===== 图表（订阅类型分布 / 软件评分分布） ===== */
-const subTypeChartRef = ref(null)
+/* ===== 图表（订阅软件语言分布 / 软件评分分布） ===== */
+const langChartRef = ref(null)
 const scoreChartRef = ref(null)
 let charts = []
 
@@ -508,28 +508,31 @@ function initChart(elRef, option) {
 }
 
 function renderCharts() {
-  /* 订阅类型分布（软件/制品） */
-  const subKind = subscriptions.reduce(
-    (acc, s) => {
-      if (s.kind === '软件') acc.soft += 1
-      else acc.comp += 1
-      return acc
-    },
-    { soft: 0, comp: 0 },
-  )
-  initChart(subTypeChartRef, {
+  /* 订阅软件语言分布（环形图）：固定 5 种常用语言，其余归入「其他」 */
+  const FIXED_LANGS = ['Java', 'Python', 'JavaScript', 'Go', 'C']
+  const langCount = {}
+  subscriptions.forEach((s) => {
+    langCount[s.language] = (langCount[s.language] || 0) + 1
+  })
+  const langData = []
+  let otherCount = 0
+  FIXED_LANGS.forEach((lang) => {
+    if (langCount[lang]) langData.push({ name: lang, value: langCount[lang] })
+  })
+  Object.entries(langCount).forEach(([name, value]) => {
+    if (!FIXED_LANGS.includes(name)) otherCount += value
+  })
+  if (otherCount > 0) langData.push({ name: '其他', value: otherCount })
+  initChart(langChartRef, {
     tooltip: { trigger: 'item', formatter: '{b}: {c} 项 ({d}%)' },
-    color: ['#2563eb', '#8b5cf6'],
+    color: ['#2563eb', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#9ca3af'],
     legend: { bottom: 0, textStyle: { fontSize: 11, color: '#6b7280' }, itemWidth: 12, itemHeight: 10 },
     series: [{
       type: 'pie', radius: ['42%', '68%'], center: ['50%', '44%'],
       itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 12, fontWeight: 700, color: '#374151' } },
-      data: [
-        { name: '软件', value: subKind.soft },
-        { name: '制品', value: subKind.comp },
-      ],
+      data: langData,
     }],
   })
 

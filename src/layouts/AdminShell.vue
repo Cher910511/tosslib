@@ -102,10 +102,36 @@
             </RouterLink>
           </div>
         </div>
-        <RouterLink class="admin-nav-item" to="/software/feedback" active-class="is-active">
-          <span class="nav-ico" aria-hidden="true">▤</span>
-          需求反馈
-        </RouterLink>
+        <!-- 需求反馈（一级可点击进表单页 + 子菜单） -->
+        <div class="admin-nav-group">
+          <div
+            class="admin-nav-item admin-nav-item--group"
+            :class="{ 'is-open': feedbackOpen }"
+          >
+            <RouterLink
+              class="admin-nav-group-link"
+              to="/software/feedback"
+              active-class="is-active"
+            >
+              <span class="nav-ico" aria-hidden="true">▤</span>
+              <span class="nav-label">需求反馈</span>
+            </RouterLink>
+            <span
+              class="nav-caret"
+              aria-hidden="true"
+              @click.stop="feedbackOpen = !feedbackOpen"
+            >{{ feedbackOpen ? '▾' : '▸' }}</span>
+          </div>
+          <div v-show="feedbackOpen" class="admin-nav-submenu">
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/feedback/inbound-request"
+              active-class="is-active"
+            >
+              <span class="nav-label">开源软件项目入库需求清单</span>
+            </RouterLink>
+          </div>
+        </div>
         <RouterLink class="admin-nav-item" to="/software/standard-build" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">▣</span>
           指标配置
@@ -156,6 +182,13 @@
               active-class="is-active"
             >
               <span class="nav-label">漏洞预警</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/feedback-audit"
+              active-class="is-active"
+            >
+              <span class="nav-label">反馈与审核</span>
             </RouterLink>
           </div>
         </div>
@@ -418,6 +451,9 @@ function handleLogout() {
 // 软件管理二级菜单展开状态
 const softwareManageOpen = ref(false)
 
+// 需求反馈二级菜单展开状态
+const feedbackOpen = ref(false)
+
 // 版本火车二级菜单展开状态
 const versionTrainOpen = ref(false)
 
@@ -454,6 +490,8 @@ const breadcrumbConfig = {
   'patch-plan':       { currentLabel: '软件出入库' },
   'openapi-tools':    { currentLabel: 'OpenAPI 工具集' },
   'requirement-feedback': { currentLabel: '需求反馈' },
+  'inbound-request': { parentLabel: '需求反馈', parentTo: { name: 'requirement-feedback' }, currentLabel: '开源软件项目入库需求清单' },
+  'feedback-audit': { currentLabel: '反馈与审核' },
   'api-keys':         { currentLabel: '密钥管理' },
   'personal-settings': { currentLabel: '个人设置' },
   'standard-build':   { currentLabel: '指标配置' },
@@ -763,6 +801,36 @@ const manualPageUrl = computed(() => {
   text-align: center;
   font-size: 13px;
   opacity: 0.85;
+}
+
+/* 分组一级标题作为可点击链接（如「需求反馈」） */
+.admin-nav-group-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-nav-group-link:hover {
+  color: inherit;
+}
+
+.admin-nav-group-link.is-active {
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+
+/* 分组展开箭头：独立可点击 */
+.nav-caret {
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: #9ca3af;
 }
 
 .admin-main {
