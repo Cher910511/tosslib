@@ -26,29 +26,8 @@
       </header>
       <div v-show="filterOpen" class="fa-filter-body">
         <div class="fa-filter-grid">
-          <!-- 需求反馈 筛选项 -->
-          <template v-if="activeTab === 'feedback'">
-            <div class="fa-field">
-              <label class="fa-label">反馈人</label>
-              <input v-model.trim="feedbackFilters.reporter" type="text" class="fa-input" placeholder="请输入反馈人" />
-            </div>
-            <div class="fa-field">
-              <label class="fa-label">反馈类型</label>
-              <select v-model="feedbackFilters.type" class="fa-select">
-                <option value="">全部</option>
-                <option v-for="t in FEEDBACK_TYPES" :key="t" :value="t">{{ t }}</option>
-              </select>
-            </div>
-            <div class="fa-field">
-              <label class="fa-label">状态</label>
-              <select v-model="feedbackFilters.status" class="fa-select">
-                <option value="">全部</option>
-                <option v-for="s in FEEDBACK_STATUS" :key="s" :value="s">{{ s }}</option>
-              </select>
-            </div>
-          </template>
           <!-- 企业认证审核 筛选项 -->
-          <template v-else-if="activeTab === 'cert'">
+          <template v-if="activeTab === 'cert'">
             <div class="fa-field">
               <label class="fa-label">企业名称</label>
               <input v-model.trim="certFilters.name" type="text" class="fa-input" placeholder="请输入企业名称" />
@@ -61,7 +40,7 @@
               </select>
             </div>
           </template>
-          <!-- 开源软件入库需求清单 筛选项 -->
+          <!-- 软件入库需求反馈 筛选项 -->
           <template v-else>
             <div class="fa-field">
               <label class="fa-label">反馈组织</label>
@@ -70,10 +49,6 @@
             <div class="fa-field">
               <label class="fa-label">反馈人</label>
               <input v-model.trim="inboundFilters.reporter" type="text" class="fa-input" placeholder="请输入反馈人" />
-            </div>
-            <div class="fa-field">
-              <label class="fa-label">联系方式</label>
-              <input v-model.trim="inboundFilters.contact" type="text" class="fa-input" placeholder="请输入联系方式" />
             </div>
           </template>
         </div>
@@ -87,39 +62,8 @@
         <span class="fa-card-badge">共计 {{ filteredList.length }} 条</span>
       </header>
 
-      <!-- ===== Tab1：需求反馈 ===== -->
-      <template v-if="activeTab === 'feedback'">
-        <div class="fa-table-wrap">
-          <table class="fa-table">
-            <thead>
-              <tr>
-                <th>反馈人</th>
-                <th>联系方式</th>
-                <th>反馈类型</th>
-                <th>反馈内容</th>
-                <th>反馈时间</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="f in paginatedList" :key="f.id">
-                <td class="fa-name">{{ f.reporter }}</td>
-                <td>{{ f.contact }}</td>
-                <td>{{ f.type }}</td>
-                <td class="fa-cell-ellipsis" :title="f.content">{{ f.content }}</td>
-                <td>{{ f.time }}</td>
-                <td><span class="fa-status" :class="'fa-status--' + f.status">{{ f.status }}</span></td>
-              </tr>
-              <tr v-if="!paginatedList.length">
-                <td colspan="6" class="fa-empty">暂无匹配的需求反馈</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <!-- ===== Tab2：企业认证审核 ===== -->
-      <template v-else-if="activeTab === 'cert'">
+      <!-- ===== Tab1：企业认证审核 ===== -->
+      <template v-if="activeTab === 'cert'">
         <div class="fa-table-wrap">
           <table class="fa-table">
             <thead>
@@ -155,7 +99,7 @@
         </div>
       </template>
 
-      <!-- ===== Tab3：开源软件入库需求清单 ===== -->
+      <!-- ===== Tab2：软件入库需求反馈 ===== -->
       <template v-else>
         <div class="fa-table-wrap">
           <table class="fa-table">
@@ -163,23 +107,27 @@
               <tr>
                 <th>反馈组织</th>
                 <th>反馈人</th>
-                <th>联系方式</th>
                 <th>清单文件</th>
                 <th>软件条数</th>
                 <th>提交时间</th>
+                <th>治理负责人</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="r in paginatedList" :key="r.id">
-                <td class="fa-name">{{ r.org }}</td>
-                <td>{{ r.reporter }}</td>
-                <td>{{ r.contact }}</td>
+                <td class="fa-name">{{ r.org || '—' }}</td>
+                <td>{{ r.reporter || '—' }}</td>
                 <td class="fa-file-name" :title="r.fileName">{{ r.fileName }}</td>
                 <td>{{ r.itemCount }} 条</td>
                 <td>{{ r.createdAt }}</td>
                 <td>
+                  <span v-if="r.assignedTo" class="fa-owner-name">{{ r.assignedTo }}</span>
+                  <span v-else class="fa-muted">—</span>
+                </td>
+                <td>
                   <button type="button" class="fa-op" @click="openDetail(r)">查看详情</button>
+                  <button type="button" class="fa-op" @click="openAssign(r)">分配</button>
                 </td>
               </tr>
               <tr v-if="!paginatedList.length">
@@ -277,24 +225,73 @@
         </footer>
       </div>
     </div>
+
+    <!-- ===== 分配弹窗（平台管理员将清单分配给库主） ===== -->
+    <div v-if="assignTarget" class="fa-overlay" @click.self="closeAssign">
+      <div class="fa-modal fa-modal--sm" role="dialog" aria-modal="true" aria-labelledby="fa-assign-title">
+        <header class="fa-modal-hd">
+          <h3 id="fa-assign-title" class="fa-modal-title">分配入库需求清单</h3>
+          <button type="button" class="fa-modal-close" aria-label="关闭" @click="closeAssign">✕</button>
+        </header>
+        <div class="fa-modal-meta">
+          <span>清单：{{ assignTarget.org }}（{{ assignTarget.itemCount }} 条）</span>
+          <span>提交人：{{ assignTarget.reporter }}</span>
+          <span>提交时间：{{ assignTarget.createdAt }}</span>
+        </div>
+        <div class="fa-assign-body">
+          <div class="fa-field">
+            <label class="fa-label">治理负责人 <span class="fa-required">*</span></label>
+            <div class="fa-user-select" :class="{ 'is-open': assignDropdownOpen }">
+              <button type="button" class="fa-user-trigger" @click="toggleAssignDropdown">
+                <template v-if="selectedAssignUser">
+                  <span class="fa-user-avatar" :style="avatarStyle(selectedAssignUser.name)">{{ selectedAssignUser.name.charAt(0) }}</span>
+                  <span class="fa-user-name">{{ selectedAssignUser.name }}</span>
+                </template>
+                <span v-else class="fa-user-placeholder">请选择治理负责人</span>
+                <span class="fa-user-caret" aria-hidden="true">▾</span>
+              </button>
+              <div v-if="assignDropdownOpen" class="fa-user-panel">
+                <input ref="assignSearchInput" v-model.trim="assignSearch" type="text" class="fa-user-search" placeholder="搜索用户名" />
+                <ul class="fa-user-list">
+                  <li v-for="u in assignUserOptions" :key="u.id">
+                    <button
+                      type="button"
+                      class="fa-user-option"
+                      :class="{ 'is-active': selectedAssignUser && selectedAssignUser.id === u.id }"
+                      @click="pickAssignUser(u)"
+                    >
+                      <span class="fa-user-avatar" :style="avatarStyle(u.name)">{{ u.name.charAt(0) }}</span>
+                      <span class="fa-user-name">{{ u.name }}</span>
+                    </button>
+                  </li>
+                  <li v-if="!assignUserOptions.length" class="fa-user-empty">未找到匹配用户</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="fa-modal-ft">
+          <button type="button" class="fa-btn-shelf fa-btn-shelf--primary" :disabled="!canAssign" @click="confirmAssign">确认分配</button>
+          <button type="button" class="fa-btn-shelf fa-btn-shelf--outline" @click="closeAssign">取消</button>
+        </footer>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch } from 'vue'
-import { getInboundRequests } from '../../data/inboundRequests.js'
+import { ref, computed, reactive, watch, nextTick, onUnmounted } from 'vue'
+import { getInboundRequests, assignInboundRequest } from '../../data/inboundRequests.js'
+import { ORGS, USERS } from '../../data/orgData.js'
 
 const TABS = [
-  { key: 'feedback', label: '需求反馈' },
   { key: 'cert', label: '企业认证审核' },
-  { key: 'inbound', label: '开源软件入库需求清单' },
+  { key: 'inbound', label: '软件入库需求反馈' },
 ]
 
-const FEEDBACK_TYPES = ['代码、制品需求', '功能需求', '使用体验', '异常反馈', '权限安全', '账号登录', '其他']
-const FEEDBACK_STATUS = ['待处理', '处理中', '已处理']
 const CERT_STATUS = ['待审核', '已通过', '已驳回']
 
-const activeTab = ref('feedback')
+const activeTab = ref('cert')
 const filterOpen = ref(true)
 
 const listTitle = computed(() => {
@@ -308,34 +305,6 @@ function setTab(key) {
 }
 
 /* —— 数据源 —— */
-const feedbackList = ref([
-  { id: 'f1', reporter: '赵小明', contact: '13800000001', type: '功能需求', content: '希望软件库支持按行业分类筛选软件。', time: '2026-08-28 10:23', status: '待处理' },
-  { id: 'f2', reporter: '钱丽华', contact: '13800000002', type: '异常反馈', content: '下载软件包时偶发超时，请排查。', time: '2026-08-25 15:41', status: '已处理' },
-  { id: 'f3', reporter: '孙一鸣', contact: '13800000003', type: '代码、制品需求', content: '缺少 spring-cloud 相关组件，申请入库。', time: '2026-08-22 09:12', status: '处理中' },
-  { id: 'f4', reporter: '周雅琴', contact: '13800000004', type: '使用体验', content: '详情页加载偏慢，建议优化图片资源。', time: '2026-08-20 14:05', status: '待处理' },
-  { id: 'f5', reporter: '吴浩然', contact: '13800000005', type: '权限安全', content: '子账号权限粒度较粗，希望支持按目录授权。', time: '2026-08-18 11:30', status: '处理中' },
-  { id: 'f6', reporter: '郑子轩', contact: '13800000006', type: '功能需求', content: '建议增加 SBOM 导出为 SPDX 格式。', time: '2026-08-15 16:44', status: '待处理' },
-  { id: 'f7', reporter: '冯雨萱', contact: '13800000007', type: '账号登录', content: '企业微信扫码登录偶发失败。', time: '2026-08-12 09:02', status: '已处理' },
-  { id: 'f8', reporter: '王逸飞', contact: '13800000008', type: '异常反馈', content: '漏洞详情页 CVE 链接打不开。', time: '2026-08-10 13:26', status: '已处理' },
-  { id: 'f9', reporter: '李梦涵', contact: '13800000009', type: '代码、制品需求', content: '希望引入 jwt 相关组件库。', time: '2026-08-08 10:15', status: '待处理' },
-  { id: 'f10', reporter: '刘子涵', contact: '13800000010', type: '使用体验', content: '软件卡片希望展示更多评分信息。', time: '2026-08-05 17:38', status: '处理中' },
-  { id: 'f11', reporter: '杨思琪', contact: '13800000011', type: '功能需求', content: '建议支持订阅邮件的日报推送。', time: '2026-08-03 09:50', status: '待处理' },
-  { id: 'f12', reporter: '张建国', contact: '13800000012', type: '权限安全', content: '组织管理员无法查看成员操作日志。', time: '2026-08-01 15:20', status: '已处理' },
-  { id: 'f13', reporter: '李慧敏', contact: '13800000013', type: '功能需求', content: '希望支持批量导出软件清单。', time: '2026-07-30 10:40', status: '待处理' },
-  { id: 'f14', reporter: '王强', contact: '13800000014', type: '异常反馈', content: '搜索结果偶尔不准确，疑似索引未更新。', time: '2026-07-28 16:12', status: '处理中' },
-  { id: 'f15', reporter: '陈静', contact: '13800000015', type: '使用体验', content: '希望表格支持自定义列显示。', time: '2026-07-25 11:05', status: '待处理' },
-  { id: 'f16', reporter: '刘洋', contact: '13800000016', type: '代码、制品需求', content: '缺少 nestjs 相关组件，申请入库。', time: '2026-07-22 09:30', status: '已处理' },
-  { id: 'f17', reporter: '黄丽', contact: '13800000017', type: '权限安全', content: '希望支持基于角色的细粒度权限。', time: '2026-07-20 14:55', status: '处理中' },
-  { id: 'f18', reporter: '赵磊', contact: '13800000018', type: '功能需求', content: '建议增加软件对比功能。', time: '2026-07-18 10:10', status: '待处理' },
-  { id: 'f19', reporter: '孙芳', contact: '13800000019', type: '账号登录', content: '忘记密码找回流程复杂，希望简化。', time: '2026-07-15 15:35', status: '已处理' },
-  { id: 'f20', reporter: '周涛', contact: '13800000020', type: '异常反馈', content: '下载大文件时进度条不更新。', time: '2026-07-12 11:20', status: '待处理' },
-  { id: 'f21', reporter: '吴敏', contact: '13800000021', type: '使用体验', content: '暗色模式下部分图表看不清。', time: '2026-07-10 09:15', status: '处理中' },
-  { id: 'f22', reporter: '郑伟', contact: '13800000022', type: '代码、制品需求', content: '希望补充 k8s 客户端组件。', time: '2026-07-08 16:50', status: '待处理' },
-  { id: 'f23', reporter: '冯雪', contact: '13800000023', type: '功能需求', content: '建议支持订阅通知的站内信提醒。', time: '2026-07-05 10:45', status: '已处理' },
-  { id: 'f24', reporter: '王静', contact: '13800000024', type: '权限安全', content: 'API 密钥过期提醒不明显。', time: '2026-07-03 14:20', status: '处理中' },
-  { id: 'f25', reporter: '李强', contact: '13800000025', type: '异常反馈', content: '扫描结果导出后部分字段乱码。', time: '2026-07-01 09:55', status: '待处理' },
-])
-
 const certList = ref([
   { id: 'c1', name: '重庆渝高科技发展有限公司', creditCode: '91500106MA60XXXX1A', legalPerson: '刘强', phone: '023-88880001', time: '2026-08-30 11:02', status: '待审核' },
   { id: 'c2', name: '成都锦程信息技术有限公司', creditCode: '91510100MA6XXXX2B', legalPerson: '陈琳', phone: '028-66660002', time: '2026-08-29 16:20', status: '待审核' },
@@ -350,20 +319,10 @@ const certList = ref([
 const inboundList = computed(() => getInboundRequests())
 
 /* —— 筛选项 —— */
-const feedbackFilters = reactive({ reporter: '', type: '', status: '' })
 const certFilters = reactive({ name: '', status: '' })
-const inboundFilters = reactive({ org: '', reporter: '', contact: '' })
+const inboundFilters = reactive({ org: '', reporter: '' })
 
 /* —— 筛选结果 —— */
-function filterFeedback() {
-  let list = feedbackList.value
-  const n = feedbackFilters.reporter.trim().toLowerCase()
-  if (n) list = list.filter((s) => s.reporter.toLowerCase().includes(n))
-  if (feedbackFilters.type) list = list.filter((s) => s.type === feedbackFilters.type)
-  if (feedbackFilters.status) list = list.filter((s) => s.status === feedbackFilters.status)
-  return list
-}
-
 function filterCert() {
   let list = certList.value
   const n = certFilters.name.trim().toLowerCase()
@@ -376,15 +335,12 @@ function filterInbound() {
   let list = inboundList.value
   const org = inboundFilters.org.trim().toLowerCase()
   const rep = inboundFilters.reporter.trim().toLowerCase()
-  const con = inboundFilters.contact.trim().toLowerCase()
   if (org) list = list.filter((s) => s.org.toLowerCase().includes(org))
   if (rep) list = list.filter((s) => s.reporter.toLowerCase().includes(rep))
-  if (con) list = list.filter((s) => s.contact.toLowerCase().includes(con))
   return list
 }
 
 const filteredList = computed(() => {
-  if (activeTab.value === 'feedback') return filterFeedback()
   if (activeTab.value === 'cert') return filterCert()
   return filterInbound()
 })
@@ -394,17 +350,12 @@ function doFilter() {
 }
 
 function clearFilter() {
-  if (activeTab.value === 'feedback') {
-    feedbackFilters.reporter = ''
-    feedbackFilters.type = ''
-    feedbackFilters.status = ''
-  } else if (activeTab.value === 'cert') {
+  if (activeTab.value === 'cert') {
     certFilters.name = ''
     certFilters.status = ''
   } else {
     inboundFilters.org = ''
     inboundFilters.reporter = ''
-    inboundFilters.contact = ''
   }
   page.value = 1
 }
@@ -442,6 +393,88 @@ watch(pageSize, () => {
 function auditCert(id, status) {
   const c = certList.value.find((x) => x.id === id)
   if (c) c.status = status
+}
+
+/* —— 入库清单分配（平台管理员） —— */
+const assignTarget = ref(null)
+const selectedAssignUser = ref(null)
+const assignSearch = ref('')
+const assignDropdownOpen = ref(false)
+const assignSearchInput = ref(null)
+
+/** 备选治理负责人：全部库主（owner），支持按用户名搜索 */
+const assignUserOptions = computed(() => {
+  const kw = assignSearch.value.trim().toLowerCase()
+  return USERS.filter((u) => u.role === 'owner' && (!kw || u.name.toLowerCase().includes(kw)))
+})
+
+const canAssign = computed(() => !!selectedAssignUser.value)
+
+function toggleAssignDropdown() {
+  assignDropdownOpen.value = !assignDropdownOpen.value
+}
+
+function pickAssignUser(u) {
+  selectedAssignUser.value = u
+  assignDropdownOpen.value = false
+}
+
+function onDocClick(e) {
+  if (!assignDropdownOpen.value) return
+  if (!e.target.closest('.fa-user-select')) assignDropdownOpen.value = false
+}
+
+watch(assignDropdownOpen, async (open) => {
+  if (open) {
+    document.addEventListener('click', onDocClick)
+    await nextTick()
+    assignSearchInput.value?.focus()
+  } else {
+    document.removeEventListener('click', onDocClick)
+  }
+})
+
+onUnmounted(() => document.removeEventListener('click', onDocClick))
+
+/* 头像底色：按用户名哈希取色 */
+const AVATAR_COLORS = [
+  { bg: 'linear-gradient(135deg, #fef2f2, #fce4e4)', text: '#da203e' },
+  { bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', text: '#2563eb' },
+  { bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', text: '#16a34a' },
+  { bg: 'linear-gradient(135deg, #fefce8, #fef9c3)', text: '#ca8a04' },
+]
+
+function avatarStyle(name) {
+  if (!name) return { background: AVATAR_COLORS[0].bg, color: AVATAR_COLORS[0].text }
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0
+  const c = AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+  return { background: c.bg, color: c.text }
+}
+
+function openAssign(r) {
+  assignTarget.value = r
+  selectedAssignUser.value = null
+  assignSearch.value = ''
+  assignDropdownOpen.value = false
+}
+
+function closeAssign() {
+  assignTarget.value = null
+  assignDropdownOpen.value = false
+}
+
+function confirmAssign() {
+  if (!assignTarget.value || !canAssign.value) return
+  const user = selectedAssignUser.value
+  const org = ORGS.find((o) => o.id === user.orgId)
+  assignInboundRequest(assignTarget.value.id, {
+    orgId: user.orgId || '',
+    orgName: org?.name || '',
+    assignee: user.name,
+  })
+  assignTarget.value = null
+  assignDropdownOpen.value = false
 }
 
 /* —— 查看详情弹窗 —— */
@@ -505,7 +538,7 @@ function downloadDetail(r) {
   const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `${r.org}-入库需求清单-${r.createdAt.replace(/[: ]/g, '-')}.csv`
+  a.download = `${(r.org || '开源软件入库')}-需求清单-${(r.createdAt || '').replace(/[: ]/g, '-')}.csv`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -762,6 +795,12 @@ function downloadDetail(r) {
   font-weight: 500;
 }
 
+/* 治理负责人 */
+.fa-owner-name {
+  font-weight: 600;
+  color: #374151;
+}
+
 .fa-cell-ellipsis {
   max-width: 220px;
   overflow: hidden;
@@ -820,6 +859,43 @@ function downloadDetail(r) {
   color: #dc2626;
   background: #fef2f2;
   border: 1px solid #fecaca;
+}
+
+/* 入库需求清单状态机 */
+.fa-status--待分配 {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.fa-status--已分配 {
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.fa-status--治理中 {
+  color: #0e7490;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+}
+
+.fa-status--待审核 {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.fa-status--已审核 {
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.fa-status--已入库 {
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
 }
 
 /* 操作按钮 */
@@ -1025,5 +1101,137 @@ function downloadDetail(r) {
   padding: 12px 20px;
   border-top: 1px solid #f0f0f0;
   flex-shrink: 0;
+}
+
+/* 分配弹窗：窄版 */
+.fa-modal--sm {
+  width: min(480px, 100%);
+}
+
+.fa-assign-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px 20px;
+  overflow-y: visible;
+}
+
+/* 治理负责人下拉（头像 + 用户名 + 搜索） */
+.fa-user-select {
+  position: relative;
+}
+
+.fa-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fa-user-trigger:hover,
+.fa-user-select.is-open .fa-user-trigger {
+  border-color: #da203e;
+  box-shadow: 0 0 0 2px rgba(218, 32, 62, 0.12);
+}
+
+.fa-user-placeholder {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.fa-user-caret {
+  margin-left: auto;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.fa-user-avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fa-user-name {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 弹窗本体 overflow:hidden，面板走文档流，展开时弹窗自动撑高，避免被裁切 */
+.fa-user-panel {
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.12);
+  overflow: hidden;
+}
+
+.fa-user-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+  outline: none;
+}
+
+.fa-user-search::placeholder {
+  color: #9ca3af;
+}
+
+.fa-user-list {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 208px;
+  overflow-y: auto;
+}
+
+.fa-user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fa-user-option:hover,
+.fa-user-option.is-active {
+  background: #f9fafb;
+}
+
+.fa-user-empty {
+  padding: 14px 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.fa-required {
+  margin-left: 2px;
+  color: #da203e;
 }
 </style>

@@ -1,9 +1,13 @@
-// ==================== 开源软件入库需求清单 · 模拟数据 ====================
-// 用户侧提交后写入 localStorage，后台「反馈与审核 → 开源软件入库需求清单」读取展示
+// ==================== 软件入库需求反馈 · 模拟数据 ====================
+// 流程：普通成员提交 → 平台管理员分配 → 库主补全治理 → 平台管理员最终入库审批
+// 状态机：待分配 → 已分配 → 待审核 → 已审核 → 已入库
 
 /**
  * @typedef {{ id: string, org: string, reporter: string, contact: string,
- *   fileName: string, itemCount: number, createdAt: string, status: '待审核'|'已通过'|'已驳回',
+ *   fileName: string, itemCount: number, createdAt: string,
+ *   status: '待分配'|'已分配'|'治理中'|'待审核'|'已审核'|'已入库',
+ *   assignedOrgId?: string, assignedOrgName?: string,
+ *   assignedTo?: string, assignedAt?: string,
  *   items: Array<{ name: string, version: string, url: string, scene: string }> }} InboundRequest
  */
 
@@ -44,37 +48,88 @@ const DEMO_ITEMS = [
   { name: 'Consul', version: '1.19.1', url: 'https://github.com/hashicorp/consul', scene: '服务注册发现与配置中心' },
 ]
 
-// 演示种子数据：localStorage 无记录时展示，保证后台表格有内容可看
+// 演示种子数据：覆盖状态机各环节，保证各角色演示时都有内容可看
 const SEED_REQUESTS = [
+  // —— 待分配：平台管理员待处理 ——
   {
     id: 'ir-seed-1',
-    org: '中国工商银行',
-    reporter: '张建国',
-    contact: '13800000001',
-    fileName: '开源软件入库需求清单-示例.xlsx',
-    createdAt: '2026-08-25 10:32',
-    status: '待审核',
-    items: DEMO_ITEMS.slice(0, 10),
+    org: '阿里巴巴集团',
+    reporter: '陈晓峰',
+    contact: '13800000004',
+    fileName: '阿里-入库需求清单-0901.xlsx',
+    createdAt: '2026-09-02 10:32',
+    status: '待分配',
+    items: DEMO_ITEMS.slice(0, 8),
   },
   {
     id: 'ir-seed-2',
-    org: '华为技术有限公司',
-    reporter: '李思远',
-    contact: '13900000002',
-    fileName: '华为-入库清单-20260820.xlsx',
-    createdAt: '2026-08-20 14:05',
-    status: '待审核',
-    items: DEMO_ITEMS.slice(5, 20),
+    org: '中国工商银行',
+    reporter: '张建国',
+    contact: '13800000001',
+    fileName: '工行-软件入库需求反馈.xlsx',
+    createdAt: '2026-09-01 09:15',
+    status: '待分配',
+    items: DEMO_ITEMS.slice(8, 18),
   },
+  // —— 已分配：库主待补全 ——
   {
     id: 'ir-seed-3',
     org: '平安科技',
     reporter: '王明远',
     contact: '13700000003',
     fileName: '平安-开源软件需求清单.xlsx',
-    createdAt: '2026-08-18 09:47',
+    createdAt: '2026-08-29 14:05',
+    status: '已分配',
+    assignedOrgId: 'org-002',
+    assignedOrgName: '平安科技',
+    assignedTo: '王明远',
+    assignedAt: '2026-08-30 10:00',
+    items: DEMO_ITEMS.slice(10, 20),
+  },
+  // —— 待审核：库主已在软件治理中流转并提交审核 ——
+  {
+    id: 'ir-seed-4',
+    org: '华为技术有限公司',
+    reporter: '李思远',
+    contact: '13900000002',
+    fileName: '华为-入库清单-20260820.xlsx',
+    createdAt: '2026-08-20 14:05',
     status: '待审核',
-    items: DEMO_ITEMS.slice(10, 25),
+    assignedOrgId: 'org-003',
+    assignedOrgName: '华为技术有限公司',
+    assignedTo: '李思远',
+    assignedAt: '2026-08-21 09:30',
+    items: DEMO_ITEMS.slice(5, 15),
+  },
+  // —— 已审核：库主治理完成，平台已审核通过 ——
+  {
+    id: 'ir-seed-5',
+    org: '中国工商银行',
+    reporter: '张建国',
+    contact: '13800000001',
+    fileName: '工行-治理完成清单-0818.xlsx',
+    createdAt: '2026-08-18 09:47',
+    status: '已审核',
+    assignedOrgId: 'org-001',
+    assignedOrgName: '中国工商银行',
+    assignedTo: '张建国',
+    assignedAt: '2026-08-19 11:00',
+    items: DEMO_ITEMS.slice(2, 12),
+  },
+  // —— 已入库：全流程完成 ——
+  {
+    id: 'ir-seed-6',
+    org: '平安科技',
+    reporter: '王明远',
+    contact: '13700000003',
+    fileName: '平安-已完成入库清单-0810.xlsx',
+    createdAt: '2026-08-10 16:20',
+    status: '已入库',
+    assignedOrgId: 'org-002',
+    assignedOrgName: '平安科技',
+    assignedTo: '王明远',
+    assignedAt: '2026-08-11 09:00',
+    items: DEMO_ITEMS.slice(0, 5),
   },
 ]
 
@@ -114,19 +169,21 @@ export function getInboundRequests() {
   return load()
 }
 
+/** 普通成员提交：初始状态为「待分配」 */
 export function addInboundRequest(payload) {
   const list = load()
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const record = {
     id: `ir-${now.getTime()}`,
-    org: payload.org,
-    reporter: payload.reporter,
-    contact: payload.contact,
+    opinion: payload.opinion || '',
+    org: '',
+    reporter: '',
+    contact: '',
     fileName: payload.fileName,
     itemCount: payload.items.length,
     createdAt: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
-    status: '待审核',
+    status: '待分配',
     items: payload.items,
   }
   list.unshift(record)
@@ -134,6 +191,23 @@ export function addInboundRequest(payload) {
   return record
 }
 
+/** 平台管理员分配：指定目标组织及其库主 */
+export function assignInboundRequest(id, { orgId, orgName, assignee }) {
+  const list = load()
+  const idx = list.findIndex((r) => r.id === id)
+  if (idx !== -1) {
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    list[idx].status = '已分配'
+    list[idx].assignedOrgId = orgId
+    list[idx].assignedOrgName = orgName
+    list[idx].assignedTo = assignee
+    list[idx].assignedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+    persist(list)
+  }
+}
+
+/** 更新清单状态（待审核 / 已审核 / 已入库 等） */
 export function updateInboundStatus(id, status) {
   const list = load()
   const idx = list.findIndex((r) => r.id === id)

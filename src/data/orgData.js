@@ -2,7 +2,7 @@
 
 /**
  * @typedef {{ id: string, name: string, description: string, avatar: string, adminIds: string[], memberIds: string[], createdAt: string }} Org
- * @typedef {{ id: string, name: string, avatar: string, role: 'superadmin'|'org-admin'|'member', orgId: string|null }} User
+ * @typedef {{ id: string, name: string, avatar: string, role: 'superadmin'|'owner'|'member', orgId: string|null }} User
  */
 
 export const ORGS = [
@@ -59,11 +59,11 @@ export const ORGS = [
 export const USERS = [
   // 超级管理员
   { id: 'user-super-1', name: '平台管理员', avatar: '', role: 'superadmin', orgId: null, orgIds: [] },
-  // 组织管理员（单组织为主；orgIds[0] = 主组织）
-  { id: 'user-admin-1', name: '张建国', avatar: '', role: 'org-admin', orgId: 'org-001', orgIds: ['org-001'] },
-  { id: 'user-admin-2', name: '王明远', avatar: '', role: 'org-admin', orgId: 'org-002', orgIds: ['org-002'] },
-  { id: 'user-admin-3', name: '李思远', avatar: '', role: 'org-admin', orgId: 'org-003', orgIds: ['org-003', 'org-001'] },
-  { id: 'user-admin-4', name: '陈晓峰', avatar: '', role: 'org-admin', orgId: 'org-004', orgIds: ['org-004'] },
+  // 库主（owner：负责组织软件库治理与入库，单组织为主；orgIds[0] = 主组织）
+  { id: 'user-admin-1', name: '张建国', avatar: '', role: 'owner', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-admin-2', name: '王明远', avatar: '', role: 'owner', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-admin-3', name: '李思远', avatar: '', role: 'owner', orgId: 'org-003', orgIds: ['org-003', 'org-001'] },
+  { id: 'user-admin-4', name: '陈晓峰', avatar: '', role: 'owner', orgId: 'org-004', orgIds: ['org-004'] },
   // 组织成员（单组织为主）
   { id: 'user-mem-1', name: '赵小明', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
   { id: 'user-mem-2', name: '钱丽华', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },

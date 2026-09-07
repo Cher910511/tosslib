@@ -2,7 +2,7 @@
   <div class="dash-tab">
     <div v-if="!isAdmin" class="dash-forbidden">
       <div class="dash-forbidden-icon">!</div>
-      <p>仅组织管理员可查看工作台</p>
+      <p>仅库主可查看工作台</p>
     </div>
 
     <template v-else>

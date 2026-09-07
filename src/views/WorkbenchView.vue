@@ -10,7 +10,7 @@
           <span class="wb-user-org">{{ currentOrg?.name || '未加入组织' }}</span>
         </div>
         <span class="wb-role-tag" :class="isAdmin ? 'wb-role-tag--admin' : 'wb-role-tag--member'">
-          {{ isAdmin ? '组织管理员' : '普通成员' }}
+          {{ isAdmin ? '库主' : '普通成员' }}
         </span>
         <select v-if="hasMultiOrgs" v-model="activeOrgId" class="wb-org-switch" title="切换组织" @change="onOrgChange">
           <option v-for="o in userOrgs" :key="o.id" :value="o.id">{{ o.name }}</option>
@@ -76,18 +76,18 @@ function goQuick(q) {
 
 /** 演示用户列表（后续接入真实登录态：当前用户来自会话） */
 const DEMO_USERS = [
-  { id: 'user-admin-1', label: '张建国 · 组织管理员（单组织）' },
-  { id: 'user-admin-3', label: '李思远 · 组织管理员（多组织）' },
+  { id: 'user-admin-1', label: '张建国 · 库主（单组织）' },
+  { id: 'user-admin-3', label: '李思远 · 库主（多组织）' },
   { id: 'user-mem-1', label: '赵小明 · 普通成员（单组织）' },
   { id: 'user-mem-6', label: '郑子轩 · 普通成员（多组织）' },
 ]
 
-/** 演示：选择用户（默认单组织管理员，便于直接查看主场景） */
+/** 演示：选择用户（默认单组织库主，便于直接查看主场景） */
 const demoUserId = ref(route.query.user || 'user-admin-1')
 
 /** 当前登录用户（mock） */
 const currentUser = computed(() => USERS.find((u) => u.id === demoUserId.value) || USERS[0])
-const isAdmin = computed(() => currentUser.value?.role === 'org-admin')
+const isAdmin = computed(() => currentUser.value?.role === 'owner')
 
 /** 用户所属组织列表：主组织在前（单组织用户只有一个，直接展示；多组织用户在顶部切换） */
 const userOrgs = computed(() => getUserOrgs(currentUser.value))

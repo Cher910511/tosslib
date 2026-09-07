@@ -48,7 +48,7 @@ const filteredMembers = computed(() => {
 })
 
 function roleLabel(role) {
-  return { superadmin: '超级管理员', 'org-admin': '组织管理员', member: '组织成员' }[role] || role
+  return { superadmin: '超级管理员', owner: '库主', member: '组织成员' }[role] || role
 }
 </script>
 
@@ -165,7 +165,7 @@ function roleLabel(role) {
 }
 
 .org-member-role--superadmin { color: #7c3aed; }
-.org-member-role--org-admin { color: #da203e; }
+.org-member-role--owner { color: #da203e; }
 .org-member-role--member { color: #2563eb; }
 
 .org-member-actions {

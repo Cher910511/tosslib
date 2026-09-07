@@ -50,7 +50,7 @@
           <code class="detail-value detail-code">{{ software.repoUrl }}</code>
         </div>
         <div class="detail-field">
-          <label class="detail-label">获取时间</label>
+          <label class="detail-label">导入时间</label>
           <span class="detail-value">{{ software.createdAt || '--' }}</span>
         </div>
       </div>
@@ -364,7 +364,7 @@ const steps = reactive([
   { key: 'assess', label: '软件技术评估', status: '已完成', done: true },
   { key: 'review', label: '成果验收', status: '评审通过', done: false },
   { key: 'feedback', label: '处理意见反馈', status: '待处理', done: false },
-  { key: 'warehouse', label: '软件入库', status: '待入库', done: false },
+  { key: 'warehouse', label: '软件入库', status: '待审核', done: false },
 ])
 
 const activeStep = ref(3)
@@ -410,7 +410,7 @@ function submitReview() {
   if (result === '通过' || result === '有条件通过') {
     steps[feedbackIdx].done = true
     steps[feedbackIdx].status = result
-    steps[feedbackIdx + 1].status = '待入库'
+    steps[feedbackIdx + 1].status = '待审核'
     software.govStatus = '评审通过'
     activeStep.value = 5
   } else {

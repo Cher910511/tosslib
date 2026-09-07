@@ -21,7 +21,7 @@
       </div>
       <div class="gov-kpi-item gov-kpi-item--green">
         <span class="gov-kpi-num">{{ kpiPendingWarehouse }}</span>
-        <span class="gov-kpi-label">待入库</span>
+        <span class="gov-kpi-label">待审批</span>
       </div>
       <div class="gov-kpi-item gov-kpi-item--ok">
         <span class="gov-kpi-num">{{ kpiEntered }}</span>
@@ -56,20 +56,13 @@
         <div class="gov-content-actions">
           <!-- 步骤1：软件获取 -->
           <template v-if="activeStep === 0">
-            <div v-if="fetchingList" class="gov-fetch-hint">正在获取热门软件...</div>
-            <button type="button" class="gov-btn gov-btn--primary" :disabled="fetchingList" @click="fetchSoftwareList">
-              {{ fetchingList ? '获取中...' : '获取软件列表' }}
-            </button>
             <label class="gov-upload-wrap">
-              <input type="file" accept=".xlsx,.xls,.csv" hidden @change="handleExcelImport" />
-              <span class="gov-btn">Excel 导入</span>
+              <input type="file" accept=".xlsx,.xls,.csv,.zip" hidden @change="handleVersionUpload" />
+              <span class="gov-btn">上传版本更新治理</span>
             </label>
-            <span v-if="importError" class="gov-import-error">{{ importError }}</span>
-            <button type="button" class="gov-btn" @click="downloadTemplate">
-              下载导入模板
-            </button>
+            <span v-if="uploadMsg" class="gov-upload-msg">{{ uploadMsg }}</span>
             <button
-              v-if="selectedAdvanceableCount > 0 && !fetchingList"
+              v-if="selectedAdvanceableCount > 0"
               type="button"
               class="gov-btn gov-btn--advance"
               @click="advanceToStep(1)"
@@ -142,20 +135,12 @@
               class="gov-btn gov-btn--advance"
               @click="advanceApproved"
             >
-              加入待入库 ({{ selectedApprovedCount }})
+              提交入库审核 ({{ selectedApprovedCount }})
             </button>
           </template>
 
-          <!-- 步骤5：软件入库 -->
+          <!-- 步骤5：软件入库（只读审核状态，审核统一在后台管理「审批入库」；可在行内上传其他工具治理成果） -->
           <template v-if="activeStep === 4">
-            <button
-              type="button"
-              class="gov-btn gov-btn--primary"
-              :disabled="selectedCount === 0"
-              @click="confirmWarehouse('已入库')"
-            >
-              批量入库{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
-            </button>
           </template>
         </div>
       </div>
@@ -177,7 +162,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">获取时间</label>
+          <label class="gov-filter-label">导入时间</label>
           <span class="gov-filter-wrap">
             <input v-model="filterDate" type="date" class="gov-filter-input" />
             <button v-if="filterDate" type="button" class="gov-filter-clear" @click="filterDate = ''">&times;</button>
@@ -333,23 +318,26 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">入库状态</label>
+          <label class="gov-filter-label">审核状态</label>
           <span class="gov-filter-wrap">
             <select v-model="s4Warehouse" class="gov-filter-input">
               <option value="">全部</option>
-              <option value="待入库">待入库</option>
+              <option value="待审批">待审批</option>
               <option value="已入库">已入库</option>
             </select>
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">入库时间</label>
+          <label class="gov-filter-label">审核时间</label>
           <span class="gov-filter-wrap">
             <input v-model="s4Date" type="date" class="gov-filter-input" />
             <button v-if="s4Date" type="button" class="gov-filter-clear" @click="s4Date = ''">&times;</button>
           </span>
         </div>
       </div>
+
+      <!-- 上传治理成果提示 -->
+      <div v-if="reportUploadMsg" class="gov-upload-msg gov-upload-msg--bar">{{ reportUploadMsg }}</div>
 
       <!-- 全选行 -->
       <div v-if="stepList.length > 0" class="gov-select-all-hint">
@@ -372,7 +360,9 @@
               <th v-if="activeStep === 0">主语言 *</th>
               <th v-if="activeStep === 0">开源许可证 *</th>
               <th v-if="activeStep === 0">源码托管地址 *</th>
-              <th v-if="activeStep === 0">获取时间</th>
+              <th v-if="activeStep === 0">提交人</th>
+              <th v-if="activeStep === 0">提交组织</th>
+              <th v-if="activeStep === 0">导入时间</th>
               <th v-if="activeStep !== 0">名称</th>
               <th v-if="activeStep !== 0">版本</th>
               <th v-if="activeStep !== 0">主语言</th>
@@ -386,14 +376,14 @@
               <th v-if="activeStep === 1">选型时间</th>
               <th v-if="activeStep === 2">扫描时间</th>
               <th v-if="activeStep === 3">验收时间</th>
-              <th v-if="activeStep === 4">入库时间</th>
+              <th v-if="activeStep === 4">审核时间</th>
               <th v-if="activeStep === 1">备份状态</th>
               <th v-if="activeStep === 2">SCA 检测</th>
               <th v-if="activeStep === 2">版权检测</th>
               <th v-if="activeStep === 2">恶意代码检测</th>
               <th v-if="activeStep === 3">审核状态</th>
               <th v-if="activeStep === 3">审核意见</th>
-              <th v-if="activeStep === 4">入库状态</th>
+              <th v-if="activeStep === 4">审核状态</th>
               <th class="col-op">操作</th>
             </tr>
           </thead>
@@ -412,6 +402,8 @@
                 <td v-if="activeStep === 0" class="col-repo">
                   <code class="gov-code">{{ item.repoUrl }}</code>
                 </td>
+                <td v-if="activeStep === 0">{{ item.submitter || '—' }}</td>
+                <td v-if="activeStep === 0">{{ item.submitOrg || '—' }}</td>
                 <td v-if="activeStep === 0" class="gov-muted">{{ item.createdAt }}</td>
                 <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">{{ item.name }}</td>
                 <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">
@@ -487,21 +479,24 @@
                 </template>
                 <template v-if="!(activeStep === 4 && item.warehouseStatus === '已入库')">
                   <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="openRemoveConfirm(item)">移除</button>
+                  <button type="button" class="gov-link-sub gov-link-sub--danger" @click="openRemoveConfirm(item)">作废</button>
                 </template>
                 <template v-if="activeStep === 3">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="openReviewModal(item)">审核</button>
-                </template>
-                <template v-if="activeStep === 4 && item.warehouseStatus !== '已入库'">
-                  <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="singleWarehouse(item, '已入库')">入库</button>
                 </template>
                 <template v-if="activeStep === 2">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="openScoreDialog(item)">评分</button>
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="toggleScan(item)">{{ item._scanOpen ? '▾' : '▸' }}</button>
+                </template>
+                <template v-if="activeStep === 3 || activeStep === 4">
+                  <span class="gov-sep">|</span>
+                  <label class="gov-row-upload">
+                    <input type="file" accept=".xlsx,.xls,.csv,.zip,.pdf" hidden @change="handleToolReportUpload($event, item)" />
+                    <span class="gov-link-sub">上传治理成果</span>
+                  </label>
                 </template>
               </td>
             </tr>
@@ -661,7 +656,7 @@
           </div>
         </div>
         <div class="gd-hero-actions">
-          <span class="gd-hero-time">获取时间：{{ detailItem.createdAt || '--' }}</span>
+          <span class="gd-hero-time">导入时间：{{ detailItem.createdAt || '--' }}</span>
         </div>
       </section>
 
@@ -897,22 +892,34 @@ Commit：{{ detailItem.commitId || '--' }}
       </div>
     </Teleport>
 
-    <!-- ===== 移除确认弹窗 ===== -->
+    <!-- ===== 作废确认弹窗 ===== -->
     <Teleport to="body">
       <div v-if="removeConfirmItem" class="gov-overlay" @click.self="cancelRemove">
         <div class="review-modal" style="width:480px;">
           <div class="review-modal-hd">
-            <h3 class="review-modal-title">移除软件</h3>
+            <h3 class="review-modal-title">作废软件</h3>
             <button type="button" class="review-modal-close" @click="cancelRemove">&times;</button>
           </div>
           <div class="review-modal-body">
             <p class="review-modal-desc">
-              确定移除 <strong>{{ removeConfirmItem.name }} v{{ removeConfirmItem.version }}</strong> 吗？移除后将从治理流程中删除且不可恢复。
+              确定作废 <strong>{{ removeConfirmItem.name }} v{{ removeConfirmItem.version }}</strong> 吗？作废后将从治理流程中移除，且<strong>不可恢复</strong>。
             </p>
+            <div class="review-field">
+              <label class="review-field-label">作废原因 <span style="color:#da203e;">*</span></label>
+              <textarea v-model="removeReason" class="review-textarea" rows="3" placeholder="请填写作废原因" />
+              <p class="review-modal-desc" style="margin:6px 0 0;color:#d97706;">
+                作废原因将展示给提交该软件的用户，请如实填写。
+              </p>
+            </div>
           </div>
           <div class="review-modal-ft">
             <button type="button" class="gov-btn" @click="cancelRemove">取消</button>
-            <button type="button" class="gov-btn gov-btn--danger-fill" @click="confirmRemove">确认移除</button>
+            <button
+              type="button"
+              class="gov-btn gov-btn--danger-fill"
+              :disabled="!removeReason.trim()"
+              @click="confirmRemove"
+            >确认作废</button>
           </div>
         </div>
       </div>
@@ -975,8 +982,10 @@ Commit：{{ detailItem.commitId || '--' }}
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import * as XLSX from 'xlsx'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
 import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
+import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
 
 const logItem = ref(null)
 const detailItem = ref(null)
@@ -985,13 +994,12 @@ const reviewItem = ref(null)
 const reviewResult = ref('评审通过')
 const reviewComment = ref('')
 const activeStep = ref(0)
-const fetchingList = ref(false)
-const fetchProgress = ref(0)
 const batchReviewTarget = ref(null)
 const batchReviewOpinion = ref('')
 const opinionHistoryItem = ref(null)
-const importError = ref('')
 const scoreItem = ref(null)
+const uploadMsg = ref('')
+const reportUploadMsg = ref('')
 
 // 步骤1筛选
 const filterName = ref('')
@@ -1033,10 +1041,8 @@ const steps = [
   { key: 'warehouse', label: '软件入库'},
 ]
 
-// ===== 数据模型：每条软件只有一条记录，currentStep 表示所处阶段 =====
-const softwareList = ref([])
-
-let nextId = 1
+// ===== 数据模型：使用共享 store（审批入库页复用同一份软件列表） =====
+import { softwareList, genId } from '../../data/governanceStore.js'
 
 // 当前步骤的列表
 function scanStage(progress, threshold) {
@@ -1117,7 +1123,7 @@ const totalCount = computed(() => softwareList.value.length)
 const kpiPendingBackup = computed(() => softwareList.value.filter(i => i.currentStep === 2 && i.backupStatus !== '备份成功').length)
 const kpiPendingAssess = computed(() => softwareList.value.filter(i => i.currentStep === 3 && i.assessStatus !== '评估完成').length)
 const kpiPendingReview = computed(() => softwareList.value.filter(i => i.currentStep === 4 && i.reviewStatus === '待评审').length)
-const kpiPendingWarehouse = computed(() => softwareList.value.filter(i => i.currentStep === 5 && i.warehouseStatus === '待入库').length)
+const kpiPendingWarehouse = computed(() => softwareList.value.filter(i => i.currentStep === 5 && i.warehouseStatus === '待审批').length)
 const kpiEntered = computed(() => softwareList.value.filter(i => i.currentStep === 5 && i.warehouseStatus === '已入库').length)
 
 
@@ -1214,12 +1220,12 @@ const colSpan = computed(() => {
 // 空提示
 const emptyText = computed(() => {
   const map = [
-    '暂无软件，点击「获取软件列表」或「Excel 导入」添加',
+    '暂无软件，请到「我的待治理清单」下载预填模板、维护后回传清单，软件将自动进入本列表',
     '暂无待备份软件',
     '暂无待评估软件',
     '暂无待验收软件',
     '暂无待处理意见软件',
-    '暂无待入库软件',
+    '暂无待审批软件',
   ]
   return map[activeStep.value] || '暂无数据'
 })
@@ -1230,7 +1236,7 @@ const statusBadgeMap = {
   '待评估': 'warn', '评估中': 'run', '评估完成': 'ok', '评估失败': 'fail',
   '待评审': 'warn', '评审通过': 'ok', '评审不通过': 'fail', '有条件通过': 'warn',
   '待处理': 'warn', '已处理': 'ok',
-  '待入库': 'warn', '待发布': 'ok', '不通过': 'fail', '已入库': 'ok',
+  '待审批': 'warn', '已入库': 'ok', '已拒绝': 'fail', '待发布': 'ok', '不通过': 'fail',
 }
 
 function badgeClass(status) {
@@ -1254,140 +1260,96 @@ watch([
   page.value = 1
 })
 
-// 步骤1：获取软件列表
-function fetchSoftwareList() {
-  fetchingList.value = true
-  fetchProgress.value = 0
-  const interval = setInterval(() => {
-    fetchProgress.value += Math.floor(Math.random() * 12) + 5
-    if (fetchProgress.value >= 100) {
-      fetchProgress.value = 100
-      clearInterval(interval)
-      const mockSoftware = [
-        { name: 'Vue.js', version: '3.4.21', repoUrl: 'https://github.com/vuejs/core.git', lang: 'TypeScript', license: 'MIT', file: 'vue-3.4.21.zip', developer: '尤雨溪', licenseId: 'MIT', branch: 'main', tag: 'v3.4.21', commitId: 'a1b2c3d4e5', codeSize: '285', vulnUrl: 'https://github.com/vuejs/core/security' },
-        { name: 'React', version: '18.2.0', repoUrl: 'https://github.com/facebook/react.git', lang: 'JavaScript', license: 'MIT', file: 'react-18.2.0.zip', developer: 'Meta', licenseId: 'MIT', branch: 'main', tag: 'v18.2.0', commitId: 'f6e7g8h9i0', codeSize: '362', vulnUrl: 'https://github.com/facebook/react/security' },
-        { name: 'Log4j', version: '2.23.1', repoUrl: 'https://github.com/apache/logging-log4j2.git', lang: 'Java', license: 'Apache-2.0', file: 'log4j-2.23.1.jar', developer: 'Apache', licenseId: 'Apache-2.0', branch: 'main', tag: 'rel/2.23.1', commitId: 'j1k2l3m4n5', codeSize: '189', vulnUrl: 'https://github.com/apache/logging-log4j2/security' },
-        { name: 'Spring Framework', version: '6.1.5', repoUrl: 'https://github.com/spring-projects/spring-framework.git', lang: 'Java', license: 'Apache-2.0', file: 'spring-framework-6.1.5.jar', developer: 'VMware', licenseId: 'Apache-2.0', branch: 'main', tag: 'v6.1.5', commitId: 'o5p6q7r8s9', codeSize: '1240', vulnUrl: 'https://github.com/spring-projects/spring-framework/security' },
-        { name: 'Django', version: '5.0.4', repoUrl: 'https://github.com/django/django.git', lang: 'Python', license: 'BSD-3-Clause', file: 'Django-5.0.4.tar.gz', developer: 'Django Software Foundation', licenseId: 'BSD-3-Clause', branch: 'main', tag: '5.0.4', commitId: 't0u1v2w3x4', codeSize: '98', vulnUrl: 'https://github.com/django/django/security' },
-        { name: 'OpenSSL', version: '3.3.0', repoUrl: 'https://github.com/openssl/openssl.git', lang: 'C', license: 'Apache-2.0', file: 'openssl-3.3.0.tar.gz', developer: 'OpenSSL Software Foundation', licenseId: 'Apache-2.0', branch: 'master', tag: 'openssl-3.3.0', commitId: 'y5z6a7b8c9', codeSize: '512', vulnUrl: 'https://github.com/openssl/openssl/security' },
-        { name: 'Redis', version: '7.2.4', repoUrl: 'https://github.com/redis/redis.git', lang: 'C', license: 'BSD-3-Clause', file: 'redis-7.2.4.tar.gz', developer: 'Redis Ltd.', licenseId: 'BSD-3-Clause', branch: 'unstable', tag: '7.2.4', commitId: 'd0e1f2g3h4', codeSize: '236', vulnUrl: 'https://github.com/redis/redis/security' },
-        { name: 'Nginx', version: '1.26.0', repoUrl: 'https://github.com/nginx/nginx.git', lang: 'C', license: 'BSD-2-Clause', file: 'nginx-1.26.0.tar.gz', developer: 'NGINX, Inc.', licenseId: 'BSD-2-Clause', branch: 'main', tag: 'release-1.26.0', commitId: 'i5j6k7l8m9', codeSize: '174', vulnUrl: 'https://github.com/nginx/nginx/security' },
-      ]
-      const now = new Date().toLocaleString('zh-CN')
-      mockSoftware.forEach(sw => {
-        softwareList.value.push({
-          id: nextId++,
-          name: sw.name,
-          version: sw.version,
-          repoUrl: sw.repoUrl,
-          lang: sw.lang,
-          license: sw.license,
-          file: sw.file,
-          developer: sw.developer,
-          licenseId: sw.licenseId,
-          branch: sw.branch,
-          tag: sw.tag,
-          commitId: sw.commitId,
-          codeSize: sw.codeSize,
-          vulnUrl: sw.vulnUrl,
-          mirrorUrl: 'https://gitcode.com/mirror/' + sw.name.toLowerCase().replace(/\s+/g, '-'),
-          currentStep: 1,
-          selected: false,
-          createdAt: fmtNow(),
-          backupStatus: '待备份',
-          assessStatus: '待评估',
-          reviewStatus: '待评审',
-          warehouseStatus: '待入库',
-          riskLevel: null,
-          vulnCount: Math.floor(Math.random() * 8),
-          logs: [{ time: now, level: 'info', msg: '已获取软件列表' }],
-        })
-      })
-      setTimeout(() => { fetchingList.value = false }, 400)
-    }
-  }, 250)
-}
 
-function downloadTemplate() {
-  const headers = [
-    '名称*', '版本*', '主语言*', '开源许可证*', '官方发布日期',
-    '项目描述', '开发商', '开源许可证ID', '官网地址', '分支',
-    '社区标签(Tag)', 'Commit ID', '软件文件*', '代码量(KL)',
-    '开源社区源码托管地址*', '官网漏洞披露地址', '下线日期',
-  ]
-  const csv = '\uFEFF' + headers.join(',')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = '软件导入模板.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function handleExcelImport(e) {
-  const files = e.target.files
-  if (!files || !files.length) return
-
-  // 模拟解析 Excel 得到多条数据
-  const fileName = files[0].name.replace(/\.\w+$/, '').trim()
-  const rows = fileName ? [
-    { name: fileName, version: '-' },
-    { name: 'Spring Boot', version: '3.2.0' },
-    { name: 'MyBatis', version: '3.5.16' },
-  ] : []
-
-  let success = 0
-  const failReasons = []
-
-  rows.forEach((row, idx) => {
-    // 校验必填字段
-    if (!row.name || !row.name.trim()) {
-      failReasons.push(`第 ${idx + 1} 条：必填字段为空`)
-      return
-    }
-    // 检查重复
-    const dup = softwareList.value.some(
-      s => s.name.toLowerCase() === row.name.trim().toLowerCase()
-    )
-    if (dup) {
-      failReasons.push(`第 ${idx + 1} 条：${row.name} 该软件已存在`)
-      return
-    }
-    // 导入成功
-    const now = new Date().toLocaleString('zh-CN')
-    softwareList.value.push({
-      id: nextId++,
-      name: row.name.trim(),
-      version: row.version || '-',
-      repoUrl: `https://github.com/example/${row.name.trim().toLowerCase().replace(/\s+/g, '-')}.git`,
-      lang: row.lang || '—',
-      license: row.license || '—',
-      file: '—',
-      currentStep: 1,
-      selected: false,
-      createdAt: fmtNow(),
-      backupStatus: '待备份',
-      assessStatus: '待评估',
-      reviewStatus: '待评审',
-      warehouseStatus: '待入库',
-      riskLevel: null,
-      vulnCount: 0,
-      logs: [{ time: now, level: 'info', msg: '通过 Excel 导入' }],
-    })
-    success++
-  })
-
-  const total = rows.length
-  const failed = failReasons.length
-  let msg = `导入成功 ${success} 条`
-  if (failed > 0) {
-    msg += `，失败 ${failed} 条`
-    msg += `。失败原因：${failReasons.join('；')}`
-  }
-  importError.value = msg
-  setTimeout(() => { importError.value = '' }, 5000)
+// 步骤1：上传版本更新治理文件（xlsx/xls/csv/zip），解析并记录到软件条目
+function handleVersionUpload(e) {
+  const file = e.target.files?.[0]
   e.target.value = ''
+  if (!file) return
+  const now = new Date().toLocaleString('zh-CN')
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.zip')) {
+    // zip 包：作为治理成果附件，记录到当前列表全部条目
+    softwareList.value.forEach((item) => {
+      if (item.currentStep === 1) item.logs.push({ time: now, level: 'info', msg: `已上传版本更新治理包：${file.name}` })
+    })
+    uploadMsg.value = `已上传治理包 ${file.name}，并记录到软件获取列表`
+    return
+  }
+  // 表格文件：解析软件名称/版本/许可证，新增或更新条目
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      let added = 0
+      rows.forEach((row) => {
+        const nm = String(row['软件名称'] || row['名称'] || row.name || '').trim()
+        if (!nm) return
+        const ver = String(row['版本号'] || row['版本'] || row.version || '').trim()
+        const lang = String(row['编程语言'] || row.lang || '').trim()
+        const license = String(row['开源许可证'] || row.license || '').trim()
+        const exist = softwareList.value.find((s) => s.currentStep === 1 && s.name === nm)
+        if (exist) {
+          if (ver) exist.version = ver
+          if (license) exist.license = license
+          exist.logs.push({ time: now, level: 'ok', msg: `版本更新治理：上传 ${file.name}，更新至 v${exist.version}` })
+        } else {
+          softwareList.value.push({
+            id: genId(),
+            name: nm,
+            version: ver || '—',
+            repoUrl: `https://github.com/example/${nm.toLowerCase().replace(/\s+/g, '-')}.git`,
+            lang: lang || '—',
+            license: license || '—',
+            file: `${nm.toLowerCase().replace(/\s+/g, '-')}-${ver || 'latest'}.zip`,
+            developer: '—',
+            licenseId: license || '—',
+            branch: 'main',
+            tag: ver ? `v${ver}` : '—',
+            commitId: '—',
+            codeSize: '—',
+            vulnUrl: '—',
+            mirrorUrl: 'https://gitcode.com/mirror/' + nm.toLowerCase().replace(/\s+/g, '-'),
+            govOwner: '—',
+            govOrg: '—',
+            currentStep: 1,
+            selected: false,
+            createdAt: now,
+            backupStatus: '待备份',
+            assessStatus: '待评估',
+            reviewStatus: '待评审',
+            warehouseStatus: '待审批',
+            riskLevel: null,
+            vulnCount: 0,
+            logs: [{ time: now, level: 'info', msg: `上传版本更新治理：${file.name}` }],
+          })
+          added++
+        }
+      })
+      uploadMsg.value = added > 0
+        ? `已解析 ${file.name}，新增 ${added} 条、更新匹配条目`
+        : `已解析 ${file.name}，未识别到有效软件数据`
+    } catch (err) {
+      uploadMsg.value = `解析失败：${err.message}`
+    }
+  }
+  reader.readAsArrayBuffer(file)
+  setTimeout(() => { uploadMsg.value = '' }, 5000)
+}
+
+// 治理负责人上传其他工具治理成果（行内操作：记录到当前行的软件条目）
+function handleToolReportUpload(e, item) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file || !item) return
+  const now = new Date().toLocaleString('zh-CN')
+  if (!item.toolReports) item.toolReports = []
+  item.toolReports.push({ fileName: file.name, time: now })
+  item.logs.push({ time: now, level: 'info', msg: `治理负责人上传其他工具治理成果：${file.name}` })
+  reportUploadMsg.value = `已上传治理成果 ${file.name} → ${item.name}`
+  setTimeout(() => { reportUploadMsg.value = '' }, 5000)
 }
 
 // 步骤2：发起源码备份（只改状态，不推进）
@@ -1537,14 +1499,43 @@ function advanceApproved() {
   const now = fmtNow()
   stepList.value.filter(i => i.selected && i.reviewStatus === '评审通过').forEach(item => {
     item.currentStep = 5
-    item.warehouseStatus = '待入库'
+    item.warehouseStatus = '待审批'
     item.selected = false
-    item.logs.push({ time: now, level: 'info', msg: '审核通过，进入待入库' })
+    item.logs.push({ time: now, level: 'info', msg: '已提交入库审核，等待平台管理员审批' })
   })
   activeStep.value = 4
 }
 
 
+/** 按软件名回写入库需求清单状态：该清单中任一软件被同意入库 → 清单标记已入库 */
+function syncInboundStatusBySoftware(item) {
+  const list = getInboundRequests()
+  list.forEach((r) => {
+    if (r.status === '已入库') return
+    const hit = (r.items || []).some((x) => x.name && x.name.toLowerCase() === (item.name || '').toLowerCase())
+    if (hit) updateInboundStatus(r.id, '已入库')
+  })
+}
+
+/** 库主：批量提交平台审批（待审批） */
+function confirmSubmitApproval() {
+  const selected = stepList.value.filter(i => i.selected)
+  const now = fmtNow()
+  selected.forEach(item => {
+    item.selected = false
+    item.warehouseStatus = '待审批'
+    item.logs.push({ time: now, level: 'info', msg: '已提交平台审批，等待平台管理员审批' })
+  })
+}
+
+/** 库主：单条提交平台审批（待审批） */
+function singleSubmitApproval(item) {
+  const now = fmtNow()
+  item.warehouseStatus = '待审批'
+  item.logs.push({ time: now, level: 'info', msg: '已提交平台审批，等待平台管理员审批' })
+}
+
+/** 平台管理员：批量同意入库（回写清单状态） */
 function confirmWarehouse(status) {
   const selected = stepList.value.filter(i => i.selected)
   const now = fmtNow()
@@ -1556,10 +1547,12 @@ function confirmWarehouse(status) {
     }
     item.selected = false
     item.warehouseStatus = status
-    item.logs.push({ time: now, level: status === '待发布' ? 'ok' : 'warn', msg: `入库操作：${status}` })
+    item.logs.push({ time: now, level: status === '待发布' ? 'ok' : 'ok', msg: `平台管理员同意入库：${status}` })
+    syncInboundStatusBySoftware(item)
   })
 }
 
+/** 平台管理员：单条同意入库（回写清单状态） */
 function singleWarehouse(item, status) {
   const now = fmtNow()
   // 入库前校验：未完成国标评分的软件不允许入库
@@ -1568,7 +1561,8 @@ function singleWarehouse(item, status) {
     return
   }
   item.warehouseStatus = status
-  item.logs.push({ time: now, level: status === '待发布' ? 'ok' : 'warn', msg: `入库操作：${status}` })
+  item.logs.push({ time: now, level: 'ok', msg: `平台管理员同意入库：${status}` })
+  syncInboundStatusBySoftware(item)
 }
 
 // ===== 指标评分 =====
@@ -1702,32 +1696,38 @@ function detailTimeline(item) {
   ]
 }
 
-// ===== 移除软件（二次确认 + 审计记录） =====
+// ===== 作废软件（二次确认 + 必填原因 + 审计记录，不可逆） =====
 const removeConfirmItem = ref(null)
+const removeReason = ref('')
 
 function openRemoveConfirm(item) {
   removeConfirmItem.value = item
+  removeReason.value = ''
 }
 
 function cancelRemove() {
   removeConfirmItem.value = null
+  removeReason.value = ''
 }
 
 function confirmRemove() {
   const item = removeConfirmItem.value
-  if (!item) return
-  // 审计记录（写入日志并保留在审计列表）
+  const reason = removeReason.value.trim()
+  if (!item || !reason) return
+  // 审计记录（作废原因写入日志并保留在审计列表，展示给提交用户）
   const now = fmtNow()
-  item.logs.push({ time: now, level: 'warn', msg: `移除软件：${item.name} v${item.version}` })
+  item.logs.push({ time: now, level: 'warn', msg: `作废软件：${item.name} v${item.version}，原因：${reason}` })
   removedAudit.value.unshift({
     time: now,
     name: item.name,
     version: item.version,
-    action: '移除',
+    action: '作废',
+    reason,
   })
   const idx = softwareList.value.indexOf(item)
   if (idx !== -1) softwareList.value.splice(idx, 1)
   removeConfirmItem.value = null
+  removeReason.value = ''
 }
 
 /** 审计记录列表（仅本次会话，前端演示） */
@@ -1901,6 +1901,40 @@ function scanBadge(progress) {
   flex-wrap: wrap;
 }
 
+/* 上传按钮（label 包裹隐藏 input） */
+.gov-upload-wrap {
+  display: inline-flex;
+  cursor: pointer;
+}
+.gov-upload-wrap input[type="file"] {
+  display: none;
+}
+.gov-upload-msg {
+  font-size: 12px;
+  color: #16a34a;
+  white-space: nowrap;
+}
+.gov-upload-msg--bar {
+  display: block;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  white-space: normal;
+}
+/* 行内上传（操作列） */
+.gov-row-upload {
+  display: inline-flex;
+  cursor: pointer;
+}
+.gov-row-upload input[type="file"] {
+  display: none;
+}
+.gov-row-upload .gov-link-sub {
+  padding: 0;
+}
+
 /* ===== 筛选栏 ===== */
 .gov-filter-bar {
   display: grid;
@@ -1976,13 +2010,6 @@ select.gov-filter-input {
 .gov-filter-clear:hover {
   background: #e5e7eb;
   color: #374151;
-}
-
-/* ===== 获取提示文字 ===== */
-.gov-fetch-hint {
-  font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
 }
 
 /* ===== 审核意见列 ===== */
@@ -2079,24 +2106,6 @@ select.gov-filter-input {
   border-color: #fecaca;
 }
 .gov-btn--danger:hover { background: #fef2f2; border-color: #dc2626; }
-
-.gov-upload-wrap {
-  cursor: pointer;
-  display: inline-flex;
-}
-.gov-import-error {
-  display: inline-block;
-  margin-left: 10px;
-  padding: 4px 12px;
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 20px;
-  max-width: 420px;
-  vertical-align: middle;
-}
 
 /* ===== 卡片 ===== */
 .gov-card {
@@ -2275,6 +2284,8 @@ select.gov-filter-input {
 .badge--fail { background: #fee2e2; color: #dc2626; }
 .badge--run { background: #dbeafe; color: #2563eb; }
 .badge--pending { background: #f3f4f6; color: #6b7280; }
+
+/* 软件入库：审核状态（拒绝原因记录在日志中） */
 
 .gov-risk {
   display: inline-block;

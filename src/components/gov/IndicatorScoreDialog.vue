@@ -30,7 +30,12 @@
               <span class="score-summary-meta-item">基线 {{ baseScoreText }}</span>
               <span class="score-summary-meta-item">增强 {{ enhancedScoreText }}</span>
             </div>
-            <button type="button" class="score-auto-btn" @click="runAutoScore">
+            <button
+              v-if="!readonly"
+              type="button"
+              class="score-auto-btn"
+              @click="runAutoScore"
+            >
               一键自动评分
             </button>
           </div>
@@ -86,7 +91,12 @@
                   </td>
                   <td class="col-weight">{{ ind.weight }}%</td>
                   <td class="col-ctrl">
-                    <template v-if="ind.scoreType === 'formula'">
+                    <!-- 只读：仅展示已评分结果 -->
+                    <template v-if="readonly">
+                      <span v-if="recordOf(ind).score == null" class="score-readonly-empty">未评分</span>
+                      <span v-else class="score-readonly-val">{{ scoreText(recordOf(ind).score) }} / 10</span>
+                    </template>
+                    <template v-else-if="ind.scoreType === 'formula'">
                       <div class="score-formula">
                         <div class="score-formula-params">
                           <label
@@ -178,8 +188,13 @@
           <div class="score-dialog-ft">
             <p class="score-dialog-tip">自动指标按扫描结果评分，其余指标由人工评定。</p>
             <div class="score-dialog-ft-btns">
-              <button type="button" class="gov-btn" @click="close">取消</button>
-              <button type="button" class="gov-btn gov-btn--primary" @click="save">保存评分</button>
+              <button type="button" class="gov-btn" @click="close">{{ readonly ? '关闭' : '取消' }}</button>
+              <button
+                v-if="!readonly"
+                type="button"
+                class="gov-btn gov-btn--primary"
+                @click="save"
+              >保存评分</button>
             </div>
           </div>
         </div>
@@ -200,6 +215,8 @@ import {
 const props = defineProps({
   visible: { type: Boolean, default: false },
   item: { type: Object, default: null },
+  // 只读模式：仅查看评分，隐藏「一键自动评分」与「保存评分」
+  readonly: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:visible', 'save'])
 
@@ -800,6 +817,25 @@ function save() {
 .score-input-wrap {
   display: flex;
   justify-content: flex-end;
+}
+/* 只读评分展示 */
+.score-readonly-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+}
+.score-readonly-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  font-size: 13px;
+  color: #9ca3af;
 }
 .score-pass-btn {
   padding: 6px 16px;

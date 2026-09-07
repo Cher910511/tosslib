@@ -102,42 +102,37 @@
             </RouterLink>
           </div>
         </div>
-        <!-- 需求反馈（一级可点击进表单页 + 子菜单） -->
-        <div class="admin-nav-group">
-          <div
-            class="admin-nav-item admin-nav-item--group"
-            :class="{ 'is-open': feedbackOpen }"
-          >
-            <RouterLink
-              class="admin-nav-group-link"
-              to="/software/feedback"
-              active-class="is-active"
-            >
-              <span class="nav-ico" aria-hidden="true">▤</span>
-              <span class="nav-label">需求反馈</span>
-            </RouterLink>
-            <span
-              class="nav-caret"
-              aria-hidden="true"
-              @click.stop="feedbackOpen = !feedbackOpen"
-            >{{ feedbackOpen ? '▾' : '▸' }}</span>
-          </div>
-          <div v-show="feedbackOpen" class="admin-nav-submenu">
-            <RouterLink
-              class="admin-nav-item admin-nav-item--sub"
-              to="/software/feedback/inbound-request"
-              active-class="is-active"
-            >
-              <span class="nav-label">开源软件项目入库需求清单</span>
-            </RouterLink>
-          </div>
-        </div>
+        <!-- 软件入库需求反馈（一级菜单） -->
+        <RouterLink class="admin-nav-item" to="/software/feedback/inbound-request" active-class="is-active">
+          <span class="nav-ico" aria-hidden="true">▤</span>
+          <span class="nav-label">软件入库需求反馈</span>
+        </RouterLink>
         <RouterLink class="admin-nav-item" to="/software/standard-build" active-class="is-active">
           <span class="nav-ico" aria-hidden="true">▣</span>
           指标配置
         </RouterLink>
-        <!-- 后台管理（带二级菜单） -->
-        <div class="admin-nav-group">
+        <!-- 软件治理（一级菜单，库主可用） -->
+        <RouterLink
+          v-if="isOwner || isSuperAdmin"
+          class="admin-nav-item"
+          to="/software/admin-flow"
+          active-class="is-active"
+        >
+          <span class="nav-ico" aria-hidden="true">⚖️</span>
+          软件治理
+        </RouterLink>
+        <!-- 我的待治理清单（一级菜单，库主可用） -->
+        <RouterLink
+          v-if="isOwner || isSuperAdmin"
+          class="admin-nav-item"
+          to="/software/my-governance-tasks"
+          active-class="is-active"
+        >
+          <span class="nav-ico" aria-hidden="true">🗂</span>
+          我的待治理清单
+        </RouterLink>
+        <!-- 后台管理（仅平台管理员可见） -->
+        <div v-if="isSuperAdmin" class="admin-nav-group">
           <div
             class="admin-nav-item admin-nav-item--group"
             :class="{ 'is-open': versionTrainOpen }"
@@ -148,13 +143,6 @@
             <span class="nav-caret" aria-hidden="true">{{ versionTrainOpen ? '▾' : '▸' }}</span>
           </div>
           <div v-show="versionTrainOpen" class="admin-nav-submenu">
-            <RouterLink
-              class="admin-nav-item admin-nav-item--sub"
-              to="/software/admin-flow"
-              active-class="is-active"
-            >
-              <span class="nav-label">软件治理</span>
-            </RouterLink>
             <RouterLink
               class="admin-nav-item admin-nav-item--sub"
               to="/software/board"
@@ -189,6 +177,13 @@
               active-class="is-active"
             >
               <span class="nav-label">反馈与审核</span>
+            </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/warehouse-approval"
+              active-class="is-active"
+            >
+              <span class="nav-label">审批入库</span>
             </RouterLink>
           </div>
         </div>
@@ -379,6 +374,46 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </a>
         <div class="admin-user" ref="userMenuRef">
+          <!-- 站内信入口 -->
+          <button
+            type="button"
+            class="admin-bell"
+            aria-label="站内信"
+            title="站内信"
+            @click.stop="toggleMessagePanel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span v-if="unreadCount > 0" class="admin-bell-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+          </button>
+          <Transition name="dropdown">
+            <div v-if="messagePanelOpen" class="admin-message-panel" @mousedown.stop>
+              <header class="admin-message-hd">
+                <span class="admin-message-title">站内信</span>
+                <button
+                  v-if="messages.length"
+                  type="button"
+                  class="admin-message-readall"
+                  @click="markAllReadNow"
+                >全部已读</button>
+              </header>
+              <div class="admin-message-list">
+                <div
+                  v-for="m in messages"
+                  :key="m.id"
+                  class="admin-message-item"
+                  :class="{ 'is-unread': !m.read }"
+                  @click="markReadNow(m)"
+                >
+                  <span class="admin-message-dot" aria-hidden="true" />
+                  <div class="admin-message-body">
+                    <span class="admin-message-text">{{ m.content }}</span>
+                    <span class="admin-message-time">{{ m.time }}</span>
+                  </div>
+                </div>
+                <p v-if="!messages.length" class="admin-message-empty">暂无站内信</p>
+              </div>
+            </div>
+          </Transition>
           <div class="admin-user-trigger" @click="toggleUserMenu">
             <div class="admin-avatar" aria-hidden="true">会</div>
             <div class="admin-user-meta">
@@ -432,8 +467,30 @@ import {
   SOFTWARE_CATALOG,
   COMPONENT_CATALOG,
 } from '../composables/useAdminSearch'
+import { USERS } from '../data/orgData.js'
+import { getMessages, getUnreadCount, markMessageRead, markAllRead } from '../data/messagesStore.js'
 const route = useRoute()
 const router = useRouter()
+
+/* —— 演示角色：与工作台共用 route.query.user，默认平台管理员 —— */
+const currentUser = computed(() => USERS.find((u) => u.id === route.query.user) || USERS[0])
+const isSuperAdmin = computed(() => currentUser.value?.role === 'superadmin')
+const isOwner = computed(() => currentUser.value?.role === 'owner')
+
+// —— 站内信 ——
+const messagePanelOpen = ref(false)
+const messages = computed(() => getMessages(currentUser.value.id))
+const unreadCount = computed(() => getUnreadCount(currentUser.value.id))
+
+function toggleMessagePanel() {
+  messagePanelOpen.value = !messagePanelOpen.value
+}
+function markReadNow(m) {
+  if (!m.read) markMessageRead(m.id)
+}
+function markAllReadNow() {
+  markAllRead(currentUser.value.id)
+}
 
 // 用户菜单下拉
 const userMenuRef = ref(null)
@@ -450,9 +507,6 @@ function handleLogout() {
 
 // 软件管理二级菜单展开状态
 const softwareManageOpen = ref(false)
-
-// 需求反馈二级菜单展开状态
-const feedbackOpen = ref(false)
 
 // 版本火车二级菜单展开状态
 const versionTrainOpen = ref(false)
@@ -489,13 +543,14 @@ const breadcrumbConfig = {
   'version-train-release': { currentLabel: '版本火车发车' },
   'patch-plan':       { currentLabel: '软件出入库' },
   'openapi-tools':    { currentLabel: 'OpenAPI 工具集' },
-  'requirement-feedback': { currentLabel: '需求反馈' },
-  'inbound-request': { parentLabel: '需求反馈', parentTo: { name: 'requirement-feedback' }, currentLabel: '开源软件项目入库需求清单' },
+  'inbound-request': { currentLabel: '软件入库需求反馈' },
   'feedback-audit': { currentLabel: '反馈与审核' },
+  'warehouse-approval': { currentLabel: '审批入库' },
   'api-keys':         { currentLabel: '密钥管理' },
   'personal-settings': { currentLabel: '个人设置' },
   'standard-build':   { currentLabel: '指标配置' },
   'admin-gov':        { currentLabel: '软件治理' },
+  'my-governance-tasks': { currentLabel: '我的待治理清单' },
   'software-detail':  { parentLabel: '软件库', parentTo: { name: 'software-library' }, currentLabel: '软件详情' },
   'admin-gov-detail': { parentLabel: '软件治理', parentTo: { name: 'admin-gov' }, currentLabel: '软件详情' },
 }
@@ -580,10 +635,11 @@ function onSearchKindChange() {
 function onDocClick(e) {
   const el = searchWrapRef.value
   if (el && !el.contains(e.target)) closeSearchPanel()
-  // 用户菜单点击外部关闭
+  // 用户菜单/站内信面板点击外部关闭
   const menuEl = userMenuRef.value
   if (menuEl && !menuEl.contains(e.target)) {
     userMenuOpen.value = false
+    messagePanelOpen.value = false
   }
 }
 
@@ -1069,6 +1125,9 @@ const manualPageUrl = computed(() => {
 .admin-user {
   flex: 0 0 auto;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .admin-user-trigger {
   display: flex;
@@ -1102,6 +1161,133 @@ const manualPageUrl = computed(() => {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
+
+/* —— 站内信入口 —— */
+.admin-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 2px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.admin-bell:hover {
+  background: #f3f4f6;
+  color: #da203e;
+}
+.admin-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #da203e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+/* —— 站内信面板 —— */
+.admin-message-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 360px;
+  max-width: 90vw;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+.admin-message-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.admin-message-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.admin-message-readall {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: #da203e;
+  cursor: pointer;
+}
+.admin-message-readall:hover {
+  text-decoration: underline;
+}
+.admin-message-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.admin-message-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.admin-message-item:hover {
+  background: #fafafa;
+}
+.admin-message-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+.admin-message-item.is-unread .admin-message-dot {
+  background: #da203e;
+}
+.admin-message-item.is-unread .admin-message-text {
+  font-weight: 600;
+  color: #111827;
+}
+.admin-message-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.admin-message-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #374151;
+  word-break: break-all;
+}
+.admin-message-time {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.admin-message-empty {
+  margin: 0;
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
 .dropdown-header {
   display: flex;
   align-items: center;

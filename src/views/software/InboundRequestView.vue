@@ -3,62 +3,26 @@
     <form class="ir-form-card" novalidate @submit.prevent="submitRequest">
       <!-- 标题 -->
       <div class="ir-page-header">
-        <h1 class="ir-page-title">开源软件项目入库需求清单</h1>
+        <h1 class="ir-page-title">软件入库需求反馈</h1>
         <button type="button" class="ir-template-btn" @click="downloadTemplate">下载模板</button>
       </div>
 
-      <!-- 反馈组织 -->
+      <!-- 意见反馈 -->
       <div class="ir-field">
-        <label class="ir-label" for="ir-org">
-          反馈组织
+        <label class="ir-label" for="ir-opinion">
+          意见反馈
           <span class="ir-required" aria-hidden="true">*</span>
         </label>
-        <input
-          id="ir-org"
-          v-model.trim="form.org"
-          type="text"
-          class="ir-input"
-          placeholder="请输入反馈组织名称"
-          :class="{ 'is-invalid': shouldValidate && errors.org }"
+        <textarea
+          id="ir-opinion"
+          v-model.trim="form.opinion"
+          class="ir-input ir-textarea"
+          rows="4"
+          placeholder="请输入对本批次软件入库的意见或说明"
+          :class="{ 'is-invalid': shouldValidate && errors.opinion }"
           @blur="touch"
-        />
-        <p v-if="shouldValidate && errors.org" class="ir-error">{{ errors.org }}</p>
-      </div>
-
-      <!-- 反馈人 -->
-      <div class="ir-field">
-        <label class="ir-label" for="ir-reporter">
-          反馈人
-          <span class="ir-required" aria-hidden="true">*</span>
-        </label>
-        <input
-          id="ir-reporter"
-          v-model.trim="form.reporter"
-          type="text"
-          class="ir-input"
-          placeholder="请输入反馈人姓名"
-          :class="{ 'is-invalid': shouldValidate && errors.reporter }"
-          @blur="touch"
-        />
-        <p v-if="shouldValidate && errors.reporter" class="ir-error">{{ errors.reporter }}</p>
-      </div>
-
-      <!-- 联系方式 -->
-      <div class="ir-field">
-        <label class="ir-label" for="ir-contact">
-          联系方式
-          <span class="ir-required" aria-hidden="true">*</span>
-        </label>
-        <input
-          id="ir-contact"
-          v-model.trim="form.contact"
-          type="text"
-          class="ir-input"
-          placeholder="请输入手机号或邮箱"
-          :class="{ 'is-invalid': shouldValidate && errors.contact }"
-          @blur="touch"
-        />
-        <p v-if="shouldValidate && errors.contact" class="ir-error">{{ errors.contact }}</p>
+        ></textarea>
+        <p v-if="shouldValidate && errors.opinion" class="ir-error">{{ errors.opinion }}</p>
       </div>
 
       <!-- 上传 Excel -->
@@ -167,10 +131,8 @@ const COLUMN_MAP = {
 }
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
-const CONTACT_PHONE_RE = /^1[3-9]\d{9}$/
-const CONTACT_EMAIL_RE = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/
 
-const DEFAULT_FORM = () => ({ org: '', reporter: '', contact: '' })
+const DEFAULT_FORM = () => ({ opinion: '' })
 
 const submitting = ref(false)
 const submitted = ref(false)
@@ -200,13 +162,7 @@ const shouldValidate = computed(() => touched.value || submitting.value)
 
 const errors = computed(() => {
   const err = {}
-  if (!form.org) err.org = '请输入反馈组织'
-  if (!form.reporter) err.reporter = '请输入反馈人'
-  if (!form.contact) {
-    err.contact = '请输入联系方式'
-  } else if (!CONTACT_PHONE_RE.test(form.contact) && !CONTACT_EMAIL_RE.test(form.contact)) {
-    err.contact = '请输入正确的手机号或邮箱'
-  }
+  if (!form.opinion.trim()) err.opinion = '请输入意见反馈'
   if (shouldValidate.value && !fileName.value) err.file = '请上传 Excel 清单文件'
   else if (fileName.value && fileError.value) err.file = fileError.value
   return err
@@ -300,7 +256,7 @@ function downloadTemplate() {
   ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 55 }, { wch: 42 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '入库需求清单')
-  XLSX.writeFile(wb, '开源软件入库需求清单-模板.xlsx')
+  XLSX.writeFile(wb, '软件入库需求反馈-模板.xlsx')
 }
 
 /** 从 SheetJS 单元格对象取值（兼容公式/富文本等） */
@@ -390,12 +346,10 @@ async function submitRequest() {
 
   submitting.value = true
   try {
-    // 模拟提交：写入共享数据（后台「反馈与审核 → 开源软件入库需求清单」可查看）
+    // 模拟提交：写入共享数据（后台「反馈与审核 → 软件入库需求反馈」可查看）
     await new Promise((resolve) => setTimeout(resolve, 600))
     addInboundRequest({
-      org: form.org,
-      reporter: form.reporter,
-      contact: form.contact,
+      opinion: form.opinion,
       fileName: fileName.value,
       items: items.value.map((r) => ({ ...r })),
     })
@@ -498,6 +452,14 @@ async function submitRequest() {
 
 .ir-input.is-invalid {
   border-color: #dc2626;
+}
+
+/* 意见反馈文本框 */
+.ir-textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.55;
+  font-family: inherit;
 }
 
 .ir-error {

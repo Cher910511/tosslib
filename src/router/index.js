@@ -24,6 +24,8 @@ import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
 import AdminGovernanceView from '../views/admin/AdminGovernanceView.vue'
 import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
+import MyGovernanceTasksView from '../views/admin/MyGovernanceTasksView.vue'
+import WarehouseApprovalView from '../views/admin/WarehouseApprovalView.vue'
 import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
 import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
 import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
@@ -38,7 +40,6 @@ import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
-import RequirementFeedbackView from '../views/software/RequirementFeedbackView.vue'
 import InboundRequestView from '../views/software/InboundRequestView.vue'
 import FeedbackAuditView from '../views/admin/FeedbackAuditView.vue'
 import { DETAIL_LANG_KEYS } from '../data/componentDetailLang.js'
@@ -49,7 +50,7 @@ const legacyLangDetailRedirects = DETAIL_LANG_KEYS.map((key) => ({
 }))
 
 const routes = [
-  /* 登录后默认进入「工作台」（按当前用户角色渲染普通成员/组织管理员视图） */
+  /* 登录后默认进入「工作台」（按当前用户角色渲染普通成员/库主视图） */
   { path: '/', redirect: '/software/workbench' },
   {
     path: '/dash',
@@ -174,19 +175,12 @@ const routes = [
         component: OrgDetailView,
         meta: { adminTitle: '组织详情' },
       },
-      // ==================== 需求反馈 ====================
-      {
-        path: 'feedback',
-        name: 'requirement-feedback',
-        component: RequirementFeedbackView,
-        meta: { adminTitle: '需求反馈' },
-      },
-      // 开源软件项目入库需求清单（需求反馈下的子页面）
+      // ==================== 软件入库需求反馈 ====================
       {
         path: 'feedback/inbound-request',
         name: 'inbound-request',
         component: InboundRequestView,
-        meta: { adminTitle: '开源软件项目入库需求清单' },
+        meta: { adminTitle: '软件入库需求反馈' },
       },
       // ==================== 反馈与审核（后台管理） ====================
       {
@@ -291,6 +285,20 @@ const routes = [
         name: 'admin-gov-detail',
         component: AdminGovernanceDetail,
         meta: { adminTitle: '软件详情' },
+      },
+      // 审批入库（平台管理员审核库主提交的软件）
+      {
+        path: 'warehouse-approval',
+        name: 'warehouse-approval',
+        component: WarehouseApprovalView,
+        meta: { adminTitle: '审批入库' },
+      },
+      // 我的待治理清单（库主在软件治理下查看分配清单）
+      {
+        path: 'my-governance-tasks',
+        name: 'my-governance-tasks',
+        component: MyGovernanceTasksView,
+        meta: { adminTitle: '我的待治理清单' },
       },
       // ==================== 安全情报中心 ====================
       {
