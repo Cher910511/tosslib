@@ -1042,7 +1042,7 @@ const steps = [
 ]
 
 // ===== 数据模型：使用共享 store（审批入库页复用同一份软件列表） =====
-import { softwareList, genId } from '../../data/governanceStore.js'
+import { softwareList, genId, voidSoftware } from '../../data/governanceStore.js'
 
 // 当前步骤的列表
 function scanStage(progress, threshold) {
@@ -1236,7 +1236,7 @@ const statusBadgeMap = {
   '待评估': 'warn', '评估中': 'run', '评估完成': 'ok', '评估失败': 'fail',
   '待评审': 'warn', '评审通过': 'ok', '评审不通过': 'fail', '有条件通过': 'warn',
   '待处理': 'warn', '已处理': 'ok',
-  '待审批': 'warn', '已入库': 'ok', '已拒绝': 'fail', '待发布': 'ok', '不通过': 'fail',
+  '待审批': 'warn', '已入库': 'ok', '已拒绝': 'fail', '已作废': 'fail', '待发布': 'ok', '不通过': 'fail',
 }
 
 function badgeClass(status) {
@@ -1714,9 +1714,9 @@ function confirmRemove() {
   const item = removeConfirmItem.value
   const reason = removeReason.value.trim()
   if (!item || !reason) return
-  // 审计记录（作废原因写入日志并保留在审计列表，展示给提交用户）
+  // 作废：从软件治理列表移除，记录到已作废清单（审核入库不再可见，原因保留展示）
+  voidSoftware(item, reason)
   const now = fmtNow()
-  item.logs.push({ time: now, level: 'warn', msg: `作废软件：${item.name} v${item.version}，原因：${reason}` })
   removedAudit.value.unshift({
     time: now,
     name: item.name,
@@ -1724,8 +1724,6 @@ function confirmRemove() {
     action: '作废',
     reason,
   })
-  const idx = softwareList.value.indexOf(item)
-  if (idx !== -1) softwareList.value.splice(idx, 1)
   removeConfirmItem.value = null
   removeReason.value = ''
 }

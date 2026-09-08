@@ -29,6 +29,7 @@
               <option value="待审批">待审批</option>
               <option value="已入库">已入库</option>
               <option value="已拒绝">已拒绝</option>
+              <option value="已作废">已作废</option>
             </select>
           </div>
         </div>
@@ -190,6 +191,9 @@
             <p class="wav-confirm-hint">
               拒绝后该软件将标记为「已拒绝」，库主需重新处理后再次提交。
             </p>
+            <p class="wav-confirm-hint wav-confirm-hint--warn">
+              拒绝后该软件将<strong>加入黑名单</strong>，此后该软件名称和版本<strong>不能再次入库</strong>。
+            </p>
             <div class="wav-field wav-confirm-reason">
               <label class="wav-label">拒绝原因 <span class="wav-required">*</span></label>
               <textarea
@@ -338,24 +342,24 @@ function clearSelection() {
   selectedIds.value = []
 }
 
-/** 找到该软件治理负责人（库主）对应的用户 id，用于站内信通知 */
-function ownerUserIdOf(item) {
-  const u = USERS.find((x) => x.name === item.govOwner)
-  return u ? u.id : 'user-super-1'
+/** 站内信接收人：需求提出方（submitter）。治理负责人通过「我的待治理清单」查看审核状态，不发站内信 */
+function messageRecipientsOf(item) {
+  const submitter = USERS.find((x) => x.name === item.submitter)
+  return submitter ? [submitter.id] : ['user-super-1']
 }
 
 /** 审核入库：待审批 → 已入库，并回写入库需求清单状态，同时发送站内信 */
 function approveItem(item) {
   approveWarehouse(item)
   syncInboundStatus(item)
-  sendMessage(ownerUserIdOf(item), 'approved', item.name)
+  messageRecipientsOf(item).forEach((id) => sendMessage(id, 'approved', item.name))
 }
 
 /** 拒绝：待审批 → 已拒绝（记录原因）；高危漏洞软件加入黑名单，否则答疑联系管理员 */
 function rejectItem(item, reason) {
   rejectWarehouse(item, reason)
   const type = (item.vulnCount || 0) > 0 ? 'blacklisted' : 'question'
-  sendMessage(ownerUserIdOf(item), type, item.name)
+  messageRecipientsOf(item).forEach((id) => sendMessage(id, type, item.name))
 }
 
 /* —— 二次确认（审核入库 / 拒绝） —— */
@@ -701,6 +705,11 @@ function syncInboundStatus(item) {
   background: #fef2f2;
   border: 1px solid #fecaca;
 }
+.wav-status--已作废 {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
 
 /* 操作按钮（统一：白底红字文字按钮，语义靠 hover 区分） */
 .wav-op {
@@ -903,6 +912,17 @@ function syncInboundStatus(item) {
   font-size: 12px;
   color: #9ca3af;
   line-height: 1.5;
+}
+.wav-confirm-hint--warn {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+.wav-confirm-hint--warn strong {
+  color: #b91c1c;
 }
 .wav-modal-hd {
   display: flex;

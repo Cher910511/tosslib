@@ -7,6 +7,9 @@ import { INDICATORS, calcNationalScore } from './govIndicators.js'
 
 export const softwareList = ref([])
 
+/** 已作废软件记录（作废后从软件治理列表移除，记录保留供「我的治理清单」展示） */
+export const voidedList = ref([])
+
 let nextId = 1
 
 export function genId() {
@@ -75,6 +78,7 @@ function seedItem(opts) {
   if (opts.reviewComment) item.reviewComment = opts.reviewComment
   if (opts.lastSync) item.lastSync = opts.lastSync
   if (opts.rejectReason) item.rejectReason = opts.rejectReason
+  if (opts.voidReason) item.voidReason = opts.voidReason
   return item
 }
 
@@ -82,22 +86,28 @@ export function seedGovernanceData() {
   if (softwareList.value.length) return
   softwareList.value.push(
     // —— 步骤1：软件获取（待备份） ——
-    seedItem({ name: 'Vue.js', version: '3.4.21', lang: 'TypeScript', license: 'MIT', file: 'vue-3.4.21.zip', developer: '尤雨溪', govOwner: '张建国', govOrg: '中国工商银行', currentStep: 1, createdAt: '2026-08-12 09:00', submitter: '张建国', submitOrg: '中国工商银行' }),
-    seedItem({ name: 'React', version: '18.2.0', lang: 'JavaScript', license: 'MIT', file: 'react-18.2.0.zip', developer: 'Meta', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 1, createdAt: '2026-08-11 15:20', submitter: '陈晓峰', submitOrg: '阿里巴巴集团' }),
+    seedItem({ name: 'Vue.js', version: '3.4.21', lang: 'TypeScript', license: 'MIT', file: 'vue-3.4.21.zip', developer: '尤雨溪', govOwner: '张建国', govOrg: '中国工商银行', currentStep: 1, createdAt: '2026-08-12 09:00', submitter: '张建国', submitOrg: '中国工商银行', scored: true }),
+    seedItem({ name: 'React', version: '18.2.0', lang: 'JavaScript', license: 'MIT', file: 'react-18.2.0.zip', developer: 'Meta', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 1, createdAt: '2026-08-11 15:20', submitter: '陈晓峰', submitOrg: '阿里巴巴集团', scored: true }),
     // —— 步骤2：引入选型（部分备份完成） ——
-    seedItem({ name: 'Log4j', version: '2.23.1', lang: 'Java', license: 'Apache-2.0', file: 'log4j-2.23.1.jar', developer: 'Apache', govOwner: '王明远', govOrg: '平安科技', currentStep: 2, createdAt: '2026-08-10 10:05', backupStatus: '备份成功', mirrorUrl: 'https://gitcode.com/mirror/log4j', lastSync: '2026-08-15 11:00' }),
-    seedItem({ name: 'Spring Framework', version: '6.1.5', lang: 'Java', license: 'Apache-2.0', file: 'spring-framework-6.1.5.jar', developer: 'VMware', govOwner: '李思远', govOrg: '华为技术有限公司', currentStep: 2, createdAt: '2026-08-09 14:30', backupStatus: '备份成功', mirrorUrl: 'https://gitcode.com/mirror/spring-framework', lastSync: '2026-08-15 12:10' }),
+    seedItem({ name: 'Log4j', version: '2.23.1', lang: 'Java', license: 'Apache-2.0', file: 'log4j-2.23.1.jar', developer: 'Apache', govOwner: '王明远', govOrg: '平安科技', currentStep: 2, createdAt: '2026-08-10 10:05', backupStatus: '备份成功', mirrorUrl: 'https://gitcode.com/mirror/log4j', lastSync: '2026-08-15 11:00', scored: true, warehouseStatus: '已拒绝', rejectReason: '存在高危漏洞且修复进度缓慢，需整改后重新提交', logs: [{ time: '2026-08-14 10:20', level: 'warn', msg: '已拒绝，拒绝原因：存在高危漏洞且修复进度缓慢，需整改后重新提交' }] }),
+    seedItem({ name: 'Spring Framework', version: '6.1.5', lang: 'Java', license: 'Apache-2.0', file: 'spring-framework-6.1.5.jar', developer: 'VMware', govOwner: '李思远', govOrg: '华为技术有限公司', currentStep: 2, createdAt: '2026-08-09 14:30', backupStatus: '备份成功', mirrorUrl: 'https://gitcode.com/mirror/spring-framework', lastSync: '2026-08-15 12:10', scored: true, warehouseStatus: '已入库', warehouseTime: '2026-08-16 09:30' }),
     // —— 步骤3：软件技术评估（评估中 / 评估完成） ——
-    seedItem({ name: 'Django', version: '5.0.4', lang: 'Python', license: 'BSD-3-Clause', file: 'Django-5.0.4.tar.gz', developer: 'Django Software Foundation', govOwner: '王明远', govOrg: '平安科技', currentStep: 3, createdAt: '2026-08-08 09:45', backupStatus: '备份成功', assessStatus: '评估中', scanProgress: 60, copyrightProgress: 40, malwareProgress: 20, sbomProgress: 60, vulnProgress: 40, licenseProgress: 40 }),
-    seedItem({ name: 'OpenSSL', version: '3.3.0', lang: 'C', license: 'Apache-2.0', file: 'openssl-3.3.0.tar.gz', developer: 'OpenSSL Software Foundation', govOwner: '张建国', govOrg: '中国工商银行', currentStep: 3, createdAt: '2026-08-06 11:20', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, sbomProgress: 100, vulnProgress: 100, licenseProgress: 100, scored: true }),
+    seedItem({ name: 'OpenSSL', version: '3.3.0', lang: 'C', license: 'Apache-2.0', file: 'openssl-3.3.0.tar.gz', developer: 'OpenSSL Software Foundation', govOwner: '张建国', govOrg: '中国工商银行', currentStep: 3, createdAt: '2026-08-06 11:20', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, sbomProgress: 100, vulnProgress: 100, licenseProgress: 100, scored: true, warehouseStatus: '已拒绝', rejectReason: '存在高危漏洞（CVE 未修复），需整改后重新提交', logs: [{ time: '2026-08-12 16:10', level: 'warn', msg: '已拒绝，拒绝原因：存在高危漏洞（CVE 未修复），需整改后重新提交' }] }),
     // —— 步骤4：治理成果验收（待评审 / 评审通过） ——
-    seedItem({ name: 'Redis', version: '7.2.4', lang: 'C', license: 'BSD-3-Clause', file: 'redis-7.2.4.tar.gz', developer: 'Redis Ltd.', govOwner: '李思远', govOrg: '华为技术有限公司', currentStep: 4, createdAt: '2026-08-05 10:10', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '待评审' }),
-    seedItem({ name: 'Nginx', version: '1.26.0', lang: 'C', license: 'BSD-2-Clause', file: 'nginx-1.26.0.tar.gz', developer: 'NGINX, Inc.', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 4, createdAt: '2026-08-03 16:40', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '评审通过', reviewComment: '基线指标全部合格，准予入库' }),
+    seedItem({ name: 'Nginx', version: '1.26.0', lang: 'C', license: 'BSD-2-Clause', file: 'nginx-1.26.0.tar.gz', developer: 'NGINX, Inc.', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 4, createdAt: '2026-08-03 16:40', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '评审通过', reviewComment: '基线指标全部合格，准予入库', warehouseStatus: '已入库', warehouseTime: '2026-08-10 14:30' }),
     // —— 步骤5：软件入库（待审批 / 已入库） ——
     seedItem({ name: 'Elasticsearch', version: '8.15.0', lang: 'Java', license: 'Elastic-2.0', file: 'elasticsearch-8.15.0.tar.gz', developer: 'Elastic', govOwner: '王明远', govOrg: '平安科技', currentStep: 5, createdAt: '2026-07-30 09:30', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '评审通过', warehouseStatus: '待审批', vulnCount: 2 }),
     seedItem({ name: 'Kafka', version: '3.9.2', lang: 'Scala', license: 'Apache-2.0', file: 'kafka-3.9.2.tgz', developer: 'Apache', govOwner: '张建国', govOrg: '中国工商银行', currentStep: 5, createdAt: '2026-07-25 14:15', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '评审通过', warehouseStatus: '已入库', vulnCount: 0, warehouseTime: '2026-08-02 10:30' }),
     seedItem({ name: 'MongoDB', version: '7.0.12', lang: 'C++', license: 'SSPL-1.0', file: 'mongodb-7.0.12.tgz', developer: 'MongoDB Inc.', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 5, createdAt: '2026-07-20 11:00', backupStatus: '备份成功', assessStatus: '评估完成', scanProgress: 100, copyrightProgress: 100, malwareProgress: 100, scored: true, reviewStatus: '评审通过', warehouseStatus: '已拒绝', vulnCount: 5, rejectReason: '存在未修复的超危漏洞，且许可证兼容性存疑，需整改后重新提交', logs: [{ time: '2026-07-22 15:20', level: 'warn', msg: '已拒绝，拒绝原因：存在未修复的超危漏洞，且许可证兼容性存疑，需整改后重新提交' }] }),
   )
+  // 已作废软件（作废后从软件治理列表移除，记录保留供「我的治理清单」展示）
+  if (!voidedList.value.length) {
+    voidedList.value.push(
+      { id: genId(), name: 'Django', version: '5.0.4', lang: 'Python', license: 'BSD-3-Clause', repoUrl: 'https://github.com/django/django', govOwner: '王明远', govOrg: '平安科技', submitter: '王明远', submitOrg: '平安科技', createdAt: '2026-08-08 09:45', warehouseStatus: '已作废', voidReason: '评估中发现重大许可证风险，按规范作废', warehouseTime: '2026-08-13 15:40', logs: [{ time: '2026-08-13 15:40', level: 'warn', msg: '作废软件：Django v5.0.4，原因：评估中发现重大许可证风险，按规范作废' }] },
+      { id: genId(), name: 'Redis', version: '7.2.4', lang: 'C', license: 'BSD-3-Clause', repoUrl: 'https://github.com/redis/redis', govOwner: '李思远', govOrg: '华为技术有限公司', submitter: '李思远', submitOrg: '华为技术有限公司', createdAt: '2026-08-05 10:10', warehouseStatus: '已作废', voidReason: '业务方取消引入，按规范作废', warehouseTime: '2026-08-11 09:20', logs: [{ time: '2026-08-11 09:20', level: 'warn', msg: '作废软件：Redis v7.2.4，原因：业务方取消引入，按规范作废' }] },
+      { id: genId(), name: 'RabbitMQ', version: '3.13.6', lang: 'Erlang', license: 'MPL-2.0', repoUrl: 'https://github.com/rabbitmq/rabbitmq-server', govOwner: '李思远', govOrg: '华为技术有限公司', submitter: '李思远', submitOrg: '华为技术有限公司', createdAt: '2026-07-15 09:00', warehouseStatus: '已作废', voidReason: '治理评估不达标，按规范作废', warehouseTime: '2026-07-19 16:40', logs: [{ time: '2026-07-19 16:40', level: 'warn', msg: '作废软件：RabbitMQ v3.13.6，原因：治理评估不达标，按规范作废' }] },
+    )
+  }
 }
 
 /** 待审批软件（提交入库审核，等待平台管理员审批） */
@@ -124,6 +134,32 @@ export function rejectWarehouse(item, reason = '') {
   if (!item.logs) item.logs = []
   item.logs.push({ time: now, level: 'warn', msg: `已拒绝，拒绝原因：${item.rejectReason}` })
   return item
+}
+
+/** 作废软件：从软件治理列表移除（审核入库不再可见），记录原因供「我的治理清单」展示，不可恢复 */
+export function voidSoftware(item, reason = '') {
+  const now = new Date().toLocaleString('zh-CN')
+  const record = {
+    id: item.id,
+    name: item.name,
+    version: item.version,
+    lang: item.lang,
+    license: item.license,
+    repoUrl: item.repoUrl,
+    govOwner: item.govOwner,
+    govOrg: item.govOrg,
+    submitter: item.submitter,
+    submitOrg: item.submitOrg,
+    createdAt: item.createdAt,
+    warehouseStatus: '已作废',
+    voidReason: reason || '未填写',
+    warehouseTime: now,
+    logs: [...(item.logs || []), { time: now, level: 'warn', msg: `作废软件：${item.name} v${item.version}，原因：${reason || '未填写'}` }],
+  }
+  voidedList.value.unshift(record)
+  const idx = softwareList.value.indexOf(item)
+  if (idx !== -1) softwareList.value.splice(idx, 1)
+  return record
 }
 
 /**

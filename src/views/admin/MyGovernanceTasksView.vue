@@ -415,7 +415,7 @@ function downloadList(r) {
 // 治理模板列（与软件治理导入模板一致；提交人 / 提交组织为预填标识列）
 const TEMPLATE_HEADERS = [
   '名称*', '版本*', '主语言*', '开源许可证*', '官方发布日期', '项目描述', '开发商', '开源许可证ID',
-  '官网地址', '分支', '社区标签(Tag)', 'Commit ID', '软件文件*', '代码量(KL)',
+  '官网地址', '分支', '社区标签(Tag)', 'Commit ID', '代码量(KL)',
   '开源社区源码托管地址*', '官网漏洞披露地址', '下线日期', '提交人', '提交组织',
 ]
 
@@ -433,7 +433,6 @@ const HEADER_ALIASES = [
   ['branch', ['分支']],
   ['tag', ['社区标签', '标签']],
   ['commitId', ['Commit ID', 'CommitID', 'Commit']],
-  ['file', ['软件文件', '文件']],
   ['codeSize', ['代码量']],
   ['repoUrl', ['开源社区源码托管地址', '源码托管地址', '仓库地址', '托管地址']],
   ['vulnUrl', ['官网漏洞披露地址', '漏洞披露地址']],
@@ -449,7 +448,7 @@ const ALIAS_FLAT = HEADER_ALIASES
 // 必填列：缺任一项即校验失败
 const REQUIRED_KEYS = [
   ['name', '名称'], ['version', '版本'], ['lang', '主语言'],
-  ['license', '开源许可证'], ['file', '软件文件'], ['repoUrl', '源码托管地址'],
+  ['license', '开源许可证'], ['repoUrl', '源码托管地址'],
 ]
 
 function normHeader(v) {

@@ -132,6 +132,7 @@
                 <option value="待审批">待审批</option>
                 <option value="已入库">已入库</option>
                 <option value="已拒绝">已拒绝</option>
+                <option value="已作废">已作废</option>
               </select>
             </div>
           </div>
@@ -144,44 +145,37 @@
               <tr>
                 <th>软件名称</th>
                 <th>版本</th>
-                <th>编程语言</th>
-                <th>开源许可证</th>
+                <th>软件地址</th>
                 <th>治理负责人</th>
-                <th>漏洞数</th>
-                <th>国标评分</th>
                 <th>提交时间</th>
                 <th>入库时间</th>
                 <th>审核状态</th>
-                <th>拒绝原因</th>
+                <th>原因</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in govPaginated" :key="item.id">
                 <td class="mg-name">{{ item.name }}</td>
-                <td>{{ item.version }}</td>
-                <td>{{ item.lang || '—' }}</td>
-                <td>{{ item.license || '—' }}</td>
                 <td>
-                  <div class="mg-owner">
-                    <span class="mg-owner-name">{{ item.govOwner || '—' }}</span>
-                    <span v-if="item.govOrg" class="mg-owner-org">{{ item.govOrg }}</span>
-                  </div>
+                  <button
+                    v-if="item.warehouseStatus === '已入库'"
+                    type="button"
+                    class="mg-version-link"
+                    @click="goSoftwareDetail(item)"
+                  >{{ item.version }}</button>
+                  <span v-else>{{ item.version }}</span>
                 </td>
+                <td class="mg-url" :title="item.repoUrl">{{ item.repoUrl || '—' }}</td>
                 <td>
-                  <span class="mg-vuln" :class="(item.vulnCount || 0) > 0 ? 'mg-vuln--risk' : 'mg-vuln--none'">{{ item.vulnCount ?? 0 }}</span>
-                </td>
-                <td>
-                  <span class="mg-score" :class="item.nationalScore == null ? 'mg-score--empty' : (item.nationalScore >= 60 ? 'mg-score--ok' : 'mg-score--bad')">
-                    {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
-                  </span>
+                  <span class="mg-owner-name">{{ item.govOwner || '—' }}</span>
                 </td>
                 <td>{{ item.createdAt || '—' }}</td>
                 <td>{{ item.warehouseTime || '—' }}</td>
                 <td><span class="mg-status" :class="'mg-status--' + item.warehouseStatus">{{ item.warehouseStatus }}</span></td>
-                <td class="mg-reject-reason" :title="item.rejectReason">{{ item.warehouseStatus === '已拒绝' ? (item.rejectReason || '—') : '—' }}</td>
+                <td class="mg-reject-reason" :title="reasonOf(item)">{{ reasonOf(item) }}</td>
               </tr>
               <tr v-if="!govPaginated.length">
-                <td colspan="11" class="mg-empty">暂无治理清单数据</td>
+                <td colspan="8" class="mg-empty">暂无治理清单数据</td>
               </tr>
             </tbody>
           </table>
@@ -229,12 +223,13 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getInboundRequests } from '../../data/inboundRequests.js'
-import { softwareList } from '../../data/governanceStore.js'
+import { softwareList, voidedList } from '../../data/governanceStore.js'
 import { USERS } from '../../data/orgData.js'
 
 const route = useRoute()
+const router = useRouter()
 
 const activeTab = ref('profile')
 
@@ -282,13 +277,14 @@ const myInboundLists = computed(() => {
   return list.filter((r) => (r.submitter || r.reporter) === currentUser.value?.name)
 })
 
-/** 当前用户治理的软件：所属组织提交到软件治理流程的条目 */
+/** 当前用户治理的软件：治理列表 + 已作废记录（作废后从治理列表移除，记录保留展示） */
 const myGovernanceItems = computed(() => {
-  if (isSuperAdmin.value) return softwareList.value
+  const merged = [...voidedList.value, ...softwareList.value]
+  if (isSuperAdmin.value) return merged
   if (currentUser.value?.role === 'owner') {
-    return softwareList.value.filter((i) => i.govOwner === currentUser.value.name)
+    return merged.filter((i) => i.govOwner === currentUser.value.name)
   }
-  return softwareList.value.filter((i) => (i.submitter || i.govOwner) === currentUser.value.name)
+  return merged.filter((i) => (i.submitter || i.govOwner) === currentUser.value.name)
 })
 
 /* —— 筛选 —— */
@@ -310,6 +306,18 @@ function clearGovFilter() {
   govFilters.version = ''
   govFilters.status = ''
   govPage.value = 1
+}
+
+/** 「原因」列：已拒绝→拒绝原因，已作废→作废原因，必须存在；缺失时显式警示 */
+function reasonOf(item) {
+  if (item.warehouseStatus === '已拒绝') return item.rejectReason || '未填写原因'
+  if (item.warehouseStatus === '已作废') return item.voidReason || '未填写原因'
+  return '—'
+}
+
+/** 已入库软件版本点击 → 软件详情 */
+function goSoftwareDetail(item) {
+  router.push({ name: 'software-detail', query: { name: item.name, version: item.version } })
 }
 
 /* —— 分页 —— */
@@ -712,6 +720,26 @@ watch(govPageSize, () => { govPage.value = 1 })
   color: #111827;
   font-weight: 500;
 }
+.mg-url {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #2563eb;
+  font-size: 12px;
+}
+.mg-version-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.mg-version-link:hover {
+  color: #1d4ed8;
+}
 .mg-empty {
   text-align: center;
   color: #9ca3af;
@@ -789,6 +817,11 @@ watch(govPageSize, () => { govPage.value = 1 })
   color: #dc2626;
   background: #fef2f2;
   border: 1px solid #fecaca;
+}
+.mg-status--已作废 {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
 }
 .mg-reject-reason {
   max-width: 200px;
