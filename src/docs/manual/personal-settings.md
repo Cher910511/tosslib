@@ -40,8 +40,8 @@
 
 点击标题可查看漏洞预警详情，修改该漏洞预警的处理状态，对于已确认或处理完成的预警，可通过右侧操作按钮进行删除。
 
-![personal-settings-4](../images/personal-settings-5.png)
-![personal-settings-4](../images/personal-settings-6.png)
+![personal-settings-4](../images/personal-settings-4.png)
+![personal-settings-5](../images/personal-settings-5.png)
 
 ## 5. 预警信息设置
 
@@ -51,6 +51,6 @@
 
 **短信通知**：勾选「短信通知」后启用短信提醒，支持填写一个或多个手机号，可通过 **「+ 添加新短信」** 添加多个接收号码。
 
-![personal-settings-7](../images/personal-settings-7.png)
+![personal-settings-7](../images/personal-settings-6.png)
 
 > 提示：建议定期检查通知配置与联系方式，确保能够及时接收到最新风险预警信息。

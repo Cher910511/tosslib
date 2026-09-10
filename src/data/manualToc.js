@@ -35,14 +35,10 @@ export const manualToc = [
     ],
   },
   {
-    id: 'software-manage',
-    title: '软件管理',
-    children: [
-      { id: 'sm-list', title: '软件列表', doc: 'sm-list' },
-      { id: 'sm-scan', title: '软件扫描', doc: 'sm-scan' },
-    ],
+    id: 'signature-verify',
+    title: '签名验证',
+    doc: 'signature-verify',
   },
-
   {
     id: 'organization',
     title: '组织管理',
@@ -58,8 +54,13 @@ export const manualToc = [
   },
   {
     id: 'feedback',
-    title: '需求反馈',
+    title: '软件入库需求反馈',
     doc: 'feedback',
+  },
+  {
+    id: 'software-care',
+    title: '软件看护',
+    doc: 'software-care',
   },
 ]
 
