@@ -62,6 +62,11 @@ export const manualToc = [
     title: '软件看护',
     doc: 'software-care',
   },
+  {
+    id: 'user-notice',
+    title: '用户须知',
+    doc: 'user-notice',
+  },
 ]
 
 /** 扁平化所有带 doc 的叶子节点 */
