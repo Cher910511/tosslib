@@ -233,9 +233,9 @@ import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
 const filterOpen = ref(true)
 const filters = reactive({ name: '', owner: '', status: '' })
 
-/** 审批列表：软件治理中已进入第 5 步（软件入库）的全部软件 */
+/** 审批列表：软件治理中已进入第 2 步（软件入库）的全部软件（新流程：治理结果随模板回传并提交审批后进入） */
 const allApprovalItems = computed(() =>
-  softwareList.value.filter((i) => i.currentStep === 5),
+  softwareList.value.filter((i) => i.currentStep === 4),
 )
 
 const filteredList = computed(() => {

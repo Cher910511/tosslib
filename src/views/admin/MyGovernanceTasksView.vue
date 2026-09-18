@@ -1,13 +1,5 @@
 <template>
   <div class="mgt-page">
-    <!-- 顶部：返回 + 标题 -->
-    <div class="mgt-head">
-      <button type="button" class="mgt-back" @click="goBack">
-        ← 返回软件治理
-      </button>
-      <h1 class="mgt-title">我的待治理清单</h1>
-    </div>
-
     <!-- 筛选信息 -->
     <section class="mgt-card mgt-filter-card">
       <header class="mgt-card-hd">
@@ -38,7 +30,7 @@
     <section class="mgt-card mgt-table-card">
       <header class="mgt-card-hd mgt-table-hd">
         <h2 class="mgt-table-title">待治理清单列表</h2>
-        <span class="mgt-count">共 {{ filteredList.length }} 条</span>
+        <button type="button" class="mgt-head-tpl" @click="downloadSampleTemplate">下载示例模板</button>
       </header>
 
       <div class="mgt-table-wrap">
@@ -49,7 +41,10 @@
               <th>反馈人</th>
               <th>清单文件</th>
               <th>软件条数</th>
-              <th>提交时间</th>
+              <th>回传状态</th>
+              <th>成功条数</th>
+              <th>失败条数</th>
+              <th>回传时间</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -57,24 +52,31 @@
             <tr v-for="r in paginatedList" :key="r.id">
               <td class="mgt-name">{{ r.org || '—' }}</td>
               <td>{{ r.reporter || '—' }}</td>
-              <td class="mgt-file" :title="r.fileName">
-                {{ r.fileName }}
-                <span v-if="r.status === '已分配'" class="mgt-badge">待回传</span>
-              </td>
+              <td class="mgt-file" :title="r.fileName">{{ r.fileName }}</td>
               <td>{{ r.itemCount }} 条</td>
-              <td>{{ r.createdAt || '—' }}</td>
+              <td>
+                <span
+                  v-if="returnStatusOf(r) !== '—'"
+                  class="mgt-ret"
+                  :class="returnStatusClass(r)"
+                >{{ returnStatusOf(r) }}</span>
+                <span v-else class="mgt-muted">—</span>
+              </td>
+              <td>{{ r.returnOkCount != null ? `${r.returnOkCount} 条` : '—' }}</td>
+              <td>{{ r.returnFailCount != null ? `${r.returnFailCount} 条` : '—' }}</td>
+              <td>{{ r.returnedAt || '—' }}</td>
               <td>
                 <button type="button" class="mgt-op" @click="openDetail(r)">查看详情</button>
                 <span class="mgt-sep">|</span>
                 <button type="button" class="mgt-op" @click="downloadList(r)">下载清单</button>
-                <template v-if="r.status === '已分配' || r.status === '治理中'">
+                <template v-if="r.status === '已分配'">
                   <span class="mgt-sep">|</span>
                   <button type="button" class="mgt-op mgt-op--strong" @click="openReturn(r)">回传清单</button>
                 </template>
               </td>
             </tr>
             <tr v-if="!paginatedList.length">
-              <td colspan="6" class="mgt-empty">暂无符合条件的清单</td>
+              <td colspan="9" class="mgt-empty">暂无符合条件的清单</td>
             </tr>
           </tbody>
         </table>
@@ -166,100 +168,25 @@
       </div>
     </div>
 
-    <!-- 回传清单弹窗 -->
-    <div v-if="returnTarget" class="mgt-overlay" @click.self="closeReturn">
-      <div class="mgt-modal" role="dialog" aria-modal="true" aria-labelledby="mgt-return-title">
-        <header class="mgt-modal-hd">
-          <h3 id="mgt-return-title" class="mgt-modal-title">回传治理清单</h3>
-          <button type="button" class="mgt-modal-close" aria-label="关闭" @click="closeReturn">✕</button>
-        </header>
-        <div class="mgt-modal-meta">
-          <span>反馈组织：{{ returnTarget.org || '—' }}</span>
-          <span>反馈人：{{ returnTarget.reporter || '—' }}</span>
-          <span>清单文件：{{ returnTarget.fileName }}</span>
-        </div>
-
-        <!-- 回传成功态 -->
-        <div v-if="returnImportedCount != null" class="mgt-return-body">
-          <div class="mgt-return-done">
-            <p class="mgt-return-done-title">✓ 回传成功，已导入 {{ returnImportedCount }} 条软件</p>
-            <p class="mgt-return-done-hint">软件已进入「软件治理 → 软件获取」列表，清单状态更新为「治理中」。</p>
-          </div>
-        </div>
-
-        <!-- 上传 + 校验 -->
-        <div v-else class="mgt-return-body">
-          <div class="mgt-return-upload">
-            <input ref="returnFileRef" type="file" accept=".xlsx,.xls,.csv" class="visually-hidden" @change="onReturnFile" />
-            <button type="button" class="mgt-btn mgt-btn--outline" @click="returnFileRef?.click()">选择回传文件</button>
-            <button type="button" class="mgt-btn mgt-btn--outline" @click="downloadPrefilledTemplate(returnTarget)">下载预填模板</button>
-            <span v-if="returnFileName" class="mgt-return-file" :title="returnFileName">{{ returnFileName }}</span>
-            <span v-if="returnParsing" class="mgt-muted">解析中…</span>
-          </div>
-          <p class="mgt-return-tip">
-            请按治理模板维护（名称、版本、提交人、提交组织已预填）。校验规则：必填项齐全、名称+版本与本清单一致、未与已入库软件重复；任一条不通过则整份文件无法导入。
-          </p>
-          <p v-if="returnError" class="mgt-return-error">{{ returnError }}</p>
-
-          <div v-if="returnRows.length" class="mgt-return-result">
-            <p class="mgt-return-summary">
-              共解析 {{ returnRows.length }} 条 · 通过 <strong class="is-ok">{{ passedReturnRows.length }}</strong> 条 · 未通过 <strong :class="failedReturnRows.length ? 'is-bad' : ''">{{ failedReturnRows.length }}</strong> 条
-              <template v-if="failedReturnRows.length">，请修正后重新上传</template>
-            </p>
-            <table class="mgt-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>名称</th>
-                  <th>版本</th>
-                  <th>校验结果</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, i) in returnRows" :key="i">
-                  <td class="mgt-muted">{{ i + 1 }}</td>
-                  <td class="mgt-name">{{ row.name || '—' }}</td>
-                  <td>{{ row.version || '—' }}</td>
-                  <td class="mgt-return-check">
-                    <span v-if="row.errors.length" class="mgt-return-fail">✗ {{ row.errors.join('；') }}</span>
-                    <span v-else class="mgt-return-pass">✓ 通过</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <footer class="mgt-modal-ft">
-          <template v-if="returnImportedCount != null">
-            <button type="button" class="mgt-btn mgt-btn--outline" @click="closeReturn">关闭</button>
-            <button type="button" class="mgt-btn mgt-btn--primary" @click="goGovernance">前往软件治理</button>
-          </template>
-          <template v-else>
-            <button type="button" class="mgt-btn mgt-btn--outline" @click="closeReturn">取消</button>
-            <button
-              type="button"
-              class="mgt-btn mgt-btn--primary"
-              :disabled="!canImportReturn || returnImporting"
-              @click="confirmReturnImport"
-            >{{ returnImporting ? '导入中…' : '确认导入（' + passedReturnRows.length + ' 条）' }}</button>
-          </template>
-        </footer>
-      </div>
-    </div>
+    <!-- 上传治理结果（共享组件：本页行内「回传清单」进入，清单已确定，弹窗内不再提供清单选择） -->
+    <GovernanceUploadDialog
+      :open="uploadOpen"
+      :preset-list-id="uploadListId"
+      @close="closeUpload"
+      @imported="onUploadImported"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import * as XLSX from 'xlsx'
-import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
-import { softwareList, importFromInbound } from '../../data/governanceStore.js'
+import { useRoute } from 'vue-router'
+import { getInboundRequests } from '../../data/inboundRequests.js'
+import { writePrefilledTemplate, writeSampleTemplate } from '../../data/governanceTemplate.js'
 import { USERS } from '../../data/orgData.js'
+import GovernanceUploadDialog from '../../components/gov/GovernanceUploadDialog.vue'
 
 const route = useRoute()
-const router = useRouter()
 
 /* —— 当前用户角色：与侧边栏共用 route.query.user，默认平台管理员 —— */
 const currentUser = computed(() => USERS.find((u) => u.id === route.query.user) || USERS[0])
@@ -338,11 +265,6 @@ watch(pageSize, () => {
   page.value = 1
 })
 
-/** 返回软件治理 */
-function goBack() {
-  router.push({ name: 'admin-gov' })
-}
-
 /* —— 查看详情弹窗分页 —— */
 const detailTarget = ref(null)
 const detailPage = ref(1)
@@ -410,256 +332,56 @@ function downloadList(r) {
   URL.revokeObjectURL(a.href)
 }
 
-/* ==================== 回传治理清单 ==================== */
+/* ==================== 下载软件导入模板 ==================== */
+// 模板列定义/解析/校验统一使用共享模块 governanceTemplate.js
 
-// 治理模板列（与软件治理导入模板一致；提交人 / 提交组织为预填标识列）
-const TEMPLATE_HEADERS = [
-  '名称*', '版本*', '主语言*', '开源许可证*', '官方发布日期', '项目描述', '开发商', '开源许可证ID',
-  '官网地址', '分支', '社区标签(Tag)', 'Commit ID', '代码量(KL)',
-  '开源社区源码托管地址*', '官网漏洞披露地址', '下线日期', '提交人', '提交组织',
-]
-
-// 表头别名（按长度倒序做包含匹配，避免「开源许可证」抢先吃掉「开源许可证ID」）
-const HEADER_ALIASES = [
-  ['name', ['开源软件名称', '软件名称', '名称']],
-  ['version', ['版本号', '版本']],
-  ['lang', ['主语言', '语言']],
-  ['licenseId', ['开源许可证ID', '许可证ID']],
-  ['license', ['开源许可证', '许可证']],
-  ['releaseDate', ['官方发布日期', '发布日期']],
-  ['desc', ['项目描述', '描述']],
-  ['developer', ['开发商', '开发者']],
-  ['homepage', ['官网地址', '官网']],
-  ['branch', ['分支']],
-  ['tag', ['社区标签', '标签']],
-  ['commitId', ['Commit ID', 'CommitID', 'Commit']],
-  ['codeSize', ['代码量']],
-  ['repoUrl', ['开源社区源码托管地址', '源码托管地址', '仓库地址', '托管地址']],
-  ['vulnUrl', ['官网漏洞披露地址', '漏洞披露地址']],
-  ['offlineDate', ['下线日期']],
-  ['submitter', ['提交人']],
-  ['submitOrg', ['提交组织']],
-]
-
-const ALIAS_FLAT = HEADER_ALIASES
-  .flatMap(([key, aliases]) => aliases.map((alias) => ({ key, alias: alias.replace(/\*/g, '').replace(/\s+/g, '').toLowerCase() })))
-  .sort((a, b) => b.alias.length - a.alias.length)
-
-// 必填列：缺任一项即校验失败
-const REQUIRED_KEYS = [
-  ['name', '名称'], ['version', '版本'], ['lang', '主语言'],
-  ['license', '开源许可证'], ['repoUrl', '源码托管地址'],
-]
-
-function normHeader(v) {
-  return String(v ?? '').replace(/\*/g, '').replace(/\s+/g, '').trim().toLowerCase()
-}
-
-/** 匹配表头单元格属于哪一列，返回列 key 或 null */
-function matchHeaderKey(cell) {
-  const t = normHeader(cell)
-  if (!t) return null
-  for (const { key, alias } of ALIAS_FLAT) {
-    if (t.includes(alias)) return key
-  }
-  return null
-}
-
-/** 从 SheetJS 单元格取值 */
-function cellText(v) {
-  if (v == null) return ''
-  if (typeof v === 'object') {
-    if (v.w != null) return String(v.w).trim()
-    if (v.v != null) return String(v.v).trim()
-    return ''
-  }
-  return String(v).trim()
-}
-
-/** 下载预填模板：名称/版本/提交人/提交组织预填，其余列留空待维护 */
+/** 下载预填模板：按本清单软件预填软件名称/软件版本/源码地址，其余治理结果字段留空待填写 */
 function downloadPrefilledTemplate(r) {
-  const csvCell = (cell) => {
-    const s = String(cell == null ? '' : cell)
-    return `"${s.replace(/"/g, '""')}"`
-  }
-  const lines = [TEMPLATE_HEADERS.join(',')]
-  ;(r.items || []).forEach((item) => {
-    const row = TEMPLATE_HEADERS.map((h) => {
-      const key = h.replace(/\*/g, '').trim()
-      if (key === '名称') return item.name ?? ''
-      if (key === '版本') return item.version ?? ''
-      if (key === '提交人') return r.reporter || ''
-      if (key === '提交组织') return r.org || ''
-      return ''
-    })
-    lines.push(row.map(csvCell).join(','))
-  })
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${(r.org || '治理')}-治理清单回传模板-${(r.createdAt || '').replace(/[: ]/g, '-')}.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(a.href)
+  writePrefilledTemplate(
+    `${(r.org || '治理')}-软件导入模板-${(r.createdAt || '').replace(/[: ]/g, '-')}.xlsx`,
+    r.items || [],
+  )
 }
 
-/* —— 回传弹窗状态 —— */
-const returnTarget = ref(null)
-const returnFileRef = ref(null)
-const returnFileName = ref('')
-const returnParsing = ref(false)
-const returnError = ref('')
-const returnRows = ref([]) // [{ name, version, lang, ..., errors: string[] }]
-const returnImporting = ref(false)
-const returnImportedCount = ref(null)
-
-function resetReturnState() {
-  returnFileName.value = ''
-  returnParsing.value = false
-  returnError.value = ''
-  returnRows.value = []
-  returnImporting.value = false
-  returnImportedCount.value = null
+/** 下载示例模板：含一条完整示例数据，供参照各列填写格式 */
+function downloadSampleTemplate() {
+  writeSampleTemplate()
 }
 
+/** 回传状态：待回传（尚未回传的已分配清单）/ 成功 / 失败 —— 取最近一次回传结果 */
+function returnStatusOf(r) {
+  if (r.returnStatus) return r.returnStatus
+  return r.status === '已分配' ? '待回传' : '—'
+}
+
+/** 回传状态配色：成功=绿、失败=红、待回传=灰 */
+function returnStatusClass(r) {
+  const status = returnStatusOf(r)
+  if (status === '成功') return 'is-ok'
+  if (status === '失败') return 'is-bad'
+  return 'is-wait'
+}
+
+/* ===== 上传治理结果（共享组件 GovernanceUploadDialog） ===== */
+const uploadOpen = ref(false)
+const uploadListId = ref('')
+
+/** 回传清单：直接在本页打开上传治理结果弹窗（清单已确定，弹窗内只读展示，不再跳转） */
 function openReturn(r) {
-  resetReturnState()
-  returnTarget.value = r
+  uploadListId.value = r.id
+  uploadOpen.value = true
 }
 
-function closeReturn() {
-  returnTarget.value = null
-  resetReturnState()
+function closeUpload() {
+  uploadOpen.value = false
+  uploadListId.value = ''
 }
 
-function goGovernance() {
-  closeReturn()
-  router.push({ name: 'admin-gov' })
-}
-
-const passedReturnRows = computed(() => returnRows.value.filter((row) => row.errors.length === 0))
-const failedReturnRows = computed(() => returnRows.value.filter((row) => row.errors.length > 0))
-const canImportReturn = computed(() => returnRows.value.length > 0 && failedReturnRows.value.length === 0 && !returnParsing.value)
-
-/** 选择回传文件：解析 + 逐条严格校验 */
-async function onReturnFile(e) {
-  const file = e.target?.files?.[0]
-  if (e.target) e.target.value = ''
-  if (!file || !returnTarget.value) return
-  const ext = file.name.toLowerCase()
-  if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls') && !ext.endsWith('.csv')) {
-    resetReturnState()
-    returnError.value = '仅支持 .xlsx / .xls / .csv 格式文件'
-    return
-  }
-  returnParsing.value = true
-  returnError.value = ''
-  returnRows.value = []
-  returnImportedCount.value = null
-  try {
-    const buf = await file.arrayBuffer()
-    const workbook = XLSX.read(buf, { type: 'array' })
-    const rows = parseReturnSheet(workbook)
-    if (!rows.length) {
-      returnError.value = '未解析到有效数据，请确认使用回传模板（表头需含治理模板列）'
-      return
-    }
-    returnRows.value = validateReturnRows(rows, returnTarget.value)
-    returnFileName.value = file.name
-  } catch (err) {
-    returnError.value = '文件解析失败，请确认是有效的 Excel / CSV 文件'
-  } finally {
-    returnParsing.value = false
-  }
-}
-
-/** 解析回传表格：定位表头行（≥3 个已知列）后逐行提取 */
-function parseReturnSheet(workbook) {
-  const sheet = workbook.Sheets[workbook.SheetNames[0]]
-  if (!sheet) return []
-  const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-  let headerRow = -1
-  const colIdx = {}
-  for (let i = 0; i < grid.length && i < 30; i++) {
-    const found = {}
-    let hit = 0
-    grid[i].forEach((cell, c) => {
-      const key = matchHeaderKey(cell)
-      if (key && !(key in found)) {
-        found[key] = c
-        hit += 1
-      }
-    })
-    if (hit >= 3) {
-      headerRow = i
-      Object.assign(colIdx, found)
-      break
-    }
-  }
-  if (headerRow === -1) return []
-  const out = []
-  for (let i = headerRow + 1; i < grid.length; i++) {
-    const row = {}
-    Object.entries(colIdx).forEach(([key, c]) => {
-      row[key] = cellText(grid[i][c])
-    })
-    if (Object.values(row).every((v) => !v)) continue // 跳过空行
-    out.push(row)
-  }
-  return out
-}
-
-/**
- * 逐条严格校验：
- * 1. 模板必填项齐全
- * 2. 名称+版本能对应上分配清单（忽略大小写）
- * 3. 名称+版本在表格内不重复
- * 4. 未与已入库软件重复（只查 warehouseStatus === '已入库'，在流程中的不算）
- */
-function validateReturnRows(rows, target) {
-  const seen = new Set()
-  const items = target?.items || []
-  return rows.map((row) => {
-    const errors = []
-    REQUIRED_KEYS.forEach(([key, label]) => {
-      if (!row[key]) errors.push(`${label}必填`)
-    })
-    const name = row.name || ''
-    const version = row.version || ''
-    if (name && version) {
-      const matched = items.some((it) =>
-        (it.name || '').toLowerCase() === name.toLowerCase()
-        && String(it.version || '').toLowerCase() === version.toLowerCase())
-      if (!matched) errors.push('名称+版本与分配清单不匹配')
-
-      const dupKey = name.toLowerCase() + '@' + version.toLowerCase()
-      if (seen.has(dupKey)) errors.push('表格内名称+版本重复')
-      else seen.add(dupKey)
-
-      const inLibrary = softwareList.value.some((s) =>
-        (s.name || '').toLowerCase() === name.toLowerCase()
-        && String(s.version || '').toLowerCase() === version.toLowerCase()
-        && s.warehouseStatus === '已入库')
-      if (inLibrary) errors.push('该软件已入库，无需重复回传')
-    }
-    return { ...row, errors }
-  })
-}
-
-/** 确认导入：全部通过后写入软件获取列表，清单状态置为「治理中」 */
-async function confirmReturnImport() {
-  if (!canImportReturn.value || !returnTarget.value) return
-  returnImporting.value = true
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 400)) // 模拟提交
-    const created = importFromInbound(passedReturnRows.value, returnTarget.value)
-    updateInboundStatus(returnTarget.value.id, '治理中')
-    refreshTick.value++ // 清单状态变化后刷新列表（待回传徽标消失）
-    returnImportedCount.value = created.length
-  } finally {
-    returnImporting.value = false
-  }
+/** 回传完成：刷新清单列表（回传状态/条数/时间与清单状态均已变化） */
+function onUploadImported() {
+  uploadOpen.value = false
+  uploadListId.value = ''
+  refreshTick.value += 1
 }
 </script>
 
@@ -669,16 +391,10 @@ async function confirmReturnImport() {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
-/* 顶部 */
-.mgt-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-.mgt-back {
+/* 列表头右侧的示例模板下载 */
+.mgt-head-tpl {
   flex-shrink: 0;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   background: #fff;
@@ -688,16 +404,10 @@ async function confirmReturnImport() {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.mgt-back:hover {
+.mgt-head-tpl:hover {
   border-color: #da203e;
   color: #da203e;
   background: #fef2f2;
-}
-.mgt-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
 }
 
 /* 卡片 */
@@ -724,14 +434,6 @@ async function confirmReturnImport() {
   font-size: 15px;
   font-weight: 600;
   color: #111827;
-}
-.mgt-count {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 99px;
-  background: #f3f4f6;
-  color: #6b7280;
 }
 
 /* 筛选信息卡 */
@@ -880,7 +582,7 @@ async function confirmReturnImport() {
   background: #fef2f2;
   border-color: #fecaca;
 }
-/* 回传清单：主操作，hover 红底白字 */
+/* 主操作按钮（回传清单）：hover 红底白字 */
 .mgt-op--strong {
   font-weight: 600;
 }
@@ -890,90 +592,29 @@ async function confirmReturnImport() {
   border-color: #da203e;
 }
 
-/* 待回传徽标 */
-.mgt-badge {
+/* 回传状态：待回传 / 成功 / 失败 */
+.mgt-ret {
   display: inline-block;
-  margin-left: 8px;
   padding: 1px 8px;
+  border: 1px solid transparent;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
+}
+.mgt-ret.is-ok {
+  color: #047857;
+  background: #d1fae5;
+  border-color: #a7f3d0;
+}
+.mgt-ret.is-bad {
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+.mgt-ret.is-wait {
   color: #b45309;
   background: #fef3c7;
-  border: 1px solid #fde68a;
-  vertical-align: middle;
-}
-
-/* 回传弹窗主体 */
-.mgt-return-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.mgt-return-upload {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.mgt-return-file {
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 4px 10px;
-}
-.mgt-return-tip {
-  margin: 0;
-  font-size: 12px;
-  color: #9ca3af;
-  line-height: 1.6;
-}
-.mgt-return-error {
-  margin: 0;
-  font-size: 13px;
-  color: #dc2626;
-}
-.mgt-return-summary {
-  margin: 0;
-  font-size: 13px;
-  color: #374151;
-}
-.mgt-return-summary .is-ok { color: #16a34a; }
-.mgt-return-summary .is-bad { color: #dc2626; }
-.mgt-return-check { white-space: normal; min-width: 220px; }
-.mgt-return-pass {
-  color: #16a34a;
-  font-size: 12px;
-}
-.mgt-return-fail {
-  color: #dc2626;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.mgt-return-done {
-  padding: 32px 16px;
-  text-align: center;
-}
-.mgt-return-done-title {
-  margin: 0 0 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #16a34a;
-}
-.mgt-return-done-hint {
-  margin: 0;
-  font-size: 13px;
-  color: #6b7280;
+  border-color: #fde68a;
 }
 
 /* 页脚分页 */

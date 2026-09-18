@@ -33,31 +33,8 @@
 
     <!-- ===== 步骤内容 ===== -->
 
-    <!-- 步骤1：软件获取 -->
+    <!-- 步骤1：源码备份 -->
     <div v-show="activeStep === 0" class="detail-card">
-      <h2 class="detail-card-title">软件获取</h2>
-      <div class="detail-grid">
-        <div class="detail-field">
-          <label class="detail-label">软件名称</label>
-          <span class="detail-value">{{ software.name }}</span>
-        </div>
-        <div class="detail-field">
-          <label class="detail-label">版本</label>
-          <span class="detail-value">{{ software.version }}</span>
-        </div>
-        <div class="detail-field">
-          <label class="detail-label">源仓库地址</label>
-          <code class="detail-value detail-code">{{ software.repoUrl }}</code>
-        </div>
-        <div class="detail-field">
-          <label class="detail-label">导入时间</label>
-          <span class="detail-value">{{ software.createdAt || '--' }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 步骤2：引入选型 — 源码备份 -->
-    <div v-show="activeStep === 1" class="detail-card">
       <h2 class="detail-card-title">源码备份</h2>
       <div class="detail-grid">
         <div class="detail-field">
@@ -65,12 +42,16 @@
           <code class="detail-value detail-code">{{ software.repoUrl }}</code>
         </div>
         <div class="detail-field">
-          <label class="detail-label">镜像仓地址</label>
+          <label class="detail-label">国内备份地址</label>
           <code class="detail-value detail-code">{{ software.mirrorUrl || '--' }}</code>
         </div>
         <div class="detail-field">
           <label class="detail-label">最近同步时间</label>
           <span class="detail-value">{{ software.lastSync || '--' }}</span>
+        </div>
+        <div class="detail-field">
+          <label class="detail-label">导入时间</label>
+          <span class="detail-value">{{ software.createdAt || '--' }}</span>
         </div>
         <div class="detail-field">
           <label class="detail-label">备份状态</label>
@@ -89,9 +70,9 @@
       </div>
     </div>
 
-    <!-- 步骤3：软件技术评估 -->
-    <div v-show="activeStep === 2" class="detail-card">
-      <h2 class="detail-card-title">技术评估</h2>
+    <!-- 步骤2：软件评分 -->
+    <div v-show="activeStep === 1" class="detail-card">
+      <h2 class="detail-card-title">软件评分</h2>
 
       <div class="detail-grid detail-grid--4">
         <div class="detail-field">
@@ -190,9 +171,9 @@
       </div>
     </div>
 
-    <!-- 步骤4：可信开源治理成果验收 -->
-    <div v-show="activeStep === 3" class="detail-card">
-      <h2 class="detail-card-title">成果验收</h2>
+    <!-- 步骤3：治理成果评估 -->
+    <div v-show="activeStep === 2" class="detail-card">
+      <h2 class="detail-card-title">治理成果评估</h2>
       <div class="detail-grid">
         <div class="detail-field">
           <label class="detail-label">验收状态</label>
@@ -223,8 +204,8 @@
       </div>
     </div>
 
-    <!-- 步骤5：处理意见反馈 -->
-    <div v-show="activeStep === 4" class="detail-card">
+    <!-- 步骤4：处理意见反馈 -->
+    <div v-show="activeStep === 3" class="detail-card">
       <h2 class="detail-card-title">意见反馈</h2>
 
       <div class="detail-review-actions">
@@ -253,9 +234,9 @@
       </div>
     </div>
 
-    <!-- 步骤6：软件入库 -->
-    <div v-show="activeStep === 5" class="detail-card">
-      <h2 class="detail-card-title">软件入库</h2>
+    <!-- 步骤5：提交入库 -->
+    <div v-show="activeStep === 4" class="detail-card">
+      <h2 class="detail-card-title">提交入库</h2>
 
       <div class="detail-actions-bar">
         <button type="button" class="gov-btn gov-btn--primary" @click="confirmEntry">确认入库</button>
@@ -309,8 +290,8 @@ const software = reactive({
   id: Number(route.params.id) || 1,
   name: 'Vue.js',
   version: '3.4.21',
-  repoUrl: 'https://github.com/vuejs/core.git',
-  mirrorUrl: '/data/mirror/trusted-oss/vuejs-core',
+  repoUrl: 'https://atomgit.com/opensource/vuejs-core',
+  mirrorUrl: 'https://atomgit.com/opensource/vuejs-core',
   lastSync: '2025-05-10 10:08:23',
   createdAt: '2025-05-10',
   backupStatus: '备份成功',
@@ -359,15 +340,14 @@ function expandSection(section) {
 }
 
 const steps = reactive([
-  { key: 'acquire', label: '软件获取', status: '已获取', done: true },
-  { key: 'select', label: '引入选型', status: '备份成功', done: true },
-  { key: 'assess', label: '软件技术评估', status: '已完成', done: true },
-  { key: 'review', label: '成果验收', status: '评审通过', done: false },
+  { key: 'backup', label: '源码备份', status: '备份成功', done: true },
+  { key: 'score', label: '软件评分', status: '已完成', done: true },
+  { key: 'assess', label: '治理成果评估', status: '评审通过', done: false },
   { key: 'feedback', label: '处理意见反馈', status: '待处理', done: false },
-  { key: 'warehouse', label: '软件入库', status: '待审核', done: false },
+  { key: 'warehouse', label: '提交入库', status: '待审核', done: false },
 ])
 
-const activeStep = ref(3)
+const activeStep = ref(2)
 
 const backupClass = computed(() => {
   const map = { '待备份': 'warn', '备份中': 'run', '备份成功': 'ok', '备份失败': 'fail' }
@@ -375,9 +355,9 @@ const backupClass = computed(() => {
 })
 
 const syncLogs = [
-  { time: '2025-05-10 10:05:12', msg: 'git clone --mirror https://github.com/vuejs/core.git' },
+  { time: '2025-05-10 10:05:12', msg: 'git clone --mirror https://atomgit.com/opensource/vuejs-core.git' },
   { time: '2025-05-10 10:06:30', msg: '已克隆 48.2 MB，共 15630 个提交' },
-  { time: '2025-05-10 10:07:45', msg: '创建镜像仓引用 /data/mirror/trusted-oss/vuejs-core' },
+  { time: '2025-05-10 10:07:45', msg: '创建镜像仓引用 https://atomgit.com/opensource/vuejs-core' },
   { time: '2025-05-10 10:08:23', msg: '同步完成，镜像仓已就绪' },
 ]
 
@@ -412,7 +392,7 @@ function submitReview() {
     steps[feedbackIdx].status = result
     steps[feedbackIdx + 1].status = '待审核'
     software.govStatus = '评审通过'
-    activeStep.value = 5
+    activeStep.value = 4
   } else {
     steps[feedbackIdx].done = false
     steps[feedbackIdx].status = '不通过'
@@ -422,28 +402,28 @@ function submitReview() {
 
 // 时间线
 const timeline = ref([
-  { action: '软件获取', time: '2025-05-10 09:30', level: 'info', note: '通过命令行工具获取' },
+  { action: '治理结果回传', time: '2025-05-10 09:30', level: 'info', note: '按治理模板回传治理结果' },
   { action: '源码备份完成', time: '2025-05-10 10:08', level: 'ok', note: '镜像仓已同步' },
-  { action: 'SCA 扫描完成', time: '2025-05-10 10:25', level: 'ok', note: '未发现高危漏洞' },
-  { action: '技术评审通过', time: '2025-05-10 11:00', level: 'ok', note: '评审人：张三' },
-  { action: '软件入库', time: '--', level: 'pending', note: '等待确认入库' },
+  { action: '软件评分完成', time: '2025-05-10 10:25', level: 'ok', note: '未发现高危漏洞' },
+  { action: '治理成果评估通过', time: '2025-05-10 11:00', level: 'ok', note: '评审人：张三' },
+  { action: '提交入库', time: '--', level: 'pending', note: '等待确认入库' },
 ])
 
 function confirmEntry() {
   timeline.value.push({ action: '软件已入库', time: new Date().toLocaleString('zh-CN'), level: 'ok', note: '入库完成，状态：待发布' })
   software.govStatus = '已入库'
-  steps[5].done = true
-  steps[5].status = '已入库'
+  steps[4].done = true
+  steps[4].status = '已入库'
 }
 
 function returnForReview() {
   timeline.value.push({ action: '退回重新治理', time: new Date().toLocaleString('zh-CN'), level: 'warn', note: '已退回，需要重新评估' })
   software.govStatus = '待评估'
-  steps[5].done = false
-  steps[5].status = '已退回'
   steps[4].done = false
-  steps[4].status = '待评审'
-  activeStep.value = 2
+  steps[4].status = '已退回'
+  steps[3].done = false
+  steps[3].status = '待评审'
+  activeStep.value = 1
 }
 </script>
 

@@ -8,6 +8,7 @@
  *   status: '待分配'|'已分配'|'治理中'|'待审核'|'已审核'|'已入库',
  *   assignedOrgId?: string, assignedOrgName?: string,
  *   assignedTo?: string, assignedAt?: string,
+ *   returnStatus?: '成功'|'失败', returnOkCount?: number, returnFailCount?: number, returnedAt?: string,
  *   items: Array<{ name: string, version: string, url: string, scene: string }> }} InboundRequest
  */
 
@@ -84,7 +85,27 @@ const SEED_REQUESTS = [
     assignedOrgName: '平安科技',
     assignedTo: '王明远',
     assignedAt: '2026-08-30 10:00',
+    // 最近一次回传：2 条软件未通过校验，整份未导入，清单仍为「待回传」，可修正后重传
+    returnStatus: '失败',
+    returnOkCount: 0,
+    returnFailCount: 2,
+    returnedAt: '2026-08-31 16:20',
     items: DEMO_ITEMS.slice(10, 20),
+  },
+  // —— 已分配但尚未回传：列表「回传状态」显示「待回传」 ——
+  {
+    id: 'ir-seed-7',
+    org: '阿里巴巴集团',
+    reporter: '陈晓峰',
+    contact: '13600000004',
+    fileName: '阿里-开源软件需求清单.xlsx',
+    createdAt: '2026-09-02 10:20',
+    status: '已分配',
+    assignedOrgId: 'org-004',
+    assignedOrgName: '阿里巴巴集团',
+    assignedTo: '陈晓峰',
+    assignedAt: '2026-09-03 09:00',
+    items: DEMO_ITEMS.slice(18, 26),
   },
   // —— 待审核：库主已在软件治理中流转并提交审核 ——
   {
@@ -99,6 +120,10 @@ const SEED_REQUESTS = [
     assignedOrgName: '华为技术有限公司',
     assignedTo: '李思远',
     assignedAt: '2026-08-21 09:30',
+    returnStatus: '成功',
+    returnOkCount: 10,
+    returnFailCount: 0,
+    returnedAt: '2026-08-22 09:40',
     items: DEMO_ITEMS.slice(5, 15),
   },
   // —— 已审核：库主治理完成，平台已审核通过 ——
@@ -114,6 +139,10 @@ const SEED_REQUESTS = [
     assignedOrgName: '中国工商银行',
     assignedTo: '张建国',
     assignedAt: '2026-08-19 11:00',
+    returnStatus: '成功',
+    returnOkCount: 10,
+    returnFailCount: 0,
+    returnedAt: '2026-08-20 10:12',
     items: DEMO_ITEMS.slice(2, 12),
   },
   // —— 已入库：全流程完成 ——
@@ -129,6 +158,10 @@ const SEED_REQUESTS = [
     assignedOrgName: '平安科技',
     assignedTo: '王明远',
     assignedAt: '2026-08-11 09:00',
+    returnStatus: '成功',
+    returnOkCount: 5,
+    returnFailCount: 0,
+    returnedAt: '2026-08-12 15:30',
     items: DEMO_ITEMS.slice(0, 5),
   },
 ]
@@ -213,6 +246,21 @@ export function updateInboundStatus(id, status) {
   const idx = list.findIndex((r) => r.id === id)
   if (idx !== -1) {
     list[idx].status = status
+    persist(list)
+  }
+}
+
+/** 回写清单的回传结果：回传状态（成功/失败）、成功条数、失败条数与回传时间 */
+export function updateInboundReturn(id, { status, okCount = 0, failCount = 0 }) {
+  const list = load()
+  const idx = list.findIndex((r) => r.id === id)
+  if (idx !== -1) {
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    list[idx].returnStatus = status
+    list[idx].returnOkCount = okCount
+    list[idx].returnFailCount = failCount
+    list[idx].returnedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     persist(list)
   }
 }

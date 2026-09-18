@@ -63,9 +63,9 @@ export const manualToc = [
     doc: 'software-care',
   },
   {
-    id: 'user-notice',
-    title: '用户须知',
-    doc: 'user-notice',
+    id: 'about-us',
+    title: '关于我们',
+    children: [{ id: 'user-notice', title: '用户须知', doc: 'user-notice' }],
   },
 ]
 

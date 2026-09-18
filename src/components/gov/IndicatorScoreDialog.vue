@@ -6,7 +6,7 @@
           <!-- 头部 -->
           <div class="score-dialog-hd">
             <div class="score-dialog-hd-info">
-              <h3 class="score-dialog-title">指标评分</h3>
+              <h3 class="score-dialog-title">{{ readonly ? '评分细则' : '指标评分' }}</h3>
             </div>
             <button type="button" class="score-dialog-close" @click="close">&times;</button>
           </div>

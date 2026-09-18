@@ -12,12 +12,12 @@
         <span class="gov-kpi-label">待备份</span>
       </div>
       <div class="gov-kpi-item gov-kpi-item--blue">
-        <span class="gov-kpi-num">{{ kpiPendingAssess }}</span>
-        <span class="gov-kpi-label">待评估</span>
+        <span class="gov-kpi-num">{{ kpiPendingScore }}</span>
+        <span class="gov-kpi-label">待评分</span>
       </div>
       <div class="gov-kpi-item gov-kpi-item--purple">
-        <span class="gov-kpi-num">{{ kpiPendingReview }}</span>
-        <span class="gov-kpi-label">待评审</span>
+        <span class="gov-kpi-num">{{ kpiPendingAssess }}</span>
+        <span class="gov-kpi-label">待评估</span>
       </div>
       <div class="gov-kpi-item gov-kpi-item--green">
         <span class="gov-kpi-num">{{ kpiPendingWarehouse }}</span>
@@ -32,14 +32,14 @@
     <!-- ===== 治理流程步骤卡片 ===== -->
     <div class="gov-step-cards">
       <button
-        v-for="(step, index) in steps"
+        v-for="step in steps"
         :key="step.key"
         type="button"
         class="gov-step-card"
-        :class="{ 'is-active': activeStep === index }"
-        @click="activeStep = index"
+        :class="{ 'is-active': activeStep === step.step }"
+        @click="activeStep = step.step"
       >
-        <span class="gov-step-card-num">{{ index + 1 }}</span>
+        <span class="gov-step-card-num">{{ step.step }}</span>
         <span class="gov-step-card-body">
           <span class="gov-step-card-label">{{ step.label }}</span>
         </span>
@@ -50,28 +50,11 @@
     <div class="gov-content">
       <div class="gov-content-hd">
         <div class="gov-content-info">
-          <h2 class="gov-content-title">{{ steps[activeStep].label }}</h2>
-          <span class="gov-content-desc">{{ steps[activeStep].description }}</span>
+          <h2 class="gov-content-title">{{ currentStepMeta.label }}</h2>
+          <span v-if="currentStepMeta.description" class="gov-content-desc">{{ currentStepMeta.description }}</span>
         </div>
         <div class="gov-content-actions">
-          <!-- 步骤1：软件获取 -->
-          <template v-if="activeStep === 0">
-            <label class="gov-upload-wrap">
-              <input type="file" accept=".xlsx,.xls,.csv,.zip" hidden @change="handleVersionUpload" />
-              <span class="gov-btn">上传版本更新治理</span>
-            </label>
-            <span v-if="uploadMsg" class="gov-upload-msg">{{ uploadMsg }}</span>
-            <button
-              v-if="selectedAdvanceableCount > 0"
-              type="button"
-              class="gov-btn gov-btn--advance"
-              @click="advanceToStep(1)"
-            >
-              引入选型 ({{ selectedAdvanceableCount }})
-            </button>
-          </template>
-
-          <!-- 步骤2：引入选型 -->
+          <!-- 步骤1：源码备份（治理结果由「我的待治理清单」回传后进入本步骤） -->
           <template v-if="activeStep === 1">
             <button
               type="button"
@@ -87,11 +70,11 @@
               class="gov-btn gov-btn--advance"
               @click="advanceToStep(2)"
             >
-              进入技术评估 ({{ selectedAdvanceableCount }})
+              进入软件评分 ({{ selectedAdvanceableCount }})
             </button>
           </template>
 
-          <!-- 步骤3：软件技术评估 -->
+          <!-- 步骤2：软件评分 -->
           <template v-if="activeStep === 2">
             <button
               type="button"
@@ -99,7 +82,7 @@
               :disabled="selectedCount === 0"
               @click="startScan"
             >
-              开始扫描{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
+              开始评分{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
             <button
               v-if="selectedAdvanceableCount > 0"
@@ -107,11 +90,11 @@
               class="gov-btn gov-btn--advance"
               @click="advanceToStep(3)"
             >
-              进入成果验收 ({{ selectedAdvanceableCount }})
+              进入治理成果评估 ({{ selectedAdvanceableCount }})
             </button>
           </template>
 
-          <!-- 步骤4：可信开源治理成果验收 -->
+          <!-- 步骤3：治理成果评估 -->
           <template v-if="activeStep === 3">
             <button
               type="button"
@@ -119,7 +102,7 @@
               :disabled="selectedCount === 0"
               @click="openBatchReviewDialog('评审通过')"
             >
-              批量审核通过{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
+              批量评审通过{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
             <button
               type="button"
@@ -127,7 +110,7 @@
               :disabled="selectedCount === 0"
               @click="openBatchReviewDialog('评审不通过')"
             >
-              批量审核不通过{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
+              批量评审不通过{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
             <button
               v-if="selectedApprovedCount > 0"
@@ -138,39 +121,10 @@
               提交入库审核 ({{ selectedApprovedCount }})
             </button>
           </template>
-
-          <!-- 步骤5：软件入库（只读审核状态，审核统一在后台管理「审批入库」；可在行内上传其他工具治理成果） -->
-          <template v-if="activeStep === 4">
-          </template>
         </div>
       </div>
 
-      <!-- 步骤1筛选栏 -->
-      <div v-if="activeStep === 0" class="gov-filter-bar">
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">软件名称</label>
-          <span class="gov-filter-wrap">
-            <input v-model="filterName" type="text" class="gov-filter-input" placeholder="输入关键词" />
-            <button v-if="filterName" type="button" class="gov-filter-clear" @click="filterName = ''">&times;</button>
-          </span>
-        </div>
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">软件版本</label>
-          <span class="gov-filter-wrap">
-            <input v-model="filterVersion" type="text" class="gov-filter-input" placeholder="输入版本号" />
-            <button v-if="filterVersion" type="button" class="gov-filter-clear" @click="filterVersion = ''">&times;</button>
-          </span>
-        </div>
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">导入时间</label>
-          <span class="gov-filter-wrap">
-            <input v-model="filterDate" type="date" class="gov-filter-input" />
-            <button v-if="filterDate" type="button" class="gov-filter-clear" @click="filterDate = ''">&times;</button>
-          </span>
-        </div>
-      </div>
-
-      <!-- 步骤2筛选栏：引入选型 -->
+      <!-- 步骤1筛选栏：源码备份 -->
       <div v-if="activeStep === 1" class="gov-filter-bar">
         <div class="gov-filter-field">
           <label class="gov-filter-label">软件名称</label>
@@ -187,7 +141,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">选型时间</label>
+          <label class="gov-filter-label">导入时间</label>
           <span class="gov-filter-wrap">
             <input v-model="s1Date" type="date" class="gov-filter-input" />
             <button v-if="s1Date" type="button" class="gov-filter-clear" @click="s1Date = ''">&times;</button>
@@ -207,7 +161,7 @@
         </div>
       </div>
 
-      <!-- 步骤3筛选栏：软件技术评估 -->
+      <!-- 步骤2筛选栏：软件评分 -->
       <div v-if="activeStep === 2" class="gov-filter-bar">
         <div class="gov-filter-field">
           <label class="gov-filter-label">软件名称</label>
@@ -224,40 +178,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">SCA检测</label>
-          <span class="gov-filter-wrap">
-            <select v-model="s2Sca" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待扫描">待扫描</option>
-              <option value="扫描中">扫描中</option>
-              <option value="成功">成功</option>
-            </select>
-          </span>
-        </div>
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">版权检测</label>
-          <span class="gov-filter-wrap">
-            <select v-model="s2Copyright" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待扫描">待扫描</option>
-              <option value="扫描中">扫描中</option>
-              <option value="成功">成功</option>
-            </select>
-          </span>
-        </div>
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">恶意代码检测</label>
-          <span class="gov-filter-wrap">
-            <select v-model="s2Malware" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待扫描">待扫描</option>
-              <option value="扫描中">扫描中</option>
-              <option value="成功">成功</option>
-            </select>
-          </span>
-        </div>
-        <div class="gov-filter-field">
-          <label class="gov-filter-label">扫描时间</label>
+          <label class="gov-filter-label">导入时间</label>
           <span class="gov-filter-wrap">
             <input v-model="s2Date" type="date" class="gov-filter-input" />
             <button v-if="s2Date" type="button" class="gov-filter-clear" @click="s2Date = ''">&times;</button>
@@ -265,7 +186,7 @@
         </div>
       </div>
 
-      <!-- 步骤4筛选栏：治理成果验收 -->
+      <!-- 步骤3筛选栏：治理成果评估 -->
       <div v-if="activeStep === 3" class="gov-filter-bar">
         <div class="gov-filter-field">
           <label class="gov-filter-label">软件名称</label>
@@ -282,7 +203,7 @@
           </span>
         </div>
         <div class="gov-filter-field">
-          <label class="gov-filter-label">审核状态</label>
+          <label class="gov-filter-label">评审状态</label>
           <span class="gov-filter-wrap">
             <select v-model="s3Review" class="gov-filter-input">
               <option value="">全部</option>
@@ -336,8 +257,8 @@
         </div>
       </div>
 
-      <!-- 上传治理成果提示 -->
-      <div v-if="reportUploadMsg" class="gov-upload-msg gov-upload-msg--bar">{{ reportUploadMsg }}</div>
+      <!-- 源码备份结果提示（校验国内备份地址 + 拉包结果） -->
+      <div v-if="backupMsg" class="gov-upload-msg gov-upload-msg--bar">{{ backupMsg }}</div>
 
       <!-- 全选行 -->
       <div v-if="stepList.length > 0" class="gov-select-all-hint">
@@ -355,34 +276,24 @@
               <th class="col-chk">
                 <input type="checkbox" v-model="selectAll" :indeterminate="indeterminate" />
               </th>
-              <th v-if="activeStep === 0">名称 *</th>
-              <th v-if="activeStep === 0">版本 *</th>
-              <th v-if="activeStep === 0">主语言 *</th>
-              <th v-if="activeStep === 0">开源许可证 *</th>
-              <th v-if="activeStep === 0">源码托管地址 *</th>
-              <th v-if="activeStep === 0">提交人</th>
-              <th v-if="activeStep === 0">提交组织</th>
-              <th v-if="activeStep === 0">导入时间</th>
-              <th v-if="activeStep !== 0">名称</th>
-              <th v-if="activeStep !== 0">版本</th>
-              <th v-if="activeStep !== 0">主语言</th>
-              <th v-if="activeStep !== 0">开源许可证</th>
+              <th>名称</th>
+              <th>版本</th>
+              <th>主语言</th>
+              <th>开源许可证</th>
               <th v-if="activeStep === 4">漏洞数</th>
               <th v-if="activeStep === 4">国标评分</th>
               <th v-if="activeStep === 2">国标评分</th>
+              <th v-if="activeStep === 2">漏洞数</th>
+              <th v-if="activeStep === 2">软件物料清单总数</th>
               <th v-if="activeStep === 3">国标评分</th>
-              <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">仓库地址</th>
-              <th v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">备份仓库地址</th>
-              <th v-if="activeStep === 1">选型时间</th>
-              <th v-if="activeStep === 2">扫描时间</th>
+              <th v-if="activeStep !== 2 && activeStep !== 3" class="col-repo">源码地址</th>
+              <th v-if="activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">国内备份地址</th>
+              <th v-if="activeStep === 1">导入时间</th>
               <th v-if="activeStep === 3">验收时间</th>
               <th v-if="activeStep === 4">审核时间</th>
               <th v-if="activeStep === 1">备份状态</th>
-              <th v-if="activeStep === 2">SCA 检测</th>
-              <th v-if="activeStep === 2">版权检测</th>
-              <th v-if="activeStep === 2">恶意代码检测</th>
-              <th v-if="activeStep === 3">审核状态</th>
-              <th v-if="activeStep === 3">审核意见</th>
+              <th v-if="activeStep === 3">评审状态</th>
+              <th v-if="activeStep === 3">评审意见</th>
               <th v-if="activeStep === 4">审核状态</th>
               <th class="col-op">操作</th>
             </tr>
@@ -393,20 +304,8 @@
                 <td class="col-chk">
                   <input type="checkbox" v-model="item.selected" />
                 </td>
-                <td v-if="activeStep === 0">{{ item.name }}</td>
-                <td v-if="activeStep === 0">
-                  <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
-                </td>
-                <td v-if="activeStep === 0">{{ item.lang || '—' }}</td>
-                <td v-if="activeStep === 0">{{ item.license || '—' }}</td>
-                <td v-if="activeStep === 0" class="col-repo">
-                  <code class="gov-code">{{ item.repoUrl }}</code>
-                </td>
-                <td v-if="activeStep === 0">{{ item.submitter || '—' }}</td>
-                <td v-if="activeStep === 0">{{ item.submitOrg || '—' }}</td>
-                <td v-if="activeStep === 0" class="gov-muted">{{ item.createdAt }}</td>
-                <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">{{ item.name }}</td>
-                <td v-if="activeStep !== 0 && activeStep !== 3 && activeStep !== 4 && activeStep !== 2">
+                <td v-if="activeStep !== 3 && activeStep !== 4 && activeStep !== 2">{{ item.name }}</td>
+                <td v-if="activeStep !== 3 && activeStep !== 4 && activeStep !== 2">
                   <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
                 </td>
                 <td v-if="activeStep === 2">{{ item.name }}</td>
@@ -417,8 +316,8 @@
                 <td v-if="activeStep === 3 || activeStep === 4">
                   <button type="button" class="gov-link" @click="goDetail(item)">{{ item.version }}</button>
                 </td>
-                <td v-if="activeStep !== 0">{{ item.lang || '—' }}</td>
-                <td v-if="activeStep !== 0">{{ item.license || '—' }}</td>
+                <td>{{ item.lang || '—' }}</td>
+                <td>{{ item.license || '—' }}</td>
                 <td v-if="activeStep === 2">
                   <button
                     type="button"
@@ -429,6 +328,10 @@
                     {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
                   </button>
                 </td>
+                <td v-if="activeStep === 2">
+                  <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
+                </td>
+                <td v-if="activeStep === 2" class="gov-muted">{{ item.sbomCount ?? '—' }}</td>
                 <td v-if="activeStep === 4">
                   <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
                 </td>
@@ -438,28 +341,24 @@
                   </span>
                 </td>
                 <td v-if="activeStep === 3">
-                  <span class="gov-score-readonly" :class="scoreToneClass(item)">
+                  <button
+                    type="button"
+                    class="gov-link"
+                    :class="scoreToneClass(item)"
+                    @click="openScoreDialog(item, true)"
+                  >
                     {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
-                  </span>
+                  </button>
                 </td>
                 <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3" class="col-repo">
                   <code class="gov-code">{{ item.repoUrl }}</code>
                 </td>
                 <td v-if="activeStep !== 0 && activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">
-                  <code class="gov-code">{{ item.backupStatus === '待备份' ? '--' : (item.mirrorUrl || '--') }}</code>
+                  <code class="gov-code">{{ item.mirrorUrl || '--' }}</code>
                 </td>
-                <td v-if="activeStep !== 0" class="gov-muted">{{ item.createdAt }}</td>
+                <td v-if="activeStep !== 0 && activeStep !== 2" class="gov-muted">{{ item.createdAt }}</td>
                 <td v-if="activeStep === 1">
                   <span class="gov-badge" :class="badgeClass(item.backupStatus)">{{ item.backupStatus }}</span>
-                </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
                 </td>
               <td v-if="activeStep === 3">
                 <span class="gov-badge" :class="badgeClass(item.reviewStatus)">{{ item.reviewStatus }}</span>
@@ -473,7 +372,7 @@
               </td>
               <td class="col-op">
                 <button type="button" class="gov-link-sub" @click="viewLog(item)">日志</button>
-                <template v-if="activeStep === 0 || activeStep === 1">
+                <template v-if="activeStep === 1">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="goDetail(item)">详情</button>
                 </template>
@@ -483,61 +382,12 @@
                 </template>
                 <template v-if="activeStep === 3">
                   <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="openReviewModal(item)">审核</button>
+                  <button type="button" class="gov-link-sub" @click="openReviewModal(item)">评审</button>
                 </template>
                 <template v-if="activeStep === 2">
                   <span class="gov-sep">|</span>
                   <button type="button" class="gov-link-sub" @click="openScoreDialog(item)">评分</button>
-                  <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="toggleScan(item)">{{ item._scanOpen ? '▾' : '▸' }}</button>
                 </template>
-                <template v-if="activeStep === 3 || activeStep === 4">
-                  <span class="gov-sep">|</span>
-                  <label class="gov-row-upload">
-                    <input type="file" accept=".xlsx,.xls,.csv,.zip,.pdf" hidden @change="handleToolReportUpload($event, item)" />
-                    <span class="gov-link-sub">上传治理成果</span>
-                  </label>
-                </template>
-              </td>
-            </tr>
-            <!-- 扫描进度展开行 -->
-            <tr v-if="item._scanOpen && activeStep === 2" class="gov-scan-detail-row">
-              <td :colspan="colSpan" style="padding: 12px 40px;">
-                <div class="gov-scan-parallel">
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">SCA 检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.scaProgress || 0, 100) + '%' }" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">版权检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.copyrightProgress || 0, 100) + '%' }" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">恶意代码检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.malwareProgress || 0, 100) + '%' }" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </td>
             </tr>
           </template>
@@ -620,7 +470,7 @@
               <tr><td class="dt-label">软件文件</td><td class="dt-value">{{ drawerItem.file || '--' }}</td></tr>
               <tr><td class="dt-label">代码量 (KL)</td><td class="dt-value">{{ drawerItem.codeSize || '--' }}</td></tr>
               <tr><td class="dt-label">源码托管地址</td><td class="dt-value">{{ drawerItem.repoUrl || '--' }}</td></tr>
-              <tr><td class="dt-label">备份仓库地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}</td></tr>
+              <tr><td class="dt-label">国内备份地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}<span class="dt-hint">仅支持 AtomGit</span></td></tr>
               <tr><td class="dt-label">漏洞披露地址</td><td class="dt-value">{{ drawerItem.vulnUrl || '--' }}</td></tr>
               </tbody>
             </table>
@@ -802,12 +652,12 @@ Commit：{{ detailItem.commitId || '--' }}
         <p class="gd-placeholder-text">「{{ detailTabs.find(t => t.key === detailTab)?.label }}」内容占位，可后续接入。</p>
       </div>
     </div>
-    <!-- ===== 审核弹窗 ===== -->
+    <!-- ===== 评审弹窗 ===== -->
     <Teleport to="body">
       <div v-if="reviewItem" class="gov-overlay" @click.self="reviewItem = null">
         <div class="review-modal">
           <div class="review-modal-hd">
-            <h3 class="review-modal-title">审核</h3>
+            <h3 class="review-modal-title">评审</h3>
             <button type="button" class="review-modal-close" @click="reviewItem = null">&times;</button>
           </div>
           <div class="review-modal-body">
@@ -825,7 +675,7 @@ Commit：{{ detailItem.commitId || '--' }}
               <span class="review-score-hint" v-if="reviewItem.nationalScore == null">该软件尚未完成评分，建议先评分再验收</span>
             </div>
             <div class="review-field">
-              <label class="review-field-label">审核结果</label>
+              <label class="review-field-label">评审结果</label>
               <div class="review-radio-group">
                 <label class="review-radio" :class="{ 'is-pass': reviewResult === '评审通过' }">
                   <input type="radio" v-model="reviewResult" value="评审通过" />
@@ -840,8 +690,8 @@ Commit：{{ detailItem.commitId || '--' }}
               </div>
             </div>
             <div class="review-field">
-              <label class="review-field-label">审核意见</label>
-              <textarea v-model="reviewComment" class="review-textarea" rows="3" placeholder="请输入审核意见..." />
+              <label class="review-field-label">评审意见</label>
+              <textarea v-model="reviewComment" class="review-textarea" rows="3" placeholder="请输入评审意见..." />
             </div>
           </div>
           <div class="review-modal-ft">
@@ -859,21 +709,21 @@ Commit：{{ detailItem.commitId || '--' }}
       </div>
     </Teleport>
 
-    <!-- ===== 批量审核弹窗 ===== -->
+    <!-- ===== 批量评审弹窗 ===== -->
     <Teleport to="body">
       <div v-if="batchReviewTarget" class="gov-overlay" @click.self="batchReviewTarget = null">
         <div class="review-modal">
           <div class="review-modal-hd">
-            <h3 class="review-modal-title">批量{{ batchReviewTarget === '评审通过' ? '审核通过' : '审核不通过' }}</h3>
+            <h3 class="review-modal-title">批量{{ batchReviewTarget === '评审通过' ? '评审通过' : '评审不通过' }}</h3>
             <button type="button" class="review-modal-close" @click="batchReviewTarget = null">&times;</button>
           </div>
           <div class="review-modal-body">
             <p class="review-modal-desc">
-              确定将选中的 <strong>{{ selectedCount }}</strong> 项软件批量{{ batchReviewTarget === '评审通过' ? '通过' : '不通过' }}审核？请填写审核意见：
+              确定将选中的 <strong>{{ selectedCount }}</strong> 项软件批量{{ batchReviewTarget === '评审通过' ? '通过' : '不通过' }}评审？请填写评审意见：
             </p>
             <div class="review-field">
-              <label class="review-field-label">审核意见</label>
-              <textarea v-model="batchReviewOpinion" class="review-textarea" rows="4" placeholder="请输入审核意见（必填）" />
+              <label class="review-field-label">评审意见</label>
+              <textarea v-model="batchReviewOpinion" class="review-textarea" rows="4" placeholder="请输入评审意见（必填）" />
             </div>
           </div>
           <div class="review-modal-ft">
@@ -925,31 +775,31 @@ Commit：{{ detailItem.commitId || '--' }}
       </div>
     </Teleport>
 
-    <!-- ===== 审核意见历史弹窗 ===== -->
+    <!-- ===== 评审意见历史弹窗 ===== -->
     <Teleport to="body">
       <div v-if="opinionHistoryItem" class="gov-overlay" @click.self="opinionHistoryItem = null">
         <div class="review-modal" style="width:560px;">
           <div class="review-modal-hd">
-            <h3 class="review-modal-title">审核意见历史</h3>
+            <h3 class="review-modal-title">评审意见历史</h3>
             <button type="button" class="review-modal-close" @click="opinionHistoryItem = null">&times;</button>
           </div>
           <div class="review-modal-body">
             <p class="review-modal-desc">
-              <strong>{{ opinionHistoryItem.name }} {{ opinionHistoryItem.version }}</strong> 的审核意见修改记录：
+              <strong>{{ opinionHistoryItem.name }} {{ opinionHistoryItem.version }}</strong> 的评审意见修改记录：
             </p>
             <div class="opinion-history-wrap">
               <table class="gov-table">
                 <thead>
                   <tr>
-                    <th>审核结果</th>
-                    <th>审核意见</th>
+                    <th>评审结果</th>
+                    <th>评审意见</th>
                     <th>操作人</th>
                     <th>操作时间</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="!opinionHistoryItem.reviewHistory || opinionHistoryItem.reviewHistory.length === 0">
-                    <td colspan="4" class="gov-empty-sm">暂无审核记录</td>
+                    <td colspan="4" class="gov-empty-sm">暂无评审记录</td>
                   </tr>
                   <tr v-for="(h, idx) in (opinionHistoryItem.reviewHistory || []).slice().reverse()" :key="idx">
                     <td>
@@ -974,6 +824,7 @@ Commit：{{ detailItem.commitId || '--' }}
     <IndicatorScoreDialog
       :visible="!!scoreItem"
       :item="scoreItem"
+      :readonly="scoreReadonly"
       @update:visible="(v) => { if (!v) scoreItem = null }"
       @save="saveScore"
     />
@@ -982,7 +833,6 @@ Commit：{{ detailItem.commitId || '--' }}
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import * as XLSX from 'xlsx'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
 import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
 import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
@@ -993,78 +843,65 @@ const drawerItem = ref(null)
 const reviewItem = ref(null)
 const reviewResult = ref('评审通过')
 const reviewComment = ref('')
-const activeStep = ref(0)
+const activeStep = ref(1)
 const batchReviewTarget = ref(null)
 const batchReviewOpinion = ref('')
 const opinionHistoryItem = ref(null)
 const scoreItem = ref(null)
-const uploadMsg = ref('')
-const reportUploadMsg = ref('')
+const scoreReadonly = ref(false)
+const backupMsg = ref('')
 
-// 步骤1筛选
-const filterName = ref('')
-const filterVersion = ref('')
-const filterDate = ref('')
-
-// 步骤2筛选：引入选型
+// 步骤1筛选：源码备份
 const s1Name = ref('')
 const s1Version = ref('')
 const s1Date = ref('')
 const s1Backup = ref('')
 
-// 步骤3筛选：软件技术评估
+// 步骤2筛选：软件评分
 const s2Name = ref('')
 const s2Version = ref('')
 const s2Date = ref('')
-const s2Sca = ref('')
-const s2Copyright = ref('')
-const s2Malware = ref('')
 
-// 步骤4筛选：治理成果验收
+// 步骤3筛选：治理成果评估
 const s3Name = ref('')
 const s3Version = ref('')
 const s3Date = ref('')
 const s3Review = ref('')
 
-// 步骤5筛选：软件入库
+// 步骤4筛选：提交入库
 const s4Name = ref('')
 const s4Version = ref('')
 const s4Date = ref('')
 const s4Warehouse = ref('')
 
 // ===== 治理流程步骤定义 =====
+// step 为内部阶段号，与软件条目的 currentStep 一一对应。「软件获取」不再单列一步：
+// 治理结果回传后软件直接进入第一步（源码备份）。
 const steps = [
-  { key: 'acquire', label: '软件获取'},
-  { key: 'select', label: '引入选型'},
-  { key: 'assess', label: '软件技术评估'},
-  { key: 'review', label: '治理成果验收'},
-  { key: 'warehouse', label: '软件入库'},
+  { key: 'backup', label: '源码备份', step: 1 },
+  { key: 'score', label: '软件评分', step: 2 },
+  { key: 'assess', label: '治理成果评估', step: 3 },
+  { key: 'warehouse', label: '提交入库', step: 4 },
 ]
+
+/** 当前步骤定义（页头标题/描述用） */
+const currentStepMeta = computed(() => steps.find(s => s.step === activeStep.value) || steps[0])
+
+/** 阶段号 → 步骤名（日志文案用） */
+function stepLabel(step) {
+  const hit = steps.find(s => s.step === step)
+  return hit ? hit.label : '—'
+}
 
 // ===== 数据模型：使用共享 store（审批入库页复用同一份软件列表） =====
 import { softwareList, genId, voidSoftware } from '../../data/governanceStore.js'
 
 // 当前步骤的列表
-function scanStage(progress, threshold) {
-  if (progress === undefined || progress === null) return '待扫描'
-  if (progress < threshold) return '扫描中'
-  return '成功'
-}
-
 const stepList = computed(() => {
-  let list = softwareList.value.filter(item => item.currentStep === activeStep.value + 1)
+  // 阶段号与步骤一一对应：1 源码备份 / 2 软件评分 / 3 治理成果评估 / 4 提交入库
+  let list = softwareList.value.filter(item => item.currentStep === activeStep.value)
 
-  // 步骤1：软件获取
-  if (activeStep.value === 0) {
-    const name = filterName.value.trim().toLowerCase()
-    const version = filterVersion.value.trim().toLowerCase()
-    const date = filterDate.value
-    if (name) list = list.filter(i => i.name.toLowerCase().includes(name))
-    if (version) list = list.filter(i => i.version.toLowerCase().includes(version))
-    if (date) list = list.filter(i => i.createdAt && i.createdAt.startsWith(date))
-  }
-
-  // 步骤2：引入选型
+  // 步骤1：源码备份
   if (activeStep.value === 1) {
     const name = s1Name.value.trim().toLowerCase()
     const version = s1Version.value.trim().toLowerCase()
@@ -1076,23 +913,17 @@ const stepList = computed(() => {
     if (backup) list = list.filter(i => i.backupStatus === backup)
   }
 
-  // 步骤3：软件技术评估
+  // 步骤2：软件评分
   if (activeStep.value === 2) {
     const name = s2Name.value.trim().toLowerCase()
     const version = s2Version.value.trim().toLowerCase()
     const date = s2Date.value
-    const sca = s2Sca.value
-    const copyright = s2Copyright.value
-    const malware = s2Malware.value
     if (name) list = list.filter(i => i.name.toLowerCase().includes(name))
     if (version) list = list.filter(i => i.version.toLowerCase().includes(version))
     if (date) list = list.filter(i => i.createdAt && i.createdAt.startsWith(date))
-    if (sca) list = list.filter(i => scanStage(i.scanProgress, 33) === sca)
-    if (copyright) list = list.filter(i => scanStage(i.scanProgress, 66) === copyright)
-    if (malware) list = list.filter(i => scanStage(i.scanProgress, 100) === malware)
   }
 
-  // 步骤4：治理成果验收
+  // 步骤3：治理成果评估
   if (activeStep.value === 3) {
     const name = s3Name.value.trim().toLowerCase()
     const version = s3Version.value.trim().toLowerCase()
@@ -1104,7 +935,7 @@ const stepList = computed(() => {
     if (review) list = list.filter(i => i.reviewStatus === review)
   }
 
-  // 步骤5：软件入库
+  // 步骤4：提交入库
   if (activeStep.value === 4) {
     const name = s4Name.value.trim().toLowerCase()
     const version = s4Version.value.trim().toLowerCase()
@@ -1120,11 +951,13 @@ const stepList = computed(() => {
 
 // ===== KPI 计算 =====
 const totalCount = computed(() => softwareList.value.length)
-const kpiPendingBackup = computed(() => softwareList.value.filter(i => i.currentStep === 2 && i.backupStatus !== '备份成功').length)
-const kpiPendingAssess = computed(() => softwareList.value.filter(i => i.currentStep === 3 && i.assessStatus !== '评估完成').length)
-const kpiPendingReview = computed(() => softwareList.value.filter(i => i.currentStep === 4 && i.reviewStatus === '待评审').length)
-const kpiPendingWarehouse = computed(() => softwareList.value.filter(i => i.currentStep === 5 && i.warehouseStatus === '待审批').length)
-const kpiEntered = computed(() => softwareList.value.filter(i => i.currentStep === 5 && i.warehouseStatus === '已入库').length)
+// ===== KPI 口径（与四步一一对应）=====
+// 待备份 = 处于步骤1（源码备份）；待评分 = 步骤2（软件评分）；待评估 = 步骤3（治理成果评估）
+const kpiPendingBackup = computed(() => softwareList.value.filter(i => i.currentStep === 1).length)
+const kpiPendingScore = computed(() => softwareList.value.filter(i => i.currentStep === 2).length)
+const kpiPendingAssess = computed(() => softwareList.value.filter(i => i.currentStep === 3).length)
+const kpiPendingWarehouse = computed(() => softwareList.value.filter(i => i.currentStep === 4 && i.warehouseStatus === '待审批').length)
+const kpiEntered = computed(() => softwareList.value.filter(i => i.currentStep === 4 && i.warehouseStatus === '已入库').length)
 
 
 // 选中相关
@@ -1185,7 +1018,6 @@ const displayPages = computed(() => {
 const selectedAdvanceableCount = computed(() => {
   const list = stepList.value.filter(i => i.selected)
   if (list.length === 0) return 0
-  if (activeStep.value === 0) return list.length
   if (activeStep.value === 1) return list.filter(i => i.backupStatus === '备份成功').length
   // 步骤3 → 4：需评估完成且已完成国标评分（评分是准入必要条件）
   if (activeStep.value === 2) return list.filter(i => i.assessStatus === '评估完成' && isBaselineEligible(i)).length
@@ -1211,22 +1043,20 @@ const selectedApprovedCount = computed(() =>
   stepList.value.filter(i => i.selected && i.reviewStatus === '评审通过').length,
 )
 
-// 表格列数（步骤3 技术评估、步骤5 入库均含「国标评分」列）
+// 表格列数（步骤2 含国标评分/漏洞数/软件物料清单总数；步骤4 含漏洞数/国标评分）
 const colSpan = computed(() => {
-  const counts = [9, 10, 11, 9, 11]
+  const counts = { 1: 10, 2: 9, 3: 10, 4: 11 }
   return counts[activeStep.value] || 9
 })
 
 // 空提示
 const emptyText = computed(() => {
-  const map = [
-    '暂无软件，请到「我的待治理清单」下载预填模板、维护后回传清单，软件将自动进入本列表',
-    '暂无待备份软件',
-    '暂无待评估软件',
-    '暂无待验收软件',
-    '暂无待处理意见软件',
-    '暂无待审批软件',
-  ]
+  const map = {
+    1: '暂无软件，请到「我的待治理清单」下载治理模板、维护后回传清单，软件将进入本列表',
+    2: '暂无待评分软件',
+    3: '暂无待评估软件',
+    4: '暂无待审批软件',
+  }
   return map[activeStep.value] || '暂无数据'
 })
 
@@ -1251,9 +1081,8 @@ function fmtNow() {
 
 // 筛选变化时重置分页
 watch([
-  filterName, filterVersion, filterDate,
   s1Name, s1Version, s1Date, s1Backup,
-  s2Name, s2Version, s2Date, s2Sca, s2Copyright, s2Malware,
+  s2Name, s2Version, s2Date,
   s3Name, s3Version, s3Date, s3Review,
   s4Name, s4Version, s4Date, s4Warehouse,
 ], () => {
@@ -1261,129 +1090,57 @@ watch([
 })
 
 
-// 步骤1：上传版本更新治理文件（xlsx/xls/csv/zip），解析并记录到软件条目
-function handleVersionUpload(e) {
-  const file = e.target.files?.[0]
-  e.target.value = ''
-  if (!file) return
-  const now = new Date().toLocaleString('zh-CN')
-  const name = file.name.toLowerCase()
-  if (name.endsWith('.zip')) {
-    // zip 包：作为治理成果附件，记录到当前列表全部条目
-    softwareList.value.forEach((item) => {
-      if (item.currentStep === 1) item.logs.push({ time: now, level: 'info', msg: `已上传版本更新治理包：${file.name}` })
-    })
-    uploadMsg.value = `已上传治理包 ${file.name}，并记录到软件获取列表`
-    return
-  }
-  // 表格文件：解析软件名称/版本/许可证，新增或更新条目
-  const reader = new FileReader()
-  reader.onload = (ev) => {
-    try {
-      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' })
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
-      let added = 0
-      rows.forEach((row) => {
-        const nm = String(row['软件名称'] || row['名称'] || row.name || '').trim()
-        if (!nm) return
-        const ver = String(row['版本号'] || row['版本'] || row.version || '').trim()
-        const lang = String(row['编程语言'] || row.lang || '').trim()
-        const license = String(row['开源许可证'] || row.license || '').trim()
-        const exist = softwareList.value.find((s) => s.currentStep === 1 && s.name === nm)
-        if (exist) {
-          if (ver) exist.version = ver
-          if (license) exist.license = license
-          exist.logs.push({ time: now, level: 'ok', msg: `版本更新治理：上传 ${file.name}，更新至 v${exist.version}` })
-        } else {
-          softwareList.value.push({
-            id: genId(),
-            name: nm,
-            version: ver || '—',
-            repoUrl: `https://github.com/example/${nm.toLowerCase().replace(/\s+/g, '-')}.git`,
-            lang: lang || '—',
-            license: license || '—',
-            file: `${nm.toLowerCase().replace(/\s+/g, '-')}-${ver || 'latest'}.zip`,
-            developer: '—',
-            licenseId: license || '—',
-            branch: 'main',
-            tag: ver ? `v${ver}` : '—',
-            commitId: '—',
-            codeSize: '—',
-            vulnUrl: '—',
-            mirrorUrl: 'https://gitcode.com/mirror/' + nm.toLowerCase().replace(/\s+/g, '-'),
-            govOwner: '—',
-            govOrg: '—',
-            currentStep: 1,
-            selected: false,
-            createdAt: now,
-            backupStatus: '待备份',
-            assessStatus: '待评估',
-            reviewStatus: '待评审',
-            warehouseStatus: '待审批',
-            riskLevel: null,
-            vulnCount: 0,
-            logs: [{ time: now, level: 'info', msg: `上传版本更新治理：${file.name}` }],
-          })
-          added++
-        }
-      })
-      uploadMsg.value = added > 0
-        ? `已解析 ${file.name}，新增 ${added} 条、更新匹配条目`
-        : `已解析 ${file.name}，未识别到有效软件数据`
-    } catch (err) {
-      uploadMsg.value = `解析失败：${err.message}`
-    }
-  }
-  reader.readAsArrayBuffer(file)
-  setTimeout(() => { uploadMsg.value = '' }, 5000)
-}
-
-// 治理负责人上传其他工具治理成果（行内操作：记录到当前行的软件条目）
-function handleToolReportUpload(e, item) {
-  const file = e.target.files?.[0]
-  e.target.value = ''
-  if (!file || !item) return
-  const now = new Date().toLocaleString('zh-CN')
-  if (!item.toolReports) item.toolReports = []
-  item.toolReports.push({ fileName: file.name, time: now })
-  item.logs.push({ time: now, level: 'info', msg: `治理负责人上传其他工具治理成果：${file.name}` })
-  reportUploadMsg.value = `已上传治理成果 ${file.name} → ${item.name}`
-  setTimeout(() => { reportUploadMsg.value = '' }, 5000)
-}
-
-// 步骤2：发起源码备份（只改状态，不推进）
+// 步骤1：发起源码备份（只改状态，不推进）
+// 国内备份地址由治理负责人在回传的治理结果里填写，此处只做校验并据此拉包，不生成/改写地址。
 function startBackup() {
   const selected = stepList.value.filter(i => i.selected && i.backupStatus === '待备份')
+  if (selected.length === 0) return
   const now = new Date().toLocaleString('zh-CN')
+  let failed = 0
   selected.forEach(item => {
     item.selected = false
+    const url = (item.mirrorUrl || '').trim()
+    // 校验 1：地址必须已随治理结果回传
+    if (!url) {
+      failed += 1
+      item.backupStatus = '备份失败'
+      item.logs.push({ time: now, level: 'warn', msg: '备份失败：未回传国内备份地址，请先在治理结果中补充后重新回传' })
+      return
+    }
+    // 校验 2：国内备份地址当前仅支持 AtomGit 平台
+    if (!/^https?:\/\/atomgit\.com\//i.test(url)) {
+      failed += 1
+      item.backupStatus = '备份失败'
+      item.logs.push({ time: now, level: 'warn', msg: `备份失败：国内备份地址仅支持 AtomGit 平台（当前：${url}）` })
+      return
+    }
     item.backupStatus = '备份中'
-    item.logs.push({ time: now, level: 'info', msg: '开始源码备份...' })
+    item.logs.push({ time: now, level: 'info', msg: `国内备份地址校验通过，开始从 ${url} 拉取源码包...` })
     setTimeout(() => {
       item.backupStatus = '备份成功'
-      item.mirrorUrl = 'https://gitcode.com/mirror/' + item.name.toLowerCase().replace(/\s+/g, '-')
-      item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '源码备份完成，镜像仓已建立' })
+      item.lastSync = new Date().toLocaleString('zh-CN')
+      item.logs.push({ time: item.lastSync, level: 'ok', msg: '源码备份完成，备份状态已更新为「备份成功」' })
     }, 2000)
   })
+  const total = selected.length
+  const ok = total - failed
+  backupMsg.value = failed === 0
+    ? `已校验国内备份地址并拉取源码包：${ok} 条备份成功`
+    : `${ok} 条已发起备份，${failed} 条校验未通过（国内备份地址缺失或非 AtomGit 地址），已置为「备份失败」`
+  setTimeout(() => { backupMsg.value = '' }, 5000)
 }
 
-// 步骤3：启动扫描（带进度条动画）
+// 步骤2：启动扫描（带进度条动画）
 function startScan() {
   const selected = stepList.value.filter(i => i.selected)
   const now = new Date().toLocaleString('zh-CN')
 
-  // 先关闭所有展开行
-  softwareList.value.forEach(i => { i._scanOpen = false })
-
-  // 选中1条 → 展开该条进度条；选中多条 → 只展开最上方一条
-  selected.forEach((item, idx) => {
+  selected.forEach((item) => {
     item.selected = false
     item.assessStatus = '评估中'
     item.scaProgress = 0
     item.copyrightProgress = 0
     item.malwareProgress = 0
-    if (idx === 0) item._scanOpen = true
     item.logs.push({ time: now, level: 'info', msg: '启动 SCA 扫描、恶意代码扫描...' })
 
     // 三个并行扫描（不同速度模拟）
@@ -1461,7 +1218,7 @@ function submitReviewItem() {
     operator: '当前用户',
     timestamp: now,
   })
-  reviewItem.value.logs.push({ time: now, level: reviewResult.value === '评审通过' ? 'ok' : 'warn', msg: `审核结果：${reviewResult.value}，意见：${reviewComment.value || '无'}` })
+  reviewItem.value.logs.push({ time: now, level: reviewResult.value === '评审通过' ? 'ok' : 'warn', msg: `评审结果：${reviewResult.value}，意见：${reviewComment.value || '无'}` })
   reviewItem.value = null
 }
 
@@ -1485,7 +1242,7 @@ function confirmBatchReview() {
       operator: '当前用户',
       timestamp: now,
     })
-    item.logs.push({ time: now, level: status === '评审通过' ? 'ok' : 'warn', msg: `批量审核：${status}，意见：${opinion}` })
+    item.logs.push({ time: now, level: status === '评审通过' ? 'ok' : 'warn', msg: `批量评审：${status}，意见：${opinion}` })
     item.selected = false
   })
   batchReviewTarget.value = null
@@ -1498,7 +1255,7 @@ function openOpinionHistory(item) {
 function advanceApproved() {
   const now = fmtNow()
   stepList.value.filter(i => i.selected && i.reviewStatus === '评审通过').forEach(item => {
-    item.currentStep = 5
+    item.currentStep = 4
     item.warehouseStatus = '待审批'
     item.selected = false
     item.logs.push({ time: now, level: 'info', msg: '已提交入库审核，等待平台管理员审批' })
@@ -1566,12 +1323,14 @@ function singleWarehouse(item, status) {
 }
 
 // ===== 指标评分 =====
-function openScoreDialog(item) {
+// readonly = true：查看评分细则（治理成果评估步骤已不能重新评分，评分由系统按治理结果自动完成）
+function openScoreDialog(item, readonly = false) {
+  scoreReadonly.value = readonly
   scoreItem.value = item
 }
 
 function saveScore(scores) {
-  if (!scoreItem.value) return
+  if (!scoreItem.value || scoreReadonly.value) return
   const item = scoreItem.value
   item.indicatorScores = scores
   item.nationalScore = calcNationalScore(scores)
@@ -1627,9 +1386,7 @@ function applyAutoScores(item) {
 function advanceToStep(targetStepIndex) {
   const list = stepList.value.filter(i => i.selected)
   let eligible = []
-  if (activeStep.value === 0) {
-    eligible = list
-  } else if (activeStep.value === 1) {
+  if (activeStep.value === 1) {
     eligible = list.filter(i => i.backupStatus === '备份成功')
   } else if (activeStep.value === 2) {
     // 步骤3 → 4：需评估完成且基线准入通过（基线全部合格 + bl-14 ≥ 6）
@@ -1640,9 +1397,9 @@ function advanceToStep(targetStepIndex) {
 
   const now = new Date().toLocaleString('zh-CN')
   eligible.forEach(item => {
-    item.currentStep = targetStepIndex + 1
+    item.currentStep = targetStepIndex
     item.selected = false
-    item.logs.push({ time: now, level: 'info', msg: `推进至「${steps[targetStepIndex].label}」` })
+    item.logs.push({ time: now, level: 'info', msg: `推进至「${stepLabel(targetStepIndex)}」` })
   })
   activeStep.value = targetStepIndex
 }
@@ -1688,11 +1445,11 @@ function copyRepo(url) {
 
 function detailTimeline(item) {
   return [
-    { action: '软件获取', time: item.createdAt || '--', level: 'info' },
+    { action: '治理结果回传', time: item.createdAt || '--', level: 'info' },
     { action: '源码备份', time: item.backupStatus === '备份成功' ? (item.lastSync || item.createdAt || '--') : '--', level: item.backupStatus === '备份成功' ? 'ok' : 'pending' },
-    { action: '技术评估', time: item.assessStatus === '评估完成' ? (item.createdAt || '--') : '--', level: item.assessStatus === '评估完成' ? 'ok' : 'pending' },
-    { action: '成果验收', time: item.reviewStatus && item.reviewStatus !== '待评审' ? (item.createdAt || '--') : '--', level: item.reviewStatus === '评审通过' ? 'ok' : item.reviewStatus === '评审不通过' ? 'fail' : 'pending' },
-    { action: '软件入库', time: item.warehouseStatus === '已入库' ? (item.warehouseTime || '--') : '--', level: item.warehouseStatus === '已入库' ? 'ok' : 'pending' },
+    { action: '软件评分', time: item.assessStatus === '评估完成' ? (item.createdAt || '--') : '--', level: item.assessStatus === '评估完成' ? 'ok' : 'pending' },
+    { action: '治理成果评估', time: item.reviewStatus && item.reviewStatus !== '待评审' ? (item.createdAt || '--') : '--', level: item.reviewStatus === '评审通过' ? 'ok' : item.reviewStatus === '评审不通过' ? 'fail' : 'pending' },
+    { action: '提交入库', time: item.warehouseStatus === '已入库' ? (item.warehouseTime || '--') : '--', level: item.warehouseStatus === '已入库' ? 'ok' : 'pending' },
   ]
 }
 
@@ -1731,21 +1488,6 @@ function confirmRemove() {
 /** 审计记录列表（仅本次会话，前端演示） */
 const removedAudit = ref([])
 
-function toggleScan(item) {
-  item._scanOpen = !item._scanOpen
-}
-
-function scanPhase(progress) {
-  if (!progress || progress <= 0) return ''
-  if (progress >= 100) return 'phase--ok'
-  return 'phase--run'
-}
-
-function scanBadge(progress) {
-  if (!progress || progress <= 0) return 'badge--warn'
-  if (progress >= 100) return 'badge--ok'
-  return 'badge--run'
-}
 </script>
 
 <style scoped>
@@ -1899,14 +1641,7 @@ function scanBadge(progress) {
   flex-wrap: wrap;
 }
 
-/* 上传按钮（label 包裹隐藏 input） */
-.gov-upload-wrap {
-  display: inline-flex;
-  cursor: pointer;
-}
-.gov-upload-wrap input[type="file"] {
-  display: none;
-}
+/* 行内动作的结果提示 */
 .gov-upload-msg {
   font-size: 12px;
   color: #16a34a;
@@ -1921,18 +1656,6 @@ function scanBadge(progress) {
   border: 1px solid #bbf7d0;
   white-space: normal;
 }
-/* 行内上传（操作列） */
-.gov-row-upload {
-  display: inline-flex;
-  cursor: pointer;
-}
-.gov-row-upload input[type="file"] {
-  display: none;
-}
-.gov-row-upload .gov-link-sub {
-  padding: 0;
-}
-
 /* ===== 筛选栏 ===== */
 .gov-filter-bar {
   display: grid;
@@ -2010,7 +1733,7 @@ select.gov-filter-input {
   color: #374151;
 }
 
-/* ===== 审核意见列 ===== */
+/* ===== 评审意见列 ===== */
 .gov-opinion-link {
   display: inline-block;
   max-width: 180px;
@@ -2031,7 +1754,7 @@ select.gov-filter-input {
   font-size: 12px;
 }
 
-/* ===== 审核意见历史 ===== */
+/* ===== 评审意见历史 ===== */
 .opinion-history-wrap {
   max-height: 300px;
   overflow-y: auto;
@@ -2105,6 +1828,12 @@ select.gov-filter-input {
 }
 .gov-btn--danger:hover { background: #fef2f2; border-color: #dc2626; }
 
+/* 工具栏按钮统一宽度，避免切换步骤时按钮宽度跳动 */
+.gov-content-actions .gov-btn {
+  justify-content: center;
+  min-width: 108px;
+}
+
 /* ===== 卡片 ===== */
 .gov-card {
   background: #fff;
@@ -2128,7 +1857,7 @@ select.gov-filter-input {
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
 }
-/* ===== 审核编辑控件 ===== */
+/* ===== 评审编辑控件 ===== */
 .gov-select {
   padding: 4px 8px;
   border: 1px solid #d1d5db;
@@ -2235,38 +1964,6 @@ select.gov-filter-input {
   padding: 56px 16px !important;
   font-size: 13px;
 }
-
-/* ===== 扫描子状态徽标 ===== */
-.gov-scan-sub {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.gov-scan-sub.badge--ok { background: #dcfce7; color: #16a34a; }
-.gov-scan-sub.badge--run { background: #dbeafe; color: #2563eb; }
-.gov-scan-sub.badge--pending { background: #f3f4f6; color: #9ca3af; }
-
-/* ===== 扫描进度展开行 ===== */
-.gov-scan-detail-row td {
-  background: #fafbfc;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 16px 40px !important;
-}
-.gov-scan-parallel { display: flex; flex-direction: row; gap: 20px; }
-.gov-scan-item { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.gov-scan-item-hd { display: flex; align-items: center; justify-content: space-between; }
-.gov-scan-item-label { font-size: 12px; font-weight: 500; color: #374151; }
-.gov-scan-item-status { font-size: 11px; font-weight: 500; padding: 0 6px; border-radius: 3px; line-height: 18px; }
-.gov-scan-item-status.phase--ok { background: #dcfce7; color: #16a34a; }
-.gov-scan-item-status.phase--run { background: #dbeafe; color: #2563eb; }
-.gov-scan-item-status.phase--fail { background: #fef2f2; color: #991b1b; }
-.gov-scan-item-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-.gov-scan-item-track { height: 100%; }
-.gov-scan-item-fill { height: 100%; background: #da203e; border-radius: 3px; transition: width 0.3s; }
-
-/* ===== 徽标 ===== */
 
 /* ===== 徽标 ===== */
 .gov-badge {
@@ -2712,6 +2409,7 @@ select.gov-filter-input {
 .detail-table--pairs td { padding: 8px 10px; text-align: left; }
 .dt-label { font-weight: 600; color: #374151; width: 120px; white-space: nowrap; vertical-align: top; }
 .dt-value { color: #1f2937; word-break: break-all; }
+.dt-hint { margin-left: 8px; font-size: 12px; color: #9ca3af; }
 .detail-desc-block {
   margin-top: 10px;
   padding: 12px 14px;
@@ -2733,7 +2431,7 @@ select.gov-filter-input {
 }
 .gov-drawer-back:hover { border-color: #da203e; color: #da203e; }
 
-/* ===== 审核弹窗 ===== */
+/* ===== 评审弹窗 ===== */
 .review-modal {
   margin: auto;
   background: #fff;
@@ -2806,7 +2504,7 @@ select.gov-filter-input {
   color: #4b5563;
 }
 
-/* 审核弹窗：国标评分展示 */
+/* 评审弹窗：国标评分展示 */
 .review-score {
   display: flex;
   align-items: center;
