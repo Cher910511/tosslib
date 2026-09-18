@@ -60,7 +60,10 @@ export const manualToc = [
   {
     id: 'software-care',
     title: '软件看护',
-    doc: 'software-care',
+    children: [
+      { id: 'software-care-intro', title: '软件看护介绍', doc: 'software-care' },
+      { id: 'governance-template-guide', title: '治理模版说明', doc: 'governance-template-guide' },
+    ],
   },
   {
     id: 'about-us',

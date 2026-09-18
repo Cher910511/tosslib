@@ -9,16 +9,19 @@ const HEADER_FONT_RGB = 'FFFFFFFF'
 /** 正文字体（官方模板用宋体 11） */
 const BODY_FONT = '宋体'
 
-/** 列宽：与官方「软件导入模板.xlsx」逐列一致（22 列，顺序同 TEMPLATE_COLUMNS） */
+/** 列宽：与「软件导入模板.xlsx」最终版逐列一致，另为「集成风险」列补一档宽度（23 列，顺序同 TEMPLATE_COLUMNS） */
 export const TEMPLATE_COL_WIDTHS = [
-  18, 18, 38.2596, 26.6635, 13.6538,
-  14.3846, 14.3846, 14.3846, 14.3846, 14.3846,
-  43.2404, 15.3077,
+  18, 18, 38.2596, 38.2596, 31.0769,
+  12, 14.3846, 14.3846, 14.3846, 14.3846, 14.3846,
+  43.2404, 18.7596,
   14.5577, 14.5577, 14.5577,
   30, 60, 41.2596,
   49.0673, 49.0673,
   70, 44.3173,
 ]
+
+/** 需要写成超链接的列（最终版模板中这 4 列为可点击链接） */
+export const HYPERLINK_COLUMNS = ['托管地址', '国内托管地址', '源码包地址', '来源地址']
 
 // ==================== CRC32（zip 需要） ====================
 const CRC_TABLE = (() => {
@@ -154,6 +157,41 @@ function buildColsXml(widths) {
     + '</cols>'
 }
 
+/** XML 属性值转义 */
+function escapeXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * 给工作表 XML 追加超链接，并返回对应的 rels 文件内容。
+ * @param {string} xml sheet1.xml
+ * @param {Array<{ref: string, url: string}>} hyperlinks 单元格引用 → 目标地址
+ * @param {number} startId rels 中 rId 起始编号（避免与已有关系冲突）
+ * @returns {{ xml: string, relsXml: string, relsName: string }}
+ */
+function addHyperlinks(xml, hyperlinks, startId = 1) {
+  if (!hyperlinks.length) return { xml, relsXml: '', relsName: '' }
+  const items = hyperlinks.map((h, i) => ({ ...h, rid: `rId${startId + i}` }))
+  const linksXml = '<hyperlinks>'
+    + items.map((h) => {
+      const url = escapeXml(h.url)
+      return `<hyperlink ref="${h.ref}" r:id="${h.rid}" display="${url}" tooltip="${url}"/>`
+    }).join('')
+    + '</hyperlinks>'
+  const out = xml.replace('</worksheet>', `${linksXml}</worksheet>`)
+  const relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + items.map((h) =>
+      `<Relationship Id="${h.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"`
+      + ` Target="${escapeXml(h.url)}" TargetMode="External"/>`).join('')
+    + '</Relationships>'
+  return { xml: out, relsXml, relsName: 'xl/worksheets/_rels/sheet1.xml.rels' }
+}
+
 /**
  * 给工作表 XML 打补丁：冻结首行首列、列宽、行高、表头/正文单元格样式。
  * @param {string} xml sheet1.xml 内容
@@ -202,19 +240,27 @@ function styleSheetXml(xml, opts = {}) {
 /**
  * 生成带样式的模板字节。
  * @param {ArrayBuffer|Uint8Array} input SheetJS 写出的 xlsx 字节
- * @param {{ headerRow?: number, hintRow?: number, headerHeight?: number, hintHeight?: number, dataRowHeight?: number }} opts
+ * @param {{ headerRow?: number, hintRow?: number, headerHeight?: number, hintHeight?: number, dataRowHeight?: number,
+ *           hyperlinks?: Array<{ref: string, url: string}> }} opts
  * @returns {Uint8Array}
  */
 export function patchTemplateXlsx(input, opts = {}) {
+  const { hyperlinks = [], ...styleOpts } = opts
+  let pendingRels = null
   const entries = parseZip(input).map((e) => {
     if (e.name === 'xl/styles.xml') {
       return { name: e.name, data: new TextEncoder().encode(STYLES_XML) }
     }
     if (/^xl\/worksheets\/sheet\d+\.xml$/.test(e.name)) {
-      const xml = new TextDecoder().decode(e.data)
-      return { name: e.name, data: new TextEncoder().encode(styleSheetXml(xml, opts)) }
+      let xml = styleSheetXml(new TextDecoder().decode(e.data), styleOpts)
+      const link = addHyperlinks(xml, hyperlinks)
+      xml = link.xml
+      // 超链接的 rels 作为独立条目，稍后追加到 entries 末尾
+      if (link.relsXml) pendingRels = { name: link.relsName, data: new TextEncoder().encode(link.relsXml) }
+      return { name: e.name, data: new TextEncoder().encode(xml) }
     }
     return e
   })
+  if (pendingRels) entries.push(pendingRels)
   return buildZip(entries)
 }

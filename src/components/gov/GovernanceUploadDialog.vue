@@ -49,9 +49,9 @@
             校验规则：必填项齐全、枚举列取值合法、名称+版本须落在清单内且不多不少、表格内不重复、未与已入库软件重复；任一不通过则整份无法导入。
           </p>
 
-          <!-- 国内备份地址平台要求（模板说明行内也有同样提示） -->
+          <!-- 国内托管地址平台要求（帮助文档「治理表格填写说明」内也有同样提示） -->
           <p class="upload-mirror-tip">
-            <strong>国内备份地址仅支持 AtomGit：</strong>源码本就在 AtomGit 则两个地址相同；仅在 GitHub 等境外仓库的，请先手动上传至 AtomGit 再填其地址。
+            <strong>国内托管地址仅支持 AtomGit：</strong>源码本就在 AtomGit 则两个地址相同；仅在 GitHub 等境外仓库的，请先手动上传至 AtomGit 再填其地址。各列填写方式与枚举取值见「治理表格填写说明」。
           </p>
           <p v-if="error" class="upload-error">{{ error }}</p>
 
@@ -227,9 +227,17 @@ async function onFile(e) {
     missing.value = (t.items || []).filter((it) => !parsed.some((row) => sameSoftware(row, it)))
     fileName.value = file.name
     // 回传结果回写清单：本次文件读不出可导入结果时记为「失败」（成功条数 0，失败条数=行校验未通过+清单缺失的条数）。
+    // 同时落库逐行失败明细（行号/字段/原因），供列表「失败条数」点击查看「回传校验结果」。
     // 清单状态不变，仍为「待回传」，可修正后重传；重传成功会把该结果覆盖为「成功」。
+    const failures = [
+      ...failedRows.value.flatMap((row) => row.failures || []),
+      // 清单中缺失的软件：行号在表内不存在，置为 null（弹窗按「清单缺失」字段展示）
+      ...missing.value.map((it) => ({ row: null, field: '清单缺失', reason: `清单内软件未在表格中找到：${it.name} ${it.version}` })),
+    ]
     const failedCount = failedRows.value.length + missing.value.length
-    if (failedCount > 0) updateInboundReturn(t.id, { status: '失败', okCount: 0, failCount: failedCount })
+    if (failedCount > 0) {
+      updateInboundReturn(t.id, { status: '失败', okCount: 0, failCount: failedCount, failures })
+    }
   } catch (err) {
     error.value = '文件解析失败，请确认是有效的 Excel / CSV 文件'
   } finally {
@@ -396,7 +404,7 @@ async function confirmImport() {
   color: #9ca3af;
   line-height: 1.6;
 }
-/* 国内备份地址仅支持 AtomGit：强调提示 */
+/* 国内托管地址仅支持 AtomGit：强调提示 */
 .upload-mirror-tip {
   margin: 0;
   padding: 8px 12px;

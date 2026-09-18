@@ -42,7 +42,7 @@
           <code class="detail-value detail-code">{{ software.repoUrl }}</code>
         </div>
         <div class="detail-field">
-          <label class="detail-label">国内备份地址</label>
+          <label class="detail-label">国内托管地址</label>
           <code class="detail-value detail-code">{{ software.mirrorUrl || '--' }}</code>
         </div>
         <div class="detail-field">

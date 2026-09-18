@@ -74,16 +74,8 @@
             </button>
           </template>
 
-          <!-- 步骤2：软件评分 -->
+          <!-- 步骤2：软件评分（不支持批量评分，评分在行内「评分」逐条进行） -->
           <template v-if="activeStep === 2">
-            <button
-              type="button"
-              class="gov-btn gov-btn--primary"
-              :disabled="selectedCount === 0"
-              @click="startScan"
-            >
-              开始评分{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
-            </button>
             <button
               v-if="selectedAdvanceableCount > 0"
               type="button"
@@ -257,7 +249,7 @@
         </div>
       </div>
 
-      <!-- 源码备份结果提示（校验国内备份地址 + 拉包结果） -->
+      <!-- 源码备份结果提示（校验国内托管地址 + 拉包结果） -->
       <div v-if="backupMsg" class="gov-upload-msg gov-upload-msg--bar">{{ backupMsg }}</div>
 
       <!-- 全选行 -->
@@ -284,10 +276,10 @@
               <th v-if="activeStep === 4">国标评分</th>
               <th v-if="activeStep === 2">国标评分</th>
               <th v-if="activeStep === 2">漏洞数</th>
-              <th v-if="activeStep === 2">软件物料清单总数</th>
+              <th v-if="activeStep === 2">恶意代码数</th>
               <th v-if="activeStep === 3">国标评分</th>
-              <th v-if="activeStep !== 2 && activeStep !== 3" class="col-repo">源码地址</th>
-              <th v-if="activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">国内备份地址</th>
+              <th v-if="activeStep !== 2 && activeStep !== 3" class="col-repo">托管地址</th>
+              <th v-if="activeStep !== 2 && activeStep !== 3 && activeStep !== 4" class="col-repo">国内托管地址</th>
               <th v-if="activeStep === 1">导入时间</th>
               <th v-if="activeStep === 3">验收时间</th>
               <th v-if="activeStep === 4">审核时间</th>
@@ -331,7 +323,9 @@
                 <td v-if="activeStep === 2">
                   <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
                 </td>
-                <td v-if="activeStep === 2" class="gov-muted">{{ item.sbomCount ?? '—' }}</td>
+                <td v-if="activeStep === 2">
+                  <span class="gov-vuln-badge" :class="(item.malwareCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.malwareCount ?? 0 }}</span>
+                </td>
                 <td v-if="activeStep === 4">
                   <span class="gov-vuln-badge" :class="(item.vulnCount || 0) > 0 ? 'vuln--has' : 'vuln--none'">{{ item.vulnCount ?? 0 }}</span>
                 </td>
@@ -470,7 +464,7 @@
               <tr><td class="dt-label">软件文件</td><td class="dt-value">{{ drawerItem.file || '--' }}</td></tr>
               <tr><td class="dt-label">代码量 (KL)</td><td class="dt-value">{{ drawerItem.codeSize || '--' }}</td></tr>
               <tr><td class="dt-label">源码托管地址</td><td class="dt-value">{{ drawerItem.repoUrl || '--' }}</td></tr>
-              <tr><td class="dt-label">国内备份地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}<span class="dt-hint">仅支持 AtomGit</span></td></tr>
+              <tr><td class="dt-label">国内托管地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}<span class="dt-hint">仅支持 AtomGit</span></td></tr>
               <tr><td class="dt-label">漏洞披露地址</td><td class="dt-value">{{ drawerItem.vulnUrl || '--' }}</td></tr>
               </tbody>
             </table>
@@ -552,7 +546,7 @@ Commit：{{ detailItem.commitId || '--' }}
         <aside class="gd-meta-col gd-meta-col-flat">
           <div class="gd-link-stack">
             <div class="gd-link-entry">
-              <div class="gd-link-label">源码地址</div>
+              <div class="gd-link-label">托管地址</div>
               <a class="gd-link-row" :href="detailItem.repoUrl" target="_blank" rel="noopener noreferrer">
                 <span class="gd-link-url">{{ detailItem.repoUrl || '--' }}</span>
               </a>
@@ -834,7 +828,7 @@ Commit：{{ detailItem.commitId || '--' }}
 <script setup>
 import { ref, computed, watch } from 'vue'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
-import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
+import { INDICATORS, calcNationalScore } from '../../data/govIndicators.js'
 import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
 
 const logItem = ref(null)
@@ -1043,7 +1037,7 @@ const selectedApprovedCount = computed(() =>
   stepList.value.filter(i => i.selected && i.reviewStatus === '评审通过').length,
 )
 
-// 表格列数（步骤2 含国标评分/漏洞数/软件物料清单总数；步骤4 含漏洞数/国标评分）
+// 表格列数（步骤2 含国标评分/漏洞数/恶意代码数；步骤4 含漏洞数/国标评分）
 const colSpan = computed(() => {
   const counts = { 1: 10, 2: 9, 3: 10, 4: 11 }
   return counts[activeStep.value] || 9
@@ -1091,7 +1085,7 @@ watch([
 
 
 // 步骤1：发起源码备份（只改状态，不推进）
-// 国内备份地址由治理负责人在回传的治理结果里填写，此处只做校验并据此拉包，不生成/改写地址。
+// 国内托管地址由治理负责人在回传的治理结果里填写，此处只做校验并据此拉包，不生成/改写地址。
 function startBackup() {
   const selected = stepList.value.filter(i => i.selected && i.backupStatus === '待备份')
   if (selected.length === 0) return
@@ -1104,18 +1098,18 @@ function startBackup() {
     if (!url) {
       failed += 1
       item.backupStatus = '备份失败'
-      item.logs.push({ time: now, level: 'warn', msg: '备份失败：未回传国内备份地址，请先在治理结果中补充后重新回传' })
+      item.logs.push({ time: now, level: 'warn', msg: '备份失败：未回传国内托管地址，请先在治理结果中补充后重新回传' })
       return
     }
-    // 校验 2：国内备份地址当前仅支持 AtomGit 平台
+    // 校验 2：国内托管地址当前仅支持 AtomGit 平台
     if (!/^https?:\/\/atomgit\.com\//i.test(url)) {
       failed += 1
       item.backupStatus = '备份失败'
-      item.logs.push({ time: now, level: 'warn', msg: `备份失败：国内备份地址仅支持 AtomGit 平台（当前：${url}）` })
+      item.logs.push({ time: now, level: 'warn', msg: `备份失败：国内托管地址仅支持 AtomGit 平台（当前：${url}）` })
       return
     }
     item.backupStatus = '备份中'
-    item.logs.push({ time: now, level: 'info', msg: `国内备份地址校验通过，开始从 ${url} 拉取源码包...` })
+    item.logs.push({ time: now, level: 'info', msg: `国内托管地址校验通过，开始从 ${url} 拉取源码包...` })
     setTimeout(() => {
       item.backupStatus = '备份成功'
       item.lastSync = new Date().toLocaleString('zh-CN')
@@ -1125,64 +1119,9 @@ function startBackup() {
   const total = selected.length
   const ok = total - failed
   backupMsg.value = failed === 0
-    ? `已校验国内备份地址并拉取源码包：${ok} 条备份成功`
-    : `${ok} 条已发起备份，${failed} 条校验未通过（国内备份地址缺失或非 AtomGit 地址），已置为「备份失败」`
+    ? `已校验国内托管地址并拉取源码包：${ok} 条备份成功`
+    : `${ok} 条已发起备份，${failed} 条校验未通过（国内托管地址缺失或非 AtomGit 地址），已置为「备份失败」`
   setTimeout(() => { backupMsg.value = '' }, 5000)
-}
-
-// 步骤2：启动扫描（带进度条动画）
-function startScan() {
-  const selected = stepList.value.filter(i => i.selected)
-  const now = new Date().toLocaleString('zh-CN')
-
-  selected.forEach((item) => {
-    item.selected = false
-    item.assessStatus = '评估中'
-    item.scaProgress = 0
-    item.copyrightProgress = 0
-    item.malwareProgress = 0
-    item.logs.push({ time: now, level: 'info', msg: '启动 SCA 扫描、恶意代码扫描...' })
-
-    // 三个并行扫描（不同速度模拟）
-    const intervals = []
-    intervals.push(setInterval(() => {
-      if (item.scaProgress < 100) {
-        item.scaProgress = Math.min(100, (item.scaProgress || 0) + Math.floor(Math.random() * 12) + 5)
-      } else {
-        clearInterval(intervals[0])
-      }
-    }, 300 + Math.random() * 200))
-
-    intervals.push(setInterval(() => {
-      if (item.copyrightProgress < 100) {
-        item.copyrightProgress = Math.min(100, (item.copyrightProgress || 0) + Math.floor(Math.random() * 10) + 3)
-      } else {
-        clearInterval(intervals[1])
-      }
-    }, 300 + Math.random() * 200))
-
-    intervals.push(setInterval(() => {
-      if (item.malwareProgress < 100) {
-        item.malwareProgress = Math.min(100, (item.malwareProgress || 0) + Math.floor(Math.random() * 8) + 2)
-      } else {
-        clearInterval(intervals[2])
-      }
-    }, 300 + Math.random() * 200))
-
-    // 监听全部完成后更新状态
-    const checkDone = setInterval(() => {
-      if ((item.scaProgress || 0) >= 100 && (item.copyrightProgress || 0) >= 100 && (item.malwareProgress || 0) >= 100) {
-        clearInterval(checkDone)
-        intervals.forEach(i => clearInterval(i))
-        setTimeout(() => {
-          item.assessStatus = '评估完成'
-          // 扫描完成：自动指标自动算分并汇总国标评分
-          applyAutoScores(item)
-          item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '评估完成，生成治理报告' })
-        }, 500)
-      }
-    }, 200)
-  })
 }
 
 // 步骤4：提交评审（只改状态，不推进）
@@ -1334,6 +1273,8 @@ function saveScore(scores) {
   const item = scoreItem.value
   item.indicatorScores = scores
   item.nationalScore = calcNationalScore(scores)
+  // 软件评分不支持批量，逐条在行内完成：保存即视为该条评分完成，满足步骤3的推进条件
+  item.assessStatus = '评估完成'
   item.logs.push({
     time: fmtNow(),
     level: 'ok',
@@ -1364,24 +1305,6 @@ function scoreToneClass(item) {
 
 // 扫描完成后自动算分：仅对具备自动评分能力的指标按扫描数据打分，并汇总国标评分。
 // 非自动（人工）指标保持未评分（null），需在评分弹窗中手动评定后方可满足基线准入。
-function applyAutoScores(item) {
-  const scores = { ...(item.indicatorScores || {}) }
-  INDICATORS.forEach((ind) => {
-    if (!ind.capable) return
-    const auto = autoScoreRecord(ind, item)
-    if (auto) {
-      scores[ind.id] = { score: auto.score, params: { ...auto.params } }
-    }
-  })
-  item.indicatorScores = scores
-  item.nationalScore = calcNationalScore(scores)
-  item.logs.push({
-    time: fmtNow(),
-    level: 'info',
-    msg: '扫描完成，自动指标已评分',
-  })
-}
-
 // ===== 推进到下一步（只推进选中的且状态已完成的条目） =====
 function advanceToStep(targetStepIndex) {
   const list = stepList.value.filter(i => i.selected)

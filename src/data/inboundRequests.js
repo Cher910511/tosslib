@@ -8,12 +8,20 @@
  *   status: '待分配'|'已分配'|'治理中'|'待审核'|'已审核'|'已入库',
  *   assignedOrgId?: string, assignedOrgName?: string,
  *   assignedTo?: string, assignedAt?: string,
- *   returnStatus?: '成功'|'失败', returnOkCount?: number, returnFailCount?: number, returnedAt?: string,
+ *   returnStatus?: '回传中'|'成功'|'失败', returnOkCount?: number, returnFailCount?: number, returnedAt?: string,
+ *   returnFailures?: Array<{ row: number, field: string, reason: string }>,
  *   items: Array<{ name: string, version: string, url: string, scene: string }> }} InboundRequest
  */
 
 const STORAGE_KEY = 'tosslib_inbound_requests'
 const MAX_ITEMS = 200
+/**
+ * 种子数据版本号：种子结构变化（新增字段/状态等）时必须 +1。
+ * 存储中的种子覆盖记录若版本不符，视为过期并丢弃，避免旧结构覆盖新种子字段
+ * （例如旧数据没有 returnFailures / 「回传中」状态，会让失败原因点不开）。
+ * 用户真实提交的清单不受影响，始终保留。
+ */
+const SEED_VERSION = 2
 
 // 演示用开源软件清单池：种子清单的解析明细从这里取，保证查看详情有足够数据
 const DEMO_ITEMS = [
@@ -90,6 +98,11 @@ const SEED_REQUESTS = [
     returnOkCount: 0,
     returnFailCount: 2,
     returnedAt: '2026-08-31 16:20',
+    // 失败明细：行号为 Excel 行号（第 1 行是表头，数据从第 2 行开始）
+    returnFailures: [
+      { row: 3, field: '必填项', reason: 'AtomGit 开源社区源码托管地址为空' },
+      { row: 7, field: '必填项', reason: 'AtomGit 开源社区源码托管地址为空' },
+    ],
     items: DEMO_ITEMS.slice(10, 20),
   },
   // —— 已分配但尚未回传：列表「回传状态」显示「待回传」 ——
@@ -106,6 +119,23 @@ const SEED_REQUESTS = [
     assignedTo: '陈晓峰',
     assignedAt: '2026-09-03 09:00',
     items: DEMO_ITEMS.slice(18, 26),
+  },
+  // —— 回传中：文件已提交，正在校验/导入，尚未出结果 ——
+  {
+    id: 'ir-seed-8',
+    org: '华为技术有限公司',
+    reporter: '李思远',
+    contact: '13900000002',
+    fileName: '华为-开源软件需求清单-0904.xlsx',
+    createdAt: '2026-09-04 09:10',
+    status: '已分配',
+    assignedOrgId: 'org-003',
+    assignedOrgName: '华为技术有限公司',
+    assignedTo: '李思远',
+    assignedAt: '2026-09-04 10:00',
+    returnStatus: '回传中',
+    returnedAt: '2026-09-04 14:35',
+    items: DEMO_ITEMS.slice(3, 12),
   },
   // —— 待审核：库主已在软件治理中流转并提交审核 ——
   {
@@ -176,23 +206,38 @@ function seedList() {
 
 function load() {
   let stored = []
+  let storedSeedVersion = 0
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const list = raw ? JSON.parse(raw) : null
-    if (Array.isArray(list) && list.length > 0) stored = list
+    const parsed = raw ? JSON.parse(raw) : null
+    if (Array.isArray(parsed)) {
+      // 旧格式：直接存数组（无版本号），按版本 0 处理
+      stored = parsed
+    } else if (parsed && Array.isArray(parsed.list)) {
+      stored = parsed.list
+      storedSeedVersion = Number(parsed.__seedVersion) || 0
+    }
   } catch (e) {
     // 读取失败按无存储处理
   }
-  // 种子数据始终展示（演示用），用户提交的真实数据拼接在后；按 id 去重
   const seed = seedList()
   const seedIds = new Set(seed.map((r) => r.id))
+  // 用户真实提交的清单始终保留（id 不在种子内）
   const storedReal = stored.filter((r) => !seedIds.has(r.id))
-  return [...seed, ...storedReal]
+  // 种子覆盖仅在版本一致时采用：版本不符说明存储的是旧结构（可能缺字段/状态），
+  // 直接丢弃以免覆盖新种子数据；用户已做的修改在版本升级后回到种子初始态，属预期行为。
+  if (storedSeedVersion !== SEED_VERSION) return [...seed, ...storedReal]
+  const storedById = new Map(stored.map((r) => [r.id, r]))
+  // 种子记录若已被修改（回传结果、状态变更等），以存储中的版本为准
+  const mergedSeed = seed.map((r) => storedById.get(r.id) || r)
+  return [...mergedSeed, ...storedReal]
 }
 
 function persist(list) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(-MAX_ITEMS)))
+    // 带种子版本号写入，供下次读取判断存储结构是否过期
+    const payload = { __seedVersion: SEED_VERSION, list: list.slice(-MAX_ITEMS) }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   } catch (e) {
     // 存储失败（超限等）时静默降级为内存态
   }
@@ -250,8 +295,8 @@ export function updateInboundStatus(id, status) {
   }
 }
 
-/** 回写清单的回传结果：回传状态（成功/失败）、成功条数、失败条数与回传时间 */
-export function updateInboundReturn(id, { status, okCount = 0, failCount = 0 }) {
+/** 回写清单的回传结果：回传状态（回传中/成功/失败）、成功条数、失败条数、失败明细与回传时间 */
+export function updateInboundReturn(id, { status, okCount = 0, failCount = 0, failures = null }) {
   const list = load()
   const idx = list.findIndex((r) => r.id === id)
   if (idx !== -1) {
@@ -260,6 +305,9 @@ export function updateInboundReturn(id, { status, okCount = 0, failCount = 0 }) 
     list[idx].returnStatus = status
     list[idx].returnOkCount = okCount
     list[idx].returnFailCount = failCount
+    // 失败明细：校验未通过时记录逐行原因，供列表「失败条数」点击查看
+    if (failures) list[idx].returnFailures = failures
+    else if (status === '成功') delete list[idx].returnFailures
     list[idx].returnedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     persist(list)
   }

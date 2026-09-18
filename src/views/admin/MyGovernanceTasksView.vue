@@ -29,8 +29,14 @@
     <!-- 清单列表 -->
     <section class="mgt-card mgt-table-card">
       <header class="mgt-card-hd mgt-table-hd">
-        <h2 class="mgt-table-title">待治理清单列表</h2>
-        <button type="button" class="mgt-head-tpl" @click="downloadSampleTemplate">下载示例模板</button>
+        <div class="mgt-head-left">
+          <h2 class="mgt-table-title">待治理清单列表</h2>
+          <span class="mgt-head-hint">提示：请先查看治理模版说明再开始填写治理表格</span>
+        </div>
+        <div class="mgt-head-actions">
+          <button type="button" class="mgt-head-tpl" @click="downloadSampleTemplate">下载示例模板</button>
+          <button type="button" class="mgt-head-tpl" @click="openTemplateGuide">治理模板说明</button>
+        </div>
       </header>
 
       <div class="mgt-table-wrap">
@@ -63,7 +69,16 @@
                 <span v-else class="mgt-muted">—</span>
               </td>
               <td>{{ r.returnOkCount != null ? `${r.returnOkCount} 条` : '—' }}</td>
-              <td>{{ r.returnFailCount != null ? `${r.returnFailCount} 条` : '—' }}</td>
+              <td>
+                <button
+                  v-if="r.returnFailCount != null && (r.returnFailures || []).length"
+                  type="button"
+                  class="mgt-op mgt-op--fail"
+                  @click="openFailures(r)"
+                >{{ r.returnFailCount }} 条</button>
+                <span v-else-if="r.returnFailCount != null">{{ r.returnFailCount }} 条</span>
+                <span v-else class="mgt-muted">—</span>
+              </td>
               <td>{{ r.returnedAt || '—' }}</td>
               <td>
                 <button type="button" class="mgt-op" @click="openDetail(r)">查看详情</button>
@@ -168,6 +183,43 @@
       </div>
     </div>
 
+    <!-- 回传校验结果（点击失败条数进入：逐行展示未通过的字段与原因） -->
+    <div v-if="failuresTarget" class="mgt-overlay" @click.self="closeFailures">
+      <div class="mgt-modal mgt-modal--failures" role="dialog" aria-modal="true" aria-labelledby="mgt-failures-title">
+        <header class="mgt-modal-hd">
+          <h3 id="mgt-failures-title" class="mgt-modal-title">回传校验结果</h3>
+          <button type="button" class="mgt-modal-close" aria-label="关闭" @click="closeFailures">✕</button>
+        </header>
+
+        <p class="mgt-fail-alert">
+          校验未通过，共 {{ failuresTarget.returnFailCount }} 行存在问题，请修正后重新上传：
+        </p>
+
+        <div class="mgt-modal-table">
+          <table class="mgt-table">
+            <thead>
+              <tr>
+                <th>行号</th>
+                <th>字段</th>
+                <th>失败原因</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(f, i) in failuresTarget.returnFailures" :key="i">
+                <td class="mgt-fail-row">{{ f.row ?? '—' }}</td>
+                <td>{{ f.field }}</td>
+                <td class="mgt-fail-reason">{{ f.reason }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="mgt-modal-ft">
+          <button type="button" class="mgt-btn mgt-btn--primary" @click="closeFailures">知道了</button>
+        </footer>
+      </div>
+    </div>
+
     <!-- 上传治理结果（共享组件：本页行内「回传清单」进入，清单已确定，弹窗内不再提供清单选择） -->
     <GovernanceUploadDialog
       :open="uploadOpen"
@@ -180,13 +232,23 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getInboundRequests } from '../../data/inboundRequests.js'
 import { writePrefilledTemplate, writeSampleTemplate } from '../../data/governanceTemplate.js'
 import { USERS } from '../../data/orgData.js'
 import GovernanceUploadDialog from '../../components/gov/GovernanceUploadDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
+
+/** 治理表格填写说明：新标签打开使用手册中的说明文档 */
+function openTemplateGuide() {
+  const href = router.resolve({
+    name: 'user-manual',
+    params: { docId: 'governance-template-guide' },
+  }).href
+  window.open(new URL(href, window.location.origin).href, '_blank', 'noopener')
+}
 
 /* —— 当前用户角色：与侧边栏共用 route.query.user，默认平台管理员 —— */
 const currentUser = computed(() => USERS.find((u) => u.id === route.query.user) || USERS[0])
@@ -335,7 +397,7 @@ function downloadList(r) {
 /* ==================== 下载软件导入模板 ==================== */
 // 模板列定义/解析/校验统一使用共享模块 governanceTemplate.js
 
-/** 下载预填模板：按本清单软件预填软件名称/软件版本/源码地址，其余治理结果字段留空待填写 */
+/** 下载预填模板：按本清单软件预填软件名称/软件版本/托管地址，其余治理结果字段留空待填写 */
 function downloadPrefilledTemplate(r) {
   writePrefilledTemplate(
     `${(r.org || '治理')}-软件导入模板-${(r.createdAt || '').replace(/[: ]/g, '-')}.xlsx`,
@@ -348,18 +410,31 @@ function downloadSampleTemplate() {
   writeSampleTemplate()
 }
 
-/** 回传状态：待回传（尚未回传的已分配清单）/ 成功 / 失败 —— 取最近一次回传结果 */
+/** 回传状态：待回传（尚未回传的已分配清单）/ 回传中 / 成功 / 失败 —— 取最近一次回传结果 */
 function returnStatusOf(r) {
   if (r.returnStatus) return r.returnStatus
   return r.status === '已分配' ? '待回传' : '—'
 }
 
-/** 回传状态配色：成功=绿、失败=红、待回传=灰 */
+/** 回传状态配色：成功=绿、失败=红、回传中=蓝、待回传=灰 */
 function returnStatusClass(r) {
   const status = returnStatusOf(r)
   if (status === '成功') return 'is-ok'
   if (status === '失败') return 'is-bad'
+  if (status === '回传中') return 'is-run'
   return 'is-wait'
+}
+
+/* ===== 回传校验结果弹窗（点击「失败条数」进入） ===== */
+const failuresTarget = ref(null)
+
+/** 打开回传校验结果：逐行展示未通过的字段与原因 */
+function openFailures(r) {
+  failuresTarget.value = r
+}
+
+function closeFailures() {
+  failuresTarget.value = null
 }
 
 /* ===== 上传治理结果（共享组件 GovernanceUploadDialog） ===== */
@@ -391,7 +466,26 @@ function onUploadImported() {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
-/* 列表头右侧的示例模板下载 */
+/* 列表头左侧：填写提示 + 标题 */
+.mgt-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.mgt-head-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+/* 列表头右侧：示例模板下载 + 说明入口 */
+.mgt-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .mgt-head-tpl {
   flex-shrink: 0;
   padding: 6px 14px;
@@ -611,10 +705,49 @@ function onUploadImported() {
   background: #fee2e2;
   border-color: #fecaca;
 }
+/* 回传中：蓝色 */
+.mgt-ret.is-run {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
 .mgt-ret.is-wait {
   color: #b45309;
   background: #fef3c7;
   border-color: #fde68a;
+}
+
+/* 失败条数：可点击查看回传校验结果 */
+.mgt-op--fail {
+  color: #b91c1c;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mgt-op--fail:hover {
+  color: #dc2626;
+}
+
+/* ===== 回传校验结果弹窗 ===== */
+.mgt-modal--failures {
+  width: min(720px, 100%);
+}
+.mgt-fail-alert {
+  margin: 0;
+  padding: 12px 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  flex-shrink: 0;
+}
+.mgt-fail-row {
+  width: 88px;
+  color: #6b7280;
+}
+.mgt-fail-reason {
+  color: #b91c1c;
 }
 
 /* 页脚分页 */

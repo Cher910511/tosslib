@@ -1,26 +1,31 @@
 // ==================== 软件导入模板 · 共享解析/校验 ====================
-// 官方「软件导入模板.xlsx」为 22 列治理结果模板（sheet 名：软件详情汇总）：
+// 「软件导入模板.xlsx」为 23 列治理结果模板（sheet 名：软件详情汇总）：
 // 治理负责人下载模板 → 填好治理结果 → 在「我的待治理清单」回传，
 // 系统按本模块解析并校验（必填项齐全、枚举取值合法、名称+版本与分配清单一致、未与已入库重复）。
 
 import * as XLSX from 'xlsx'
-import { patchTemplateXlsx, TEMPLATE_COL_WIDTHS } from './xlsxTemplateStyle.js'
+import { patchTemplateXlsx, TEMPLATE_COL_WIDTHS, HYPERLINK_COLUMNS } from './xlsxTemplateStyle.js'
 
-// 模板列（治理结果模板，与官方「软件导入模板.xlsx」列名、顺序完全一致；* 为必填标记）
+// 模板列（治理结果模板，与「软件导入模板.xlsx」最终版列名、顺序一致，另加回「集成风险」列）
+// 所有列均为必填：确实没有内容的填「无」，不要留空
 export const TEMPLATE_HEADERS = [
-  '软件名称*', '软件版本*', '源码地址*', '国内备份地址*', '技术栈分类*', '集成风险*', '主语言类型*',
-  '开发商*', '发布日期*', 'homepage*', 'CopyRight', '千行代码量', '软件生命力', '社区EOL日期',
-  '版本描述', '主许可证', '软件说明', '依赖清单', '历史漏洞信息', '恶意代码', '开发者信息', '许可证列表*',
+  '软件名称', '软件版本', '托管地址', '国内托管地址', '源码包地址', '技术栈分类', '集成风险', '主语言类型',
+  '开发商', '发布日期', '来源地址', 'copyright', '千行代码量（KL）', '软件生命力', '社区EOL日期',
+  '版本描述', '主许可证', '软件说明', '依赖清单', '历史漏洞信息', '恶意代码', '开发者信息', '许可证列表',
 ]
 
-// 导出模板用的干净表头（去掉必填标记 *）
+// 表头列名（解析时兼容历史文件带 * 的表头）
 export const TEMPLATE_COLUMNS = TEMPLATE_HEADERS.map((h) => h.replace(/\*/g, '').trim())
 
-// ==================== 枚举列的合法取值（模板内以批注标注，校验时按此判断） ====================
+// ==================== 枚举列的合法取值（校验时按此判断，取值同时写入帮助文档） ====================
 /** 技术栈分类 */
 export const TECH_STACK_OPTIONS = [
-  '操作系统组件', '前端设计', '其他', '后台服务端框架', '数据处理', '人工智能', '通用工具库',
-  '云原生基础设施', '图形多媒体', '语言编译工具', '测试质量', '文档办公',
+  '大数据分析技术', 'PaaS', '存储及文件系统技术', 'SOA技术', 'Rel-MC', '安全组件', '研发工具',
+  '媒体软件技术', '数据压缩技术', '分布式通信技术', '编译器与编程语言技术', 'WEB技术', '分布式中间件',
+  '软件兼容性技术', '虚拟化技术', 'openstack', '操作系统技术', '数据库技术', '区块链技术', '搜索技术',
+  '可编程逻辑', 'NP', '光器件', '能源', '处理器', '存储器', '交换网', '器件', 'ADDA', '计算硬件网卡',
+  '安卓应用与框架', '应用多媒体', '通信协议应用', '软件测试', '通用开发库技术', '人工智能技术',
+  '桌面应用与框架技术', '文本处理技术', '鸿蒙应用与框架', '字体技术', '云计算技术',
 ]
 /** 集成风险 */
 export const INTEGRATION_RISK_OPTIONS = ['高', '中', '低']
@@ -33,18 +38,17 @@ export const LANG_OPTIONS = [
 /** 软件生命力 */
 export const VITALITY_OPTIONS = ['成熟期', '衰退期', '成长期']
 
-/** 枚举列 → 合法取值（列名为去掉 * 的表头名） */
+/** 枚举列 → 合法取值（键为模板列名；主语言类型不限制取值） */
 export const ENUM_COLUMNS = {
   技术栈分类: TECH_STACK_OPTIONS,
   集成风险: INTEGRATION_RISK_OPTIONS,
-  主语言类型: LANG_OPTIONS,
   软件生命力: VITALITY_OPTIONS,
 }
 
-/** 国内备份地址：当前仅支持 AtomGit 平台 */
+/** 国内托管地址：当前仅支持 AtomGit 平台 */
 export const MIRROR_HOST = 'atomgit.com'
 
-/** 判断是否 AtomGit 平台地址（国内备份地址目前仅支持 AtomGit） */
+/** 判断是否 AtomGit 平台地址（国内托管地址目前仅支持 AtomGit） */
 export function isAtomGitUrl(url) {
   return new RegExp(`^https?://${MIRROR_HOST.replace('.', '\\.')}/`, 'i').test(String(url || '').trim())
 }
@@ -119,16 +123,17 @@ const SAMPLE_DESC = [
 export const TEMPLATE_SAMPLE_ROW = {
   软件名称: 'requests',
   软件版本: 'v2.0.1',
-  源码地址: 'https://github.com/psf/requests',
-  // 源码仅在 GitHub 时，需治理负责人手动上传至 AtomGit，此处填 AtomGit 备份地址
-  国内备份地址: 'https://atomgit.com/mirror/requests',
-  技术栈分类: '通用工具库',
+  托管地址: 'https://github.com/macournoyer/thin',
+  // 源码仅在 GitHub 时，需治理负责人手动上传至 AtomGit，此处填 AtomGit 地址
+  国内托管地址: 'https://atomgit.com/macournoyer/thin',
+  源码包地址: 'https://github.com/macournoyer/thin/archive/refs/tags/v2.0.1.zip',
+  技术栈分类: '云计算技术',
   集成风险: '低',
   主语言类型: 'Python',
   开发商: 'Python Software Foundation',
   发布日期: '2026/3/26',
-  homepage: 'https://requests.readthedocs.io/en/latest/',
-  CopyRight: JSON.stringify([
+  来源地址: 'https://requests.readthedocs.io/en/latest/',
+  copyright: JSON.stringify([
     { 文件: '/src/requests/api.py', copyright: 'copyright (c) 2012 by Kenneth Reitz' },
     { 文件: '/src/requests/__version__.py', copyright: 'Copyright Kenneth Reitz' },
     { 文件: '/src/requests/__init__.py', copyright: 'copyright (c) 2017 by Kenneth Reitz' },
@@ -137,7 +142,7 @@ export const TEMPLATE_SAMPLE_ROW = {
     { 文件: '/docs/conf.py', copyright: 'copyright MMXVIX. A Kenneth Reitz Project' },
     { 文件: '/NOTICE', copyright: 'Copyright 2019 Kenneth Reitz' },
   ]),
-  千行代码量: '12（KL）',
+  '千行代码量（KL）': '12',
   软件生命力: '成熟期',
   社区EOL日期: '2021/11/1',
   版本描述: 'A simple, yet elegant, HTTP library.',
@@ -198,21 +203,20 @@ export const TEMPLATE_SAMPLE_ROW = {
 }
 
 // 表头别名（按长度倒序做包含匹配，避免「开源许可证」抢先吃掉「开源许可证ID」）
+// 前一组为最终版列名，其余为历史列名兼容
 const HEADER_ALIASES = [
   ['name', ['软件名称', '开源软件名称', '名称']],
   ['version', ['软件版本', '版本号', '版本']],
-  ['repoUrl', ['源码地址', '来源地址/源码地址', '来源地址', '源码托管地址', '仓库地址', '托管地址']],
-  ['mirrorUrl', ['国内备份地址', '备份地址', '镜像地址']],
-  ['techStack', ['技术栈分类', '技术栈']],
-  ['integrationRisk', ['集成风险']],
+  ['repoUrl', ['托管地址', '源码地址', '来源地址/源码地址', '源码托管地址', '仓库地址']],
+  ['mirrorUrl', ['国内托管地址', '备份地址', '镜像地址']],
   ['srcPkgUrl', ['源码包地址', '源码包']],
-  ['industry', ['行业']],
+  ['techStack', ['技术栈分类', '软件类别', '技术栈']],
   ['lang', ['主语言类型', '主语言', '语言']],
   ['developer', ['开发商', '开发者']],
   ['releaseDate', ['发布日期']],
-  ['homepage', ['homepage', '官网地址', '官网']],
-  ['copyright', ['copyright', '版权']],
-  ['codeSize', ['千行代码量', '代码量']],
+  ['homepage', ['来源地址', 'homepage', '官网地址', '官网']],
+  ['copyright', ['copyright', 'CopyRight', '版权']],
+  ['codeSize', ['千行代码量（KL）', '千行代码量', '代码量']],
   ['vitality', ['软件生命力', '生命力']],
   ['eolDate', ['社区EOL日期', 'EOL日期', '下线日期']],
   ['versionDesc', ['版本描述']],
@@ -223,6 +227,7 @@ const HEADER_ALIASES = [
   ['malware', ['恶意代码']],
   ['devInfo', ['开发者信息']],
   ['licenses', ['许可证列表']],
+  ['integrationRisk', ['集成风险']],
   ['submitter', ['提交人']],
   ['submitOrg', ['提交组织']],
 ]
@@ -231,12 +236,14 @@ const ALIAS_FLAT = HEADER_ALIASES
   .flatMap(([key, aliases]) => aliases.map((alias) => ({ key, alias: alias.replace(/\*/g, '').replace(/\s+/g, '').toLowerCase() })))
   .sort((a, b) => b.alias.length - a.alias.length)
 
-// 必填列：缺任一项即校验失败（与「软件导入模板.xlsx」带 * 的列一一对应）
+// 必填列：全部 23 列均为必填，缺任一项即校验失败
 export const REQUIRED_KEYS = [
-  ['name', '软件名称'], ['version', '软件版本'], ['repoUrl', '源码地址'],
-  ['mirrorUrl', '国内备份地址'], ['techStack', '技术栈分类'], ['integrationRisk', '集成风险'],
-  ['lang', '主语言类型'], ['developer', '开发商'], ['releaseDate', '发布日期'],
-  ['homepage', 'homepage'], ['licenses', '许可证列表'],
+  ['name', '软件名称'], ['version', '软件版本'], ['repoUrl', '托管地址'], ['mirrorUrl', '国内托管地址'],
+  ['srcPkgUrl', '源码包地址'], ['techStack', '技术栈分类'], ['integrationRisk', '集成风险'], ['lang', '主语言类型'], ['developer', '开发商'],
+  ['releaseDate', '发布日期'], ['homepage', '来源地址'], ['copyright', 'copyright'], ['codeSize', '千行代码量（KL）'],
+  ['vitality', '软件生命力'], ['eolDate', '社区EOL日期'], ['versionDesc', '版本描述'], ['license', '主许可证'],
+  ['desc', '软件说明'], ['deps', '依赖清单'], ['vulns', '历史漏洞信息'], ['malware', '恶意代码'],
+  ['devInfo', '开发者信息'], ['licenses', '许可证列表'],
 ]
 
 function normHeader(v) {
@@ -298,7 +305,8 @@ export function parseGovernanceSheet(workbook) {
       row[key] = cellText(grid[i][c])
     })
     if (Object.values(row).every((v) => !v)) continue // 跳过空行
-    if (isHintRow(row)) continue // 跳过表头下方的取值说明行
+    // excelRow：该数据在表格中的真实行号（表头占第 1 行，数据从第 2 行开始），用于失败明细定位
+    row.excelRow = i + 1
     out.push(row)
   }
   return out
@@ -307,32 +315,35 @@ export function parseGovernanceSheet(workbook) {
 /**
  * 逐条校验：
  * 1. 模板必填项齐全
- * 2. 枚举列（技术栈分类 / 集成风险 / 主语言类型 / 软件生命力）取值须在允许范围内
+ * 2. 枚举列（技术栈分类 / 集成风险 / 软件生命力）取值须在允许范围内
  * 3. 名称+版本能对应上分配清单（忽略大小写）
  * 4. 名称+版本在表格内不重复
  * 5. 未与已入库软件重复（只查 warehouseStatus === '已入库'，在流程中的不算）
  * @param {Array<Object>} rows 解析出的行
  * @param {{ items?: Array, softwareList?: Array }} ctx 校验上下文
- * @returns {Array<Object>} 每行附带 errors: string[]
+ * @returns {Array<Object>} 每行附带 errors: string[]（原因文案）与 failures: Array<{row, field, reason}>（结构化明细）
  */
 export function validateGovernanceRows(rows, { items = [], softwareList = [] } = {}) {
   const seen = new Set()
   return rows.map((row) => {
-    const errors = []
+    // failures：结构化失败明细（表格行号 / 字段分类 / 具体原因），用于「回传校验结果」弹窗逐行展示
+    const failures = []
+    const add = (field, reason) => failures.push({ row: row.excelRow ?? null, field, reason })
+
     REQUIRED_KEYS.forEach(([key, label]) => {
-      if (!row[key]) errors.push(`${label}必填`)
+      if (!row[key]) add('必填项', `${label}为空`)
     })
     // 枚举列取值校验：只提示「取值不在允许范围内」，避免与「必填」重复报错
     Object.entries(ENUM_COLUMNS).forEach(([col, options]) => {
       const value = (row[enumKeyOf(col)] || '').trim()
       if (value && !options.includes(value)) {
-        errors.push(`${col}取值须为：${options.join('、')}`)
+        add('枚举取值', `${col}取值不在允许范围内`)
       }
     })
-    // 国内备份地址：目前仅支持 AtomGit 平台地址
+    // 国内托管地址：目前仅支持 AtomGit 平台地址
     const mirror = (row.mirrorUrl || '').trim()
     if (mirror && !isAtomGitUrl(mirror)) {
-      errors.push('国内备份地址仅支持 AtomGit 平台地址（须先手动上传至 AtomGit）')
+      add('地址格式', '国内托管地址仅支持 AtomGit 平台地址（须先手动上传至 AtomGit）')
     }
     const name = row.name || ''
     const version = row.version || ''
@@ -340,19 +351,19 @@ export function validateGovernanceRows(rows, { items = [], softwareList = [] } =
       const matched = items.some((it) =>
         (it.name || '').toLowerCase() === name.toLowerCase()
         && String(it.version || '').toLowerCase() === version.toLowerCase())
-      if (!matched) errors.push('名称+版本与所选清单不匹配')
+      if (!matched) add('清单匹配', '名称+版本与所选清单不匹配')
 
       const dupKey = name.toLowerCase() + '@' + version.toLowerCase()
-      if (seen.has(dupKey)) errors.push('表格内名称+版本重复')
+      if (seen.has(dupKey)) add('重复数据', '表格内名称+版本重复')
       else seen.add(dupKey)
 
       const inLibrary = softwareList.some((s) =>
         (s.name || '').toLowerCase() === name.toLowerCase()
         && String(s.version || '').toLowerCase() === version.toLowerCase()
         && s.warehouseStatus === '已入库')
-      if (inLibrary) errors.push('该软件已入库，无需重复治理')
+      if (inLibrary) add('重复数据', '该软件已入库，无需重复治理')
     }
-    return { ...row, errors }
+    return { ...row, failures, errors: failures.map((f) => f.reason) }
   })
 }
 
@@ -370,46 +381,22 @@ export function sameSoftware(a, b) {
 
 // ==================== 模板生成 / 导出 ====================
 
-// 取值说明行：紧贴表头下方，直接把枚举列的允许取值以纯文本写在单元格里，填写时对照即可
-const HINT_ROW = TEMPLATE_COLUMNS.map((col) => {
-  if (ENUM_COLUMNS[col]) return ENUM_COLUMNS[col].join('、')
-  if (col === '国内备份地址') return '仅支持 AtomGit 平台，需手动上传'
-  return ''
-})
-
-/** 说明行按字段 key 组织，解析时用于识别并跳过该行（避免被当成一条软件数据） */
-const HINT_BY_KEY = (() => {
-  const map = {}
-  TEMPLATE_COLUMNS.forEach((col, c) => {
-    if (HINT_ROW[c]) map[enumKeyOf(col)] = HINT_ROW[c]
-  })
-  return map
-})()
-
-/** 判断解析出的一行是否为「取值说明行」 */
-function isHintRow(row) {
-  return Object.entries(HINT_BY_KEY).some(([key, hint]) => (row[key] || '') === hint)
-}
-
-/** 表头行高（与官方「软件导入模板.xlsx」一致） */
+/** 表头行高（与「软件导入模板.xlsx」一致） */
 const HEADER_ROW_HEIGHT = 17
-/** 取值说明行行高：枚举取值较多，留足自动换行空间 */
-const HINT_ROW_HEIGHT = 90
 
 /**
- * 生成「软件导入模板」工作簿：表头 + 取值说明行 + 数据行。
- * 列宽与官方模板逐列一致；表头样式（深蓝底白字加粗、居中换行）与冻结窗格
+ * 生成「软件导入模板」工作簿：表头 + 数据行（与最终版模板一致，表头下直接是数据）。
+ * 列宽与最终版模板逐列一致；表头样式（深蓝底白字加粗、居中换行）与冻结窗格
  * 由 patchTemplateXlsx 在写出字节时补齐（SheetJS 社区版不写这些样式）。
- * @param {Array<Object>} rows 按模板列名组织的行对象数组；传空数组则只有表头与说明行
+ * @param {Array<Object>} rows 按模板列名组织的行对象数组；传空数组则只有表头
  * @returns {Object} SheetJS 工作簿
  */
 export function buildTemplateWorkbook(rows = []) {
   const body = rows.map((r) => TEMPLATE_COLUMNS.map((col) => (r?.[col] == null ? '' : String(r[col]))))
-  // 表头用带 * 的原始表头（标注必填），说明行/数据行按去 * 的列名取值（索引一一对应）
-  const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, HINT_ROW, ...body])
+  const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...body])
   ws['!cols'] = TEMPLATE_COL_WIDTHS.map((wch) => ({ wch }))
-  ws['!rows'] = [{ hpt: HEADER_ROW_HEIGHT }, { hpt: HINT_ROW_HEIGHT }]
-  ws['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(TEMPLATE_COLUMNS.length - 1)}${body.length + 2}` }
+  ws['!rows'] = [{ hpt: HEADER_ROW_HEIGHT }]
+  ws['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(TEMPLATE_COLUMNS.length - 1)}${body.length + 1}` }
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '软件详情汇总')
   return wb
@@ -430,24 +417,45 @@ function downloadBytes(bytes, filename) {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * 收集需要写成超链接的单元格（最终版模板中地址类列为可点击链接）。
+ * @param {Array<Object>} rows 按模板列名组织的行
+ * @returns {Array<{ref: string, url: string}>}
+ */
+function collectHyperlinks(rows) {
+  const links = []
+  const cols = HYPERLINK_COLUMNS
+    .map((name) => ({ name, idx: TEMPLATE_COLUMNS.indexOf(name) }))
+    .filter((c) => c.idx >= 0)
+  rows.forEach((row, r) => {
+    // 表头占第 1 行，数据从第 2 行开始
+    const rowNo = r + 2
+    cols.forEach(({ name, idx }) => {
+      const url = String(row?.[name] ?? '').trim()
+      if (!/^https?:\/\//i.test(url)) return
+      links.push({ ref: `${XLSX.utils.encode_col(idx)}${rowNo}`, url })
+    })
+  })
+  return links
+}
+
 /** 导出「软件导入模板」文件（示例模板与预填模板共用同一套样式） */
 export function writeTemplate(filename, rows = []) {
   const buf = XLSX.write(buildTemplateWorkbook(rows), { type: 'array', bookType: 'xlsx' })
   const patched = patchTemplateXlsx(buf, {
     headerRow: 1,
-    hintRow: 2,
     headerHeight: HEADER_ROW_HEIGHT,
-    hintHeight: HINT_ROW_HEIGHT,
+    hyperlinks: collectHyperlinks(rows),
   })
   downloadBytes(patched, filename)
 }
 
-/** 下载预填模板：按分配清单条目预填软件名称 / 软件版本 / 源码地址，其余治理结果字段留空待填写 */
+/** 下载预填模板：按分配清单条目预填软件名称 / 软件版本 / 托管地址，其余治理结果字段留空待填写 */
 export function writePrefilledTemplate(filename, items = []) {
   const rows = (items || []).map((item) => ({
     软件名称: item.name ?? '',
     软件版本: item.version ?? '',
-    源码地址: item.repoUrl ?? '',
+    托管地址: item.repoUrl ?? '',
   }))
   writeTemplate(filename, rows)
 }
