@@ -31,7 +31,7 @@
       <header class="mgt-card-hd mgt-table-hd">
         <div class="mgt-head-left">
           <h2 class="mgt-table-title">待治理清单列表</h2>
-          <span class="mgt-head-hint">提示：请先查看治理模版说明再开始填写治理表格</span>
+          <span class="mgt-head-hint">提示：请先查看治理模板说明再开始填写治理表格</span>
         </div>
         <div class="mgt-head-actions">
           <button type="button" class="mgt-head-tpl" @click="downloadSampleTemplate">下载示例模板</button>
@@ -226,6 +226,7 @@
       :preset-list-id="uploadListId"
       @close="closeUpload"
       @imported="onUploadImported"
+      @guide="openTemplateGuide"
     />
   </div>
 </template>

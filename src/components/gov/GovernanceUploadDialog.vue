@@ -49,9 +49,11 @@
             校验规则：必填项齐全、枚举列取值合法、名称+版本须落在清单内且不多不少、表格内不重复、未与已入库软件重复；任一不通过则整份无法导入。
           </p>
 
-          <!-- 国内托管地址平台要求（帮助文档「治理表格填写说明」内也有同样提示） -->
+          <!-- 填写前先看说明（各列填写方式、枚举取值、国内托管地址要求均见该文档） -->
           <p class="upload-mirror-tip">
-            <strong>国内托管地址仅支持 AtomGit：</strong>源码本就在 AtomGit 则两个地址相同；仅在 GitHub 等境外仓库的，请先手动上传至 AtomGit 再填其地址。各列填写方式与枚举取值见「治理表格填写说明」。
+            提示：填写表格前请先查看
+            <button type="button" class="upload-guide-link" @click="emit('guide')">治理模板说明</button>
+            ，了解各列的填写方式。
           </p>
           <p v-if="error" class="upload-error">{{ error }}</p>
 
@@ -122,7 +124,7 @@ const props = defineProps({
   presetListId: { type: String, default: '' },
 })
 // close：父页面关闭弹窗；imported：回传完成（父页面可据此刷新列表）
-const emit = defineEmits(['close', 'imported'])
+const emit = defineEmits(['close', 'imported', 'guide'])
 
 const fileRef = ref(null)
 const fileName = ref('')
@@ -200,7 +202,7 @@ async function onFile(e) {
   const ext = file.name.toLowerCase()
   if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls') && !ext.endsWith('.csv')) {
     resetResultState()
-    error.value = '仅支持 .xlsx / .xls / .csv 格式文件'
+    error.value = '文件格式不支持，请上传 .xlsx / .xls / .csv 格式文件'
     return
   }
   parsing.value = true
@@ -404,7 +406,7 @@ async function confirmImport() {
   color: #9ca3af;
   line-height: 1.6;
 }
-/* 国内托管地址仅支持 AtomGit：强调提示 */
+/* 国内托管地址目前支持 AtomGit：强调提示 */
 .upload-mirror-tip {
   margin: 0;
   padding: 8px 12px;
@@ -416,6 +418,18 @@ async function confirmImport() {
   border-radius: 6px;
 }
 .upload-mirror-tip strong { font-weight: 600; }
+/* 提示条内的「治理模板说明」跳转链接：沿用提示条本身颜色，仅加下划线 */
+.upload-guide-link {
+  padding: 0;
+  font-size: 12px;
+  font-family: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 .upload-error {
   margin: 0;
   font-size: 13px;

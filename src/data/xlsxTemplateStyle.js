@@ -40,7 +40,7 @@ function crc32(u8) {
   return (c ^ 0xFFFFFFFF) >>> 0
 }
 
-// ==================== zip 读写（仅支持 stored，够用且无需依赖） ====================
+// ==================== zip 读写（stored 方式，无需第三方依赖） ====================
 /** 解析 SheetJS 生成的 xlsx（各条目均为 stored） */
 function parseZip(input) {
   const u8 = input instanceof Uint8Array ? input : new Uint8Array(input)

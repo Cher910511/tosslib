@@ -464,7 +464,7 @@
               <tr><td class="dt-label">软件文件</td><td class="dt-value">{{ drawerItem.file || '--' }}</td></tr>
               <tr><td class="dt-label">代码量 (KL)</td><td class="dt-value">{{ drawerItem.codeSize || '--' }}</td></tr>
               <tr><td class="dt-label">源码托管地址</td><td class="dt-value">{{ drawerItem.repoUrl || '--' }}</td></tr>
-              <tr><td class="dt-label">国内托管地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}<span class="dt-hint">仅支持 AtomGit</span></td></tr>
+              <tr><td class="dt-label">国内托管地址</td><td class="dt-value">{{ drawerItem.mirrorUrl || '--' }}<span class="dt-hint">目前支持 AtomGit</span></td></tr>
               <tr><td class="dt-label">漏洞披露地址</td><td class="dt-value">{{ drawerItem.vulnUrl || '--' }}</td></tr>
               </tbody>
             </table>
@@ -1101,11 +1101,11 @@ function startBackup() {
       item.logs.push({ time: now, level: 'warn', msg: '备份失败：未回传国内托管地址，请先在治理结果中补充后重新回传' })
       return
     }
-    // 校验 2：国内托管地址当前仅支持 AtomGit 平台
+    // 校验 2：国内托管地址目前支持 AtomGit 平台
     if (!/^https?:\/\/atomgit\.com\//i.test(url)) {
       failed += 1
       item.backupStatus = '备份失败'
-      item.logs.push({ time: now, level: 'warn', msg: `备份失败：国内托管地址仅支持 AtomGit 平台（当前：${url}）` })
+      item.logs.push({ time: now, level: 'warn', msg: `备份失败：国内托管地址目前支持 AtomGit 平台（当前：${url}）` })
       return
     }
     item.backupStatus = '备份中'

@@ -110,7 +110,7 @@ export function seedGovernanceData() {
     // React 源码仅在 GitHub，治理负责人已手动上传至 AtomGit，国内托管地址随治理结果回传
     seedItem({ name: 'React', version: '18.2.0', lang: 'JavaScript', license: 'MIT', file: 'react-18.2.0.zip', developer: 'Meta', govOwner: '陈晓峰', govOrg: '阿里巴巴集团', currentStep: 1, createdAt: '2026-08-11 15:20', submitter: '陈晓峰', submitOrg: '阿里巴巴集团', backupStatus: '待备份', repoUrl: 'https://github.com/facebook/react.git', mirrorUrl: 'https://atomgit.com/opensource/react' }),
     // 回传的国内托管地址非 AtomGit 平台，备份校验不通过 → 备份失败，需修正后重新回传
-    seedItem({ name: 'jQuery', version: '3.7.1', lang: 'JavaScript', license: 'MIT', file: 'jquery-3.7.1.zip', developer: 'OpenJS Foundation', govOwner: '王明远', govOrg: '平安科技', currentStep: 1, createdAt: '2026-08-10 09:15', submitter: '王明远', submitOrg: '平安科技', backupStatus: '备份失败', repoUrl: 'https://github.com/jquery/jquery.git', mirrorUrl: 'https://gitcode.com/mirror/jquery', logs: [{ time: '2026-08-10 09:40', level: 'warn', msg: '备份失败：国内托管地址仅支持 AtomGit 平台（当前：https://gitcode.com/mirror/jquery）' }] }),
+    seedItem({ name: 'jQuery', version: '3.7.1', lang: 'JavaScript', license: 'MIT', file: 'jquery-3.7.1.zip', developer: 'OpenJS Foundation', govOwner: '王明远', govOrg: '平安科技', currentStep: 1, createdAt: '2026-08-10 09:15', submitter: '王明远', submitOrg: '平安科技', backupStatus: '备份失败', repoUrl: 'https://github.com/jquery/jquery.git', mirrorUrl: 'https://gitcode.com/mirror/jquery', logs: [{ time: '2026-08-10 09:40', level: 'warn', msg: '备份失败：国内托管地址目前支持 AtomGit 平台（当前：https://gitcode.com/mirror/jquery）' }] }),
     // 待备份：治理结果已回传（含 AtomGit 国内托管地址），等待发起源码备份
     seedItem({ name: 'Lodash', version: '4.17.21', lang: 'JavaScript', license: 'MIT', file: 'lodash-4.17.21.zip', developer: 'OpenJS Foundation', govOwner: '李思远', govOrg: '华为技术有限公司', currentStep: 1, createdAt: '2026-08-13 09:30', submitter: '李思远', submitOrg: '华为技术有限公司', backupStatus: '待备份', repoUrl: 'https://github.com/lodash/lodash.git', mirrorUrl: 'https://atomgit.com/opensource/lodash' }),
     // 待备份：源码原本就托管在 AtomGit，两个地址一致
@@ -292,7 +292,7 @@ export function importFromInbound(entries, inbound) {
       tag: '—',
       commitId: '—',
       vulnUrl: '—',
-      // 国内托管地址：来自治理结果（模板必填，仅支持 AtomGit），不自动生成
+      // 国内托管地址：来自治理结果（模板必填，目前支持 AtomGit），不自动生成
       mirrorUrl: e.mirrorUrl || '',
       govOwner: inbound.assignedTo || '—',
       govOrg: inbound.assignedOrgName || '—',

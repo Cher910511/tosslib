@@ -93,7 +93,9 @@ const currentTitle = computed(() => {
 
 const docHtml = computed(() => {
   let html = renderMarkdown(resolveDocRaw(currentDoc.value))
-  html = html.replace(/src="\.\.\/images\//g, 'src="/manual/images/')
+  // 图片路径须带 BASE_URL 前缀：子路径部署（如 GitHub Pages 项目站）下根绝对路径会 404
+  const base = import.meta.env.BASE_URL || '/'
+  html = html.replace(/src="\.\.\/images\//g, `src="${base}manual/images/`)
   return html
 })
 

@@ -188,8 +188,11 @@ const currentLeaf = computed(() => findLeafByDoc(currentDoc.value))
 
 const docHtml = computed(() => {
   let html = renderMarkdown(resolveDocRaw(currentDoc.value))
-  // 转换 markdown 中的相对图片路径 → public 绝对路径
-  html = html.replace(/src="\.\.\/images\//g, 'src="/manual/images/')
+  // 转换 markdown 中的相对图片路径 → public 下的实际路径。
+  // 必须带 BASE_URL 前缀：部署在子路径（如 GitHub Pages 项目站 /<仓库名>/）时，
+  // 根绝对路径 /manual/images/ 会 404 导致图片全部不显示。
+  const base = import.meta.env.BASE_URL || '/'
+  html = html.replace(/src="\.\.\/images\//g, `src="${base}manual/images/`)
   return html
 })
 

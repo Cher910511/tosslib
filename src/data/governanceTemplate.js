@@ -45,10 +45,10 @@ export const ENUM_COLUMNS = {
   软件生命力: VITALITY_OPTIONS,
 }
 
-/** 国内托管地址：当前仅支持 AtomGit 平台 */
+/** 国内托管地址：目前支持 AtomGit 平台 */
 export const MIRROR_HOST = 'atomgit.com'
 
-/** 判断是否 AtomGit 平台地址（国内托管地址目前仅支持 AtomGit） */
+/** 判断是否 AtomGit 平台地址（国内托管地址目前支持 AtomGit） */
 export function isAtomGitUrl(url) {
   return new RegExp(`^https?://${MIRROR_HOST.replace('.', '\\.')}/`, 'i').test(String(url || '').trim())
 }
@@ -340,10 +340,10 @@ export function validateGovernanceRows(rows, { items = [], softwareList = [] } =
         add('枚举取值', `${col}取值不在允许范围内`)
       }
     })
-    // 国内托管地址：目前仅支持 AtomGit 平台地址
+    // 国内托管地址：目前支持 AtomGit 平台地址
     const mirror = (row.mirrorUrl || '').trim()
     if (mirror && !isAtomGitUrl(mirror)) {
-      add('地址格式', '国内托管地址仅支持 AtomGit 平台地址（须先手动上传至 AtomGit）')
+      add('地址格式', '国内托管地址目前支持 AtomGit 平台地址（须先手动上传至 AtomGit）')
     }
     const name = row.name || ''
     const version = row.version || ''

@@ -198,7 +198,7 @@ function handleFile(file) {
   const ext = file.name.toLowerCase()
   if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls')) {
     touched.value = true
-    setFileError('仅支持 .xlsx / .xls 格式文件')
+    setFileError('文件格式不支持，请上传 .xlsx / .xls 格式文件')
     return
   }
   pickedFile.value = file
