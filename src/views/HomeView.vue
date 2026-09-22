@@ -51,7 +51,7 @@
               <TechStackTags :data="techStackCategories" />
             </div>
             <div class="glow-card right-block bar-block">
-              <div class="panel-title">开发者国家 Top10</div>
+              <div class="panel-title">开源贡献者国家 Top10</div>
               <CountryBar :data="developerCountryTop10" />
             </div>
           </div>

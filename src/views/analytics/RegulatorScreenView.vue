@@ -130,7 +130,7 @@
 
           <!-- 开发者国家 Top10（横向条形） -->
           <section class="rs-panel p-country">
-            <h3 class="rs-panel-title">开发者国家 Top10</h3>
+            <h3 class="rs-panel-title">开源贡献者国家 Top10</h3>
             <div class="rs-panel-body">
               <ScreenBarChart :data="developerCountries" direction="horizontal" />
             </div>
