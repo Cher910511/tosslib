@@ -1,6 +1,6 @@
 <template>
   <div class="rs-viewport">
-    <div class="rs-stage" :style="stageStyle">
+    <div class="rs-stage">
       <div class="rs-screen">
         <!-- ===== 背景：极淡网格 / 坐标线 / 抽象节点网络 / 扫描线 / 粒子 ===== -->
         <div class="rs-bg" aria-hidden="true">
@@ -257,23 +257,7 @@ const malwareColumns = [
   { key: 'result', label: '检测结果', width: '84px', align: 'center', tag: true },
 ]
 
-/* ===== 设计尺寸与等比缩放（1920×1080，铺满视口，不滚动）===== */
-const DESIGN_W = 1920
-const DESIGN_H = 1080
-
-function computeScale() {
-  if (typeof window === 'undefined') return 1
-  return Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H)
-}
-
-const scale = ref(computeScale())
-const stageStyle = computed(() => ({ transform: `scale(${scale.value})` }))
-
-let resizeTimer = null
-function onResize() {
-  if (resizeTimer) clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(() => { scale.value = computeScale() }, 120)
-}
+/* ===== 自适应布局：随视口尺寸伸缩，不做固定像素缩放 ===== */
 
 /* ===== 顶部时钟 ===== */
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
@@ -309,21 +293,17 @@ function particleStyle(i) {
 }
 
 onMounted(() => {
-  window.addEventListener('resize', onResize)
   clockTimer = window.setInterval(() => { now.value = new Date() }, 1000)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', onResize)
-  if (resizeTimer) clearTimeout(resizeTimer)
   if (clockTimer) clearInterval(clockTimer)
 })
 </script>
 
 <style scoped>
 /* ==================================================================
-   深色数据驾驶舱 · 1920×1080 单屏等比缩放
-   品牌色 #005BCB；深海军蓝渐变；玻璃卡片；极细描边
+   墨玉 × 香槟金 · 数据驾驶舱（流式自适应，随视口伸缩不破版）
    ================================================================== */
 .rs-viewport {
   /* 品牌与文字层次 */
@@ -358,9 +338,8 @@ onBeforeUnmount(() => {
     linear-gradient(168deg, #0E3A54 0%, #0C3050 46%, #08253F 100%);
 }
 .rs-stage {
-  width: 1920px;
-  height: 1080px;
-  transform-origin: top left;
+  width: 100%;
+  height: 100%;
 }
 .rs-screen {
   position: relative;
@@ -664,9 +643,9 @@ onBeforeUnmount(() => {
 }
 .rs-brand-title {
   margin: 0;
-  font-size: 30px;
+  font-size: clamp(19px, 1.56vw, 30px);
   font-weight: 700;
-  letter-spacing: 6px;
+  letter-spacing: clamp(3px, 0.31vw, 6px);
   /* 白→青渐变字：高级感核心 */
   background: linear-gradient(180deg, #FFFFFF 18%, #CFF3FF 52%, #7FD8FF 100%);
   -webkit-background-clip: text;
@@ -707,8 +686,8 @@ onBeforeUnmount(() => {
   border-radius: 7px;
 }
 .rs-clock-time {
-  font-family: 'Orbitron', 'SF Mono', ui-monospace, monospace;
-  font-size: 20px;
+  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
+  font-size: clamp(13px, 1.04vw, 20px);
   font-weight: 700;
   line-height: 1.1;
   color: var(--brand-bright);
@@ -800,7 +779,7 @@ onBeforeUnmount(() => {
   padding-left: 12px;
   padding-bottom: 6px;
   margin-bottom: 4px;
-  font-size: 13.5px;
+  font-size: clamp(11.5px, 0.7vw, 13.5px);
   font-weight: 600;
   letter-spacing: 0.8px;
   color: var(--text-strong);
@@ -904,8 +883,8 @@ onBeforeUnmount(() => {
 .rs-asset-value { display: flex; align-items: baseline; gap: 3px; }
 /* 数字：等宽科技感字体，白/亮蓝分层 */
 .rs-asset-num {
-  font-family: 'Orbitron', 'SF Mono', ui-monospace, monospace;
-  font-size: 24px;
+  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
+  font-size: clamp(16px, 1.25vw, 24px);
   font-weight: 700;
   line-height: 1.1;
   color: var(--text-strong);
@@ -947,8 +926,8 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .rs-risk-num {
-  font-family: 'Orbitron', 'SF Mono', ui-monospace, monospace;
-  font-size: 22px;
+  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
+  font-size: clamp(15px, 1.15vw, 22px);
   font-weight: 700;
   color: var(--text-strong);
   font-variant-numeric: tabular-nums;
@@ -988,8 +967,8 @@ onBeforeUnmount(() => {
 }
 .rs-kpi-value { display: flex; align-items: baseline; gap: 2px; }
 .rs-kpi-num {
-  font-family: 'Orbitron', 'SF Mono', ui-monospace, monospace;
-  font-size: 20px;
+  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
+  font-size: clamp(14px, 1.04vw, 20px);
   font-weight: 700;
   color: var(--brand-bright);
   font-variant-numeric: tabular-nums;
