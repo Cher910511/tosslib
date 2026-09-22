@@ -142,13 +142,7 @@
         <div class="gov-filter-field">
           <label class="gov-filter-label">备份状态</label>
           <span class="gov-filter-wrap">
-            <select v-model="s1Backup" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待备份">待备份</option>
-              <option value="备份中">备份中</option>
-              <option value="备份成功">备份成功</option>
-              <option value="备份失败">备份失败</option>
-            </select>
+            <SearchSelect v-model="s1Backup" class="gov-filter-input" :options="S1_BACKUP_OPTIONS" all-label="全部" />
           </span>
         </div>
       </div>
@@ -197,12 +191,7 @@
         <div class="gov-filter-field">
           <label class="gov-filter-label">评审状态</label>
           <span class="gov-filter-wrap">
-            <select v-model="s3Review" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待评审">待评审</option>
-              <option value="评审通过">评审通过</option>
-              <option value="评审不通过">评审不通过</option>
-            </select>
+            <SearchSelect v-model="s3Review" class="gov-filter-input" :options="S3_REVIEW_OPTIONS" all-label="全部" />
           </span>
         </div>
         <div class="gov-filter-field">
@@ -233,11 +222,7 @@
         <div class="gov-filter-field">
           <label class="gov-filter-label">审核状态</label>
           <span class="gov-filter-wrap">
-            <select v-model="s4Warehouse" class="gov-filter-input">
-              <option value="">全部</option>
-              <option value="待审批">待审批</option>
-              <option value="已入库">已入库</option>
-            </select>
+            <SearchSelect v-model="s4Warehouse" class="gov-filter-input" :options="S4_WAREHOUSE_OPTIONS" all-label="全部" />
           </span>
         </div>
         <div class="gov-filter-field">
@@ -828,6 +813,7 @@ Commit：{{ detailItem.commitId || '--' }}
 <script setup>
 import { ref, computed, watch } from 'vue'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 import { INDICATORS, calcNationalScore } from '../../data/govIndicators.js'
 import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
 
@@ -867,6 +853,22 @@ const s4Name = ref('')
 const s4Version = ref('')
 const s4Date = ref('')
 const s4Warehouse = ref('')
+
+const S1_BACKUP_OPTIONS = [
+  { value: '待备份', label: '待备份' },
+  { value: '备份中', label: '备份中' },
+  { value: '备份成功', label: '备份成功' },
+  { value: '备份失败', label: '备份失败' },
+]
+const S3_REVIEW_OPTIONS = [
+  { value: '待评审', label: '待评审' },
+  { value: '评审通过', label: '评审通过' },
+  { value: '评审不通过', label: '评审不通过' },
+]
+const S4_WAREHOUSE_OPTIONS = [
+  { value: '待审批', label: '待审批' },
+  { value: '已入库', label: '已入库' },
+]
 
 // ===== 治理流程步骤定义 =====
 // step 为内部阶段号，与软件条目的 currentStep 一一对应。「软件获取」不再单列一步：

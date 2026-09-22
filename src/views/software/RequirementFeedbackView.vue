@@ -33,16 +33,13 @@
           反馈类型
           <span class="feedback-required" aria-hidden="true">*</span>
         </label>
-        <select
+        <SearchSelect
           id="feedback-type"
           v-model="form.type"
           class="feedback-select"
           :class="{ 'is-invalid': shouldValidate && errors.type }"
-        >
-          <option v-for="item in FEEDBACK_TYPES" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </option>
-        </select>
+          :options="FEEDBACK_TYPES"
+        />
         <p v-if="shouldValidate && errors.type" class="feedback-error">{{ errors.type }}</p>
       </div>
 
@@ -164,6 +161,7 @@
 
 <script setup>
 import { reactive, ref, computed, onUnmounted } from 'vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 // 反馈类型：集中维护，模板与校验共用，避免魔法字符串
 const FEEDBACK_TYPES = [

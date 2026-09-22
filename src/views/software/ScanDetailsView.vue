@@ -158,32 +158,9 @@
     <!-- 筛选栏 -->
     <section class="filter-bar">
       <div class="filter-left">
-        <select v-model="filterRisk" class="filter-select" aria-label="风险等级筛选">
-          <option value="">全部风险等级</option>
-          <option value="critical">严重</option>
-          <option value="high">高危</option>
-          <option value="medium">中危</option>
-          <option value="low">低危</option>
-          <option value="none">安全</option>
-        </select>
-        <select v-model="filterType" class="filter-select" aria-label="恶意类型筛选">
-          <option value="">全部恶意类型</option>
-          <option value="backdoor">后门代码</option>
-          <option value="trojan">木马程序</option>
-          <option value="miner">挖矿脚本</option>
-          <option value="ransomware">勒索软件</option>
-          <option value="info-stealer">信息窃取</option>
-          <option value="webshell">WebShell</option>
-          <option value="obfuscated">混淆恶意代码</option>
-          <option value="other">其他</option>
-        </select>
-        <select v-model="filterStatus" class="filter-select" aria-label="处理状态筛选">
-          <option value="">全部状态</option>
-          <option value="pending">待处理</option>
-          <option value="processing">处理中</option>
-          <option value="resolved">已处理</option>
-          <option value="ignored">已忽略</option>
-        </select>
+        <SearchSelect v-model="filterRisk" class="filter-select" aria-label="风险等级筛选" :options="RISK_OPTIONS" all-label="全部风险等级" />
+        <SearchSelect v-model="filterType" class="filter-select" aria-label="恶意类型筛选" :options="TYPE_OPTIONS" all-label="全部恶意类型" />
+        <SearchSelect v-model="filterStatus" class="filter-select" aria-label="处理状态筛选" :options="STATUS_OPTIONS" all-label="全部状态" />
       </div>
       <div class="filter-right">
         <div class="filter-search">
@@ -261,11 +238,7 @@
           <span class="manage-page-current">{{ page }}</span>
           <button type="button" class="manage-page-btn" :disabled="page >= totalPages" @click="page = Math.min(totalPages, page + 1)">›</button>
           <label class="manage-page-size">
-            <select v-model.number="pageSize" class="manage-page-select">
-              <option :value="10">10 / 页</option>
-              <option :value="20">20 / 页</option>
-              <option :value="50">50 / 页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="manage-page-select" number :options="PAGE_SIZE_OPTIONS" />
           </label>
         </div>
       </footer>
@@ -327,6 +300,36 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
+
+const RISK_OPTIONS = [
+  { value: 'critical', label: '严重' },
+  { value: 'high', label: '高危' },
+  { value: 'medium', label: '中危' },
+  { value: 'low', label: '低危' },
+  { value: 'none', label: '安全' },
+]
+const TYPE_OPTIONS = [
+  { value: 'backdoor', label: '后门代码' },
+  { value: 'trojan', label: '木马程序' },
+  { value: 'miner', label: '挖矿脚本' },
+  { value: 'ransomware', label: '勒索软件' },
+  { value: 'info-stealer', label: '信息窃取' },
+  { value: 'webshell', label: 'WebShell' },
+  { value: 'obfuscated', label: '混淆恶意代码' },
+  { value: 'other', label: '其他' },
+]
+const STATUS_OPTIONS = [
+  { value: 'pending', label: '待处理' },
+  { value: 'processing', label: '处理中' },
+  { value: 'resolved', label: '已处理' },
+  { value: 'ignored', label: '已忽略' },
+]
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10 / 页' },
+  { value: 20, label: '20 / 页' },
+  { value: 50, label: '50 / 页' },
+]
 
 // ===== Tab 切换 =====
 const activeTab = ref('malware')

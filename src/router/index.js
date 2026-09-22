@@ -26,6 +26,7 @@ import AdminGovernanceView from '../views/admin/AdminGovernanceView.vue'
 import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
 import MyGovernanceTasksView from '../views/admin/MyGovernanceTasksView.vue'
 import WarehouseApprovalView from '../views/admin/WarehouseApprovalView.vue'
+import PermissionSettingsView from '../views/admin/PermissionSettingsView.vue'
 import VulnerabilityAlertView from '../views/admin/VulnerabilityAlertView.vue'
 import SendAlertHistoryView from '../views/admin/SendAlertHistoryView.vue'
 import OpenApiToolsView from '../views/admin/OpenApiToolsView.vue'
@@ -38,6 +39,7 @@ import StandardBuildView from '../views/standard/StandardBuildView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
 import IntelOpiView from '../views/intel/IntelOpiView.vue'
 import UserManualView from '../views/manual/UserManualView.vue'
+import InviteRegisterView from '../views/auth/InviteRegisterView.vue'
 import OrgListView from '../views/org/OrgListView.vue'
 import OrgDetailView from '../views/org/OrgDetailView.vue'
 import InboundRequestView from '../views/software/InboundRequestView.vue'
@@ -293,6 +295,13 @@ const routes = [
         component: WarehouseApprovalView,
         meta: { adminTitle: '审批入库' },
       },
+      // 权限设置（平台管理员维护成员角色与功能权限矩阵）
+      {
+        path: 'permission-settings',
+        name: 'permission-settings',
+        component: PermissionSettingsView,
+        meta: { adminTitle: '权限设置' },
+      },
       // 我的待治理清单（库主在软件治理下查看分配清单）
       {
         path: 'my-governance-tasks',
@@ -321,6 +330,13 @@ const routes = [
     name: 'user-manual',
     component: UserManualView,
     meta: { title: '使用手册' },
+  },
+  /* 邀请注册：被邀请人通过邀请链接自助注册（独立于后台布局，无需登录） */
+  {
+    path: '/invite/:token',
+    name: 'invite-register',
+    component: InviteRegisterView,
+    meta: { title: '邀请注册' },
   },
 ]
 

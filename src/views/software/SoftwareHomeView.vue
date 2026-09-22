@@ -10,10 +10,7 @@
 
       <div class="soft-home-search-wrap">
         <div class="soft-home-search">
-          <select v-model="searchKind" class="soft-home-search-type" aria-label="搜索类型">
-            <option value="software">软件</option>
-            <option value="component">组件</option>
-          </select>
+          <SearchSelect v-model="searchKind" class="soft-home-search-type" aria-label="搜索类型" :options="SEARCH_KIND_OPTIONS" />
           <span class="soft-home-search-vsep" aria-hidden="true" />
           <div class="soft-home-search-mid">
             <svg
@@ -217,6 +214,12 @@ import { RouterLink, useRouter } from 'vue-router'
 import { SOFTWARE_HOME_CARDS } from '../../data/softwareHomeCards.js'
 import { COMPONENT_HOME_CARDS } from '../../data/componentHomeCards.js'
 import { addSearchHistory } from '../../composables/useAdminSearch.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
+
+const SEARCH_KIND_OPTIONS = [
+  { value: 'software', label: '软件' },
+  { value: 'component', label: '组件' },
+]
 
 const router = useRouter()
 const softwareCards = SOFTWARE_HOME_CARDS

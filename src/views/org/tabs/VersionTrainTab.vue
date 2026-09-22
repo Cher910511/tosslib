@@ -527,11 +527,7 @@
             <span class="vt-tab-import-page-current">{{ importPage }}</span>
             <button type="button" class="vt-tab-btn vt-tab-btn-outline vt-tab-btn-xs" :disabled="importPage >= importTotalPages" @click="importPage = Math.min(importTotalPages, importPage + 1)">›</button>
             <span class="vt-tab-import-page-size">
-              <select v-model.number="importPageSize" style="height:28px;padding:0 20px 0 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff;cursor:pointer;margin-left:4px;">
-                <option :value="10">10条/页</option>
-                <option :value="20">20条/页</option>
-                <option :value="50">50条/页</option>
-              </select>
+              <SearchSelect v-model="importPageSize" style="height:28px;padding:0 20px 0 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff;cursor:pointer;margin-left:4px;" :options="IMPORT_PAGE_SIZE_OPTIONS" number />
             </span>
           </div>
         </div>
@@ -591,6 +587,7 @@
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { versionTrains, reviewResults, releaseHistory } from '../../../data/versionTrainData'
+import SearchSelect from '../../../components/common/SearchSelect.vue'
 
 const router = useRouter()
 
@@ -713,6 +710,11 @@ const releaseEndTime = ref('')
 const importSearch = ref('')
 const importTab = ref('software')
 const importPage = ref(1)
+const IMPORT_PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
 const importPageSize = ref(10)
 const selectedNewSoftwareIds = ref([])
 

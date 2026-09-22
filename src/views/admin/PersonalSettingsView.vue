@@ -127,13 +127,7 @@
             </div>
             <div class="mg-field">
               <label class="mg-label">审核状态</label>
-              <select v-model="govFilters.status" class="mg-input">
-                <option value="">全部</option>
-                <option value="待审批">待审批</option>
-                <option value="已入库">已入库</option>
-                <option value="已拒绝">已拒绝</option>
-                <option value="已作废">已作废</option>
-              </select>
+              <SearchSelect v-model="govFilters.status" class="mg-input" :options="STATUS_OPTIONS" all-label="全部" />
             </div>
           </div>
         </div>
@@ -193,11 +187,7 @@
             <button type="button" class="mg-page-btn" :disabled="govPage >= govTotalPages" aria-label="下一页" @click="govPage = Math.min(govTotalPages, govPage + 1)">›</button>
             <label class="mg-page-size">
               <span class="visually-hidden">每页条数</span>
-              <select v-model.number="govPageSize" class="mg-page-select">
-                <option :value="10">10条/页</option>
-                <option :value="20">20条/页</option>
-                <option :value="50">50条/页</option>
-              </select>
+              <SearchSelect v-model="govPageSize" class="mg-page-select" :options="PAGE_SIZE_OPTIONS" number />
             </label>
           </div>
         </footer>
@@ -227,6 +217,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getInboundRequests } from '../../data/inboundRequests.js'
 import { softwareList, voidedList } from '../../data/governanceStore.js'
 import { USERS } from '../../data/orgData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -290,6 +281,18 @@ const myGovernanceItems = computed(() => {
 /* —— 筛选 —— */
 const govFilterOpen = ref(true)
 const govFilters = reactive({ name: '', version: '', status: '' })
+
+const STATUS_OPTIONS = [
+  { value: '待审批', label: '待审批' },
+  { value: '已入库', label: '已入库' },
+  { value: '已拒绝', label: '已拒绝' },
+  { value: '已作废', label: '已作废' },
+]
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
 
 const filteredItems = computed(() => {
   let list = myGovernanceItems.value

@@ -56,26 +56,27 @@ export const ORGS = [
   },
 ]
 
+// username：登录账号（平台唯一，用于登录与权限页展示）
 export const USERS = [
   // 超级管理员
-  { id: 'user-super-1', name: '平台管理员', avatar: '', role: 'superadmin', orgId: null, orgIds: [] },
+  { id: 'user-super-1', name: '平台管理员', username: 'admin', avatar: '', role: 'superadmin', orgId: null, orgIds: [] },
   // 库主（owner：负责组织软件库治理与入库，单组织为主；orgIds[0] = 主组织）
-  { id: 'user-admin-1', name: '张建国', avatar: '', role: 'owner', orgId: 'org-001', orgIds: ['org-001'] },
-  { id: 'user-admin-2', name: '王明远', avatar: '', role: 'owner', orgId: 'org-002', orgIds: ['org-002'] },
-  { id: 'user-admin-3', name: '李思远', avatar: '', role: 'owner', orgId: 'org-003', orgIds: ['org-003', 'org-001'] },
-  { id: 'user-admin-4', name: '陈晓峰', avatar: '', role: 'owner', orgId: 'org-004', orgIds: ['org-004'] },
+  { id: 'user-admin-1', name: '张建国', username: 'zhangjianguo', avatar: '', role: 'owner', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-admin-2', name: '王明远', username: 'wangmingyuan', avatar: '', role: 'owner', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-admin-3', name: '李思远', username: 'lisiyuan', avatar: '', role: 'owner', orgId: 'org-003', orgIds: ['org-003', 'org-001'] },
+  { id: 'user-admin-4', name: '陈晓峰', username: 'chenxiaofeng', avatar: '', role: 'owner', orgId: 'org-004', orgIds: ['org-004'] },
   // 组织成员（单组织为主）
-  { id: 'user-mem-1', name: '赵小明', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
-  { id: 'user-mem-2', name: '钱丽华', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
-  { id: 'user-mem-3', name: '孙一鸣', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
-  { id: 'user-mem-4', name: '周雅琴', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
-  { id: 'user-mem-5', name: '吴浩然', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
-  { id: 'user-mem-6', name: '郑子轩', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003', 'org-004'] },
-  { id: 'user-mem-7', name: '冯雨萱', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
-  { id: 'user-mem-8', name: '王逸飞', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
-  { id: 'user-mem-9', name: '李梦涵', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
-  { id: 'user-mem-10', name: '刘子涵', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
-  { id: 'user-mem-11', name: '杨思琪', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
+  { id: 'user-mem-1', name: '赵小明', username: 'zhaoxiaoming', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-2', name: '钱丽华', username: 'qianlihua', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-3', name: '孙一鸣', username: 'sunyiming', avatar: '', role: 'member', orgId: 'org-001', orgIds: ['org-001'] },
+  { id: 'user-mem-4', name: '周雅琴', username: 'zhouyaqin', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-mem-5', name: '吴浩然', username: 'wuhaoran', avatar: '', role: 'member', orgId: 'org-002', orgIds: ['org-002'] },
+  { id: 'user-mem-6', name: '郑子轩', username: 'zhengzixuan', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003', 'org-004'] },
+  { id: 'user-mem-7', name: '冯雨萱', username: 'fengyuxuan', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-8', name: '王逸飞', username: 'wangyifei', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-9', name: '李梦涵', username: 'limenghan', avatar: '', role: 'member', orgId: 'org-003', orgIds: ['org-003'] },
+  { id: 'user-mem-10', name: '刘子涵', username: 'liuzihan', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
+  { id: 'user-mem-11', name: '杨思琪', username: 'yangsiqi', avatar: '', role: 'member', orgId: 'org-004', orgIds: ['org-004'] },
 ]
 
 /** 当前模拟登录用户 ID（切换角色时修改此值） */
@@ -108,4 +109,14 @@ export function getUserOrgs(user) {
 
 export function getCurrentUser() {
   return getUserById(CURRENT_USER_ID)
+}
+
+/**
+ * 当前操作人标识（用于「更新人 / 操作人」留痕）。
+ * 统一取用户名（username），而不是中文姓名或「平台管理员」这类角色名，
+ * 以便与账号列表中的「用户名」列一致、可直接对应到具体账号。
+ */
+export function getCurrentUsername() {
+  const u = getCurrentUser()
+  return u?.username || u?.name || '系统'
 }

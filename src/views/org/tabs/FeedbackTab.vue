@@ -8,12 +8,7 @@
     <div class="feedback-form">
       <div class="feedback-field">
         <label class="feedback-label">反馈类型</label>
-        <select v-model="form.type" class="feedback-select">
-          <option value="feature">功能需求</option>
-          <option value="bug">问题/Bug 报告</option>
-          <option value="improve">改进建议</option>
-          <option value="other">其他</option>
-        </select>
+        <SearchSelect v-model="form.type" class="feedback-select" :options="FEEDBACK_TYPE_OPTIONS" />
       </div>
       <div class="feedback-field">
         <label class="feedback-label">反馈标题</label>
@@ -47,10 +42,17 @@
 
 <script setup>
 import { ref } from 'vue'
+import SearchSelect from '../../../components/common/SearchSelect.vue'
 defineProps({ org: { type: Object, required: true } })
 
 const submitted = ref(false)
 const form = ref({ type: 'feature', title: '', content: '' })
+const FEEDBACK_TYPE_OPTIONS = [
+  { value: 'feature', label: '功能需求' },
+  { value: 'bug', label: '问题/Bug 报告' },
+  { value: 'improve', label: '改进建议' },
+  { value: 'other', label: '其他' },
+]
 
 const history = [
   { id: 1, type: 'feature', title: '希望支持更多的语言扫描规则', content: '当前支持的编程语言还不够全面，建议增加对 Rust、Kotlin 等的扫描支持。', time: '2026-05-20', status: 'resolved' },

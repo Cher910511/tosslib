@@ -8,13 +8,7 @@
         <span class="report-subtitle">下载行为 · 制品分发 · OpenAPI 调用</span>
       </div>
       <div class="report-toolbar-right">
-        <select v-model="range" class="report-range" aria-label="时间范围" @change="onRangeChange">
-          <option value="24h">最近 24 小时</option>
-          <option value="7d">最近 7 天</option>
-          <option value="30d">最近 30 天</option>
-          <option value="90d">最近 90 天</option>
-          <option value="custom">自定义</option>
-        </select>
+        <SearchSelect v-model="range" class="report-range" :options="RANGE_OPTIONS" @change="onRangeChange" />
         <input type="date" class="report-date" :value="customStart" @change="onDateChange('start', $event.target.value)" aria-label="开始日期" />
         <span class="report-date-sep">至</span>
         <input type="date" class="report-date" :value="customEnd" @change="onDateChange('end', $event.target.value)" aria-label="结束日期" />
@@ -154,6 +148,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import '../../../styles/report.css'
+import SearchSelect from '../../../components/common/SearchSelect.vue'
+
+const RANGE_OPTIONS = [
+  { value: '24h', label: '最近 24 小时' },
+  { value: '7d', label: '最近 7 天' },
+  { value: '30d', label: '最近 30 天' },
+  { value: '90d', label: '最近 90 天' },
+  { value: 'custom', label: '自定义' },
+]
 
 const range = ref('7d')
 const lastRefresh = ref('--:--:--')

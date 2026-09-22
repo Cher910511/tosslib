@@ -81,33 +81,19 @@
           </div>
           <div class="shelf-field">
             <label class="shelf-label">编程语言</label>
-            <select v-model="swFilters.lang" class="shelf-select">
-              <option value="">请输入</option>
-              <option v-for="lang in langOptions" :key="lang" :value="lang">{{ lang }}</option>
-            </select>
+            <SearchSelect v-model="swFilters.lang" class="shelf-select" :options="langOptions" all-label="请输入" />
           </div>
           <div class="shelf-field">
             <label class="shelf-label">有无漏洞</label>
-            <select v-model="swFilters.vuln" class="shelf-select">
-              <option value="">请输入</option>
-              <option value="yes">有漏洞</option>
-              <option value="no">无漏洞</option>
-            </select>
+            <SearchSelect v-model="swFilters.vuln" class="shelf-select" :options="VULN_OPTIONS" all-label="请输入" />
           </div>
           <div class="shelf-field">
             <label class="shelf-label">行业分类</label>
-            <select v-model="swFilters.industry" class="shelf-select">
-              <option value="">请输入</option>
-              <option v-for="ind in industryOptions" :key="ind" :value="ind">{{ ind }}</option>
-            </select>
+            <SearchSelect v-model="swFilters.industry" class="shelf-select" :options="industryOptions" all-label="请输入" />
           </div>
           <div class="shelf-field">
             <label class="shelf-label">出入库状态</label>
-            <select v-model="swFilters.shelf" class="shelf-select">
-              <option value="">请选择</option>
-              <option value="online">已入库</option>
-              <option value="offline">已出库</option>
-            </select>
+            <SearchSelect v-model="swFilters.shelf" class="shelf-select" :options="SHELF_OPTIONS" all-label="请选择" />
           </div>
         </div>
         <!-- 组件筛选 -->
@@ -134,18 +120,11 @@
           </div>
           <div class="shelf-field">
             <label class="shelf-label">编程语言</label>
-            <select v-model="compFilters.lang" class="shelf-select">
-              <option value="">请选择</option>
-              <option v-for="lang in langOptions" :key="lang" :value="lang">{{ lang }}</option>
-            </select>
+            <SearchSelect v-model="compFilters.lang" class="shelf-select" :options="langOptions" all-label="请选择" />
           </div>
           <div class="shelf-field">
             <label class="shelf-label">出入库状态</label>
-            <select v-model="compFilters.shelf" class="shelf-select">
-              <option value="">请选择</option>
-              <option value="online">已入库</option>
-              <option value="offline">已出库</option>
-            </select>
+            <SearchSelect v-model="compFilters.shelf" class="shelf-select" :options="SHELF_OPTIONS" all-label="请选择" />
           </div>
         </div>
       </div>
@@ -346,11 +325,7 @@
           </button>
           <label class="shelf-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="shelf-page-select">
-              <option :value="10">10条/页</option>
-              <option :value="20">20条/页</option>
-              <option :value="50">50条/页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="shelf-page-select" :options="PAGE_SIZE_OPTIONS" number />
           </label>
         </div>
       </footer>
@@ -444,6 +419,7 @@
 import { ref, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { reviewResults, versionTrains } from '../../data/versionTrainData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -452,6 +428,22 @@ const activeTab = ref(route.query.tab === 'component' ? 'component' : 'software'
 
 const langOptions = ['Java', 'Python', 'JavaScript', 'Go', 'C', 'C++', 'TypeScript', 'Rust', 'Scala', 'Erlang']
 const industryOptions = ['工业', '通信', '金融', '医疗', '教育', '互联网']
+
+const VULN_OPTIONS = [
+  { value: 'yes', label: '有漏洞' },
+  { value: 'no', label: '无漏洞' },
+]
+
+const SHELF_OPTIONS = [
+  { value: 'online', label: '已入库' },
+  { value: 'offline', label: '已出库' },
+]
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
 
 const listTitle = computed(() => (activeTab.value === 'software' ? '软件列表' : '组件列表'))
 

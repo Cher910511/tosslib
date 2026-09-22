@@ -22,10 +22,7 @@
           <!-- 形态一（「软件治理」页）：需先选定本次回传对应的清单 -->
           <div v-if="!targetLocked" class="upload-target">
             <label class="upload-target-label" for="govUploadTarget">待治理清单</label>
-            <select id="govUploadTarget" v-model="targetId" class="upload-target-select" :disabled="parsing">
-              <option value="">请选择本次上传对应的清单</option>
-              <option v-for="r in targetOptions" :key="r.id" :value="r.id">{{ optionLabel(r) }}</option>
-            </select>
+            <SearchSelect id="govUploadTarget" v-model="targetId" class="upload-target-select" :disabled="parsing" :options="targetSelectOptions" all-label="请选择本次上传对应的清单" />
             <span v-if="target" class="upload-target-hint">须包含该清单全部 {{ (target.items || []).length }} 条软件</span>
             <span v-else-if="!targetOptions.length" class="upload-target-hint is-warn">当前没有待回传的清单</span>
           </div>
@@ -117,6 +114,7 @@ import {
 } from '../../data/governanceTemplate.js'
 import { getInboundRequests, updateInboundStatus, updateInboundReturn } from '../../data/inboundRequests.js'
 import { importFromInbound, softwareList } from '../../data/governanceStore.js'
+import SearchSelect from '../common/SearchSelect.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -140,6 +138,9 @@ const targetLocked = ref(false) // 清单由父页面指定，弹窗内只读展
 const missing = ref([]) // 所选清单中未出现在上传文件里的软件（完整性校验）
 
 const optionLabel = (r) => `${r.org}（${r.fileName}） ${r.itemCount} 条`
+
+/** 供 SearchSelect 使用的选项（值取 id，标签沿用 optionLabel 文案） */
+const targetSelectOptions = computed(() => targetOptions.value.map((r) => ({ value: r.id, label: optionLabel(r) })))
 
 const target = computed(() => targetOptions.value.find((r) => r.id === targetId.value) || null)
 const targetLabel = computed(() => (target.value ? optionLabel(target.value) : ''))

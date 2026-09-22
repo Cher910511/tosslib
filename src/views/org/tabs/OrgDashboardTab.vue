@@ -279,10 +279,7 @@
               >{{ t.label }}<span class="dash-tab-count">{{ t.count }}</span></button>
             </div>
             <div class="dash-panel-actions">
-              <select v-model="releaseTrain" class="dash-release-select" aria-label="版本火车筛选">
-                <option value="">全部火车</option>
-                <option v-for="t in ORG_TRAINS" :key="t.code" :value="t.code">{{ t.name }}</option>
-              </select>
+              <SearchSelect v-model="releaseTrain" class="dash-release-select" aria-label="版本火车筛选" :options="ORG_TRAINS" value-key="code" label-key="name" all-label="全部火车" />
               <input v-model.trim="releaseKeyword" type="search" class="dash-release-search" placeholder="搜索名称..." />
             </div>
           </div>
@@ -380,6 +377,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import SearchSelect from '../../../components/common/SearchSelect.vue'
 
 const props = defineProps({ org: { type: Object, required: true } })
 const emit = defineEmits(['switchTab'])

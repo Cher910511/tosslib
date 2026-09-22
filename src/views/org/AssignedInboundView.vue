@@ -9,10 +9,7 @@
     <!-- 演示视角切换 -->
     <div class="ai-view-switch">
       <span class="ai-view-label">演示视角：</span>
-      <select v-model="demoUserId" class="ai-view-select">
-        <option v-for="u in adminUsers" :key="u.id" :value="u.id">{{ u.name }}（{{ orgNameOf(u) }}）</option>
-        <option v-for="u in superUsers" :key="u.id" :value="u.id">{{ u.name }}（全部）</option>
-      </select>
+      <SearchSelect v-model="demoUserId" class="ai-view-select" :options="demoUserOptions" />
     </div>
 
     <!-- 列表 -->
@@ -109,11 +106,7 @@
             <button type="button" class="ai-page-btn" :disabled="detailPage >= detailPageCount" aria-label="下一页" @click="goDetailPage(detailPage + 1)">›</button>
             <label class="ai-page-size">
               <span class="visually-hidden">每页条数</span>
-              <select v-model.number="detailPageSize" class="ai-page-select">
-                <option :value="5">5条/页</option>
-                <option :value="10">10条/页</option>
-                <option :value="20">20条/页</option>
-              </select>
+              <SearchSelect v-model="detailPageSize" class="ai-page-select" :options="DETAIL_PAGE_SIZE_OPTIONS" number />
             </label>
           </div>
         </footer>
@@ -131,6 +124,7 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getInboundRequests } from '../../data/inboundRequests.js'
 import { USERS, ORGS, getOrgById, getCurrentUser } from '../../data/orgData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const router = useRouter()
 
@@ -138,6 +132,16 @@ const router = useRouter()
 const currentUser = getCurrentUser()
 const adminUsers = USERS.filter((u) => u.role === 'owner')
 const superUsers = USERS.filter((u) => u.role === 'superadmin')
+/** 供 SearchSelect 使用的演示视角选项（库主视角 / 平台管理员视角） */
+const demoUserOptions = computed(() => [
+  ...adminUsers.map((u) => ({ value: u.id, label: `${u.name}（${orgNameOf(u)}）` })),
+  ...superUsers.map((u) => ({ value: u.id, label: `${u.name}（全部）` })),
+])
+const DETAIL_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: '5条/页' },
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+]
 const demoUserId = ref(currentUser?.id || adminUsers[0]?.id || '')
 const demoUser = computed(() => USERS.find((u) => u.id === demoUserId.value))
 

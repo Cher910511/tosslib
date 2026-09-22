@@ -336,12 +336,7 @@
             <div class="vt-form-row">
               <div class="vt-form-group">
                 <label class="vt-form-label">评审结果</label>
-                <select v-model="editForm.reviewResult" class="vt-input">
-                  <option value="">-- 请选择 --</option>
-                  <option value="通过">待发布</option>
-                  <option value="不通过">未通过</option>
-                  <option value="待定">待定</option>
-                </select>
+                <SearchSelect v-model="editForm.reviewResult" class="vt-input" :options="REVIEW_RESULT_OPTIONS" all-label="-- 请选择 --" />
               </div>
             </div>
             <div class="vt-form-group">
@@ -641,10 +636,17 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { versionTrains as _versionTrains, reviewResults, releaseHistory as historyData } from '../../data/versionTrainData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const versionTrains = reactive(_versionTrains)
 
 const router = useRouter()
+
+const REVIEW_RESULT_OPTIONS = [
+  { value: '通过', label: '待发布' },
+  { value: '不通过', label: '未通过' },
+  { value: '待定', label: '待定' },
+]
 
 // ------- 关联 review 数据 -------
 const reviewMap = new Map()

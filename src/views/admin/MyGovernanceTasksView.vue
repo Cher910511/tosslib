@@ -109,11 +109,7 @@
           <button type="button" class="mgt-page-btn" :disabled="page >= totalPages" aria-label="下一页" @click="page = Math.min(totalPages, page + 1)">›</button>
           <label class="mgt-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="mgt-page-select">
-              <option :value="10">10条/页</option>
-              <option :value="20">20条/页</option>
-              <option :value="50">50条/页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="mgt-page-select" :options="PAGE_SIZE_OPTIONS" number />
           </label>
         </div>
       </footer>
@@ -168,11 +164,7 @@
             <button type="button" class="mgt-page-btn" :disabled="detailPage >= detailPageCount" aria-label="下一页" @click="goDetailPage(detailPage + 1)">›</button>
             <label class="mgt-page-size">
               <span class="visually-hidden">每页条数</span>
-              <select v-model.number="detailPageSize" class="mgt-page-select">
-                <option :value="5">5条/页</option>
-                <option :value="10">10条/页</option>
-                <option :value="20">20条/页</option>
-              </select>
+              <SearchSelect v-model="detailPageSize" class="mgt-page-select" :options="DETAIL_PAGE_SIZE_OPTIONS" number />
             </label>
           </div>
         </footer>
@@ -238,6 +230,7 @@ import { getInboundRequests } from '../../data/inboundRequests.js'
 import { writePrefilledTemplate, writeSampleTemplate } from '../../data/governanceTemplate.js'
 import { USERS } from '../../data/orgData.js'
 import GovernanceUploadDialog from '../../components/gov/GovernanceUploadDialog.vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -332,6 +325,17 @@ watch(pageSize, () => {
 const detailTarget = ref(null)
 const detailPage = ref(1)
 const detailPageSize = ref(5)
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
+const DETAIL_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: '5条/页' },
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+]
 
 const detailPageCount = computed(() => {
   const n = detailTarget.value?.items?.length || 0

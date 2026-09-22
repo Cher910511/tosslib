@@ -173,11 +173,7 @@
           </button>
           <label class="manage-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="manage-page-select">
-              <option :value="10">10 / 页</option>
-              <option :value="20">20 / 页</option>
-              <option :value="50">50 / 页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="manage-page-select" number :options="PAGE_SIZE_OPTIONS" />
           </label>
         </div>
       </footer>
@@ -188,6 +184,13 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import SearchSelect from '../../components/common/SearchSelect.vue'
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10 / 页' },
+  { value: 20, label: '20 / 页' },
+  { value: 50, label: '50 / 页' },
+]
 
 const route = useRoute()
 const router = useRouter()

@@ -102,11 +102,7 @@
           <span class="manage-page-current">{{ page }}</span>
           <button type="button" class="manage-page-btn" :disabled="page >= totalPages" @click="page = Math.min(totalPages, page + 1)">›</button>
           <label class="manage-page-size">
-            <select v-model.number="pageSize" class="manage-page-select">
-              <option :value="10">10 / 页</option>
-              <option :value="20">20 / 页</option>
-              <option :value="50">50 / 页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="manage-page-select" number :options="PAGE_SIZE_OPTIONS" />
           </label>
         </div>
       </footer>
@@ -285,6 +281,13 @@
       <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import SearchSelect from '../../components/common/SearchSelect.vue'
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10 / 页' },
+  { value: 20, label: '20 / 页' },
+  { value: 50, label: '50 / 页' },
+]
 
 const showScanModal = ref(false)
 const scanMode = ref('fetch-software') // 'fetch-software' | 'fetch-component'

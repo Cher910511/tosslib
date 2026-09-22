@@ -42,17 +42,11 @@
           </div>
           <div class="comp-field">
             <label class="comp-label">编程语言</label>
-            <select v-model="filters.lang" class="comp-select">
-              <option value="">请选择</option>
-              <option v-for="lang in langOptions" :key="lang" :value="lang">{{ lang }}</option>
-            </select>
+            <SearchSelect v-model="filters.lang" class="comp-select" :options="langOptions" all-label="请选择" />
           </div>
           <div class="comp-field">
             <label class="comp-label">版本火车</label>
-            <select v-model="filters.train" class="comp-select">
-              <option value="">请选择版本火车</option>
-              <option v-for="t in trainOptions" :key="t" :value="t">{{ t }}</option>
-            </select>
+            <SearchSelect v-model="filters.train" class="comp-select" :options="trainOptions" all-label="请选择版本火车" />
           </div>
         </div>
       </div>
@@ -145,11 +139,7 @@
           </button>
           <label class="comp-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="comp-page-select">
-              <option :value="10">10条/页</option>
-              <option :value="20">20条/页</option>
-              <option :value="50">50条/页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="comp-page-select" :options="PAGE_SIZE_OPTIONS" number />
           </label>
         </div>
       </footer>
@@ -161,6 +151,7 @@
 import { ref, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { versionTrains } from '../../data/versionTrainData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -173,6 +164,12 @@ const langOptions = ['Java', 'Python', 'JavaScript', 'Go', 'C', 'C++', 'TypeScri
 const trainOptions = computed(() =>
   versionTrains.map((t) => t.name).filter(Boolean),
 )
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
 
 // ========== 种子数据（spring-cloud-openefig 系列）==========
 const COMP_SEED = [

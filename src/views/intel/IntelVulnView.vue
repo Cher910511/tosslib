@@ -77,21 +77,8 @@
           <input v-model="vulnSearch" type="text" placeholder="搜索漏洞编号、名称、组件..." />
         </div>
         <div class="ic-vlist-filters">
-          <select v-model="vulnLevelFilter" class="ic-vlist-select">
-            <option value="">全部等级</option>
-            <option value="critical">严重</option>
-            <option value="high">高危</option>
-            <option value="medium">中危</option>
-            <option value="low">低危</option>
-          </select>
-          <select v-model="vulnTypeFilter" class="ic-vlist-select">
-            <option value="">全部类型</option>
-            <option value="RCE">远程代码执行</option>
-            <option value="sqli">SQL注入</option>
-            <option value="xss">XSS</option>
-            <option value="dos">拒绝服务</option>
-            <option value="priv">权限提升</option>
-          </select>
+          <SearchSelect v-model="vulnLevelFilter" class="ic-vlist-select" :options="VULN_LEVEL_OPTIONS" all-label="全部等级" />
+          <SearchSelect v-model="vulnTypeFilter" class="ic-vlist-select" :options="VULN_TYPE_OPTIONS" all-label="全部类型" />
           <button type="button" class="ic-vlist-sort-btn" @click="sortByTime = !sortByTime">更新时间 {{ sortByTime ? '↓' : '↑' }}</button>
         </div>
       </div>
@@ -143,6 +130,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const searchQuery = ref('')
 const activeVulnFilter = ref('all')
@@ -153,6 +141,21 @@ const vulnFilters = [
   { key: 'high', label: '高危' },
   { key: 'medium', label: '中危' },
   { key: 'low', label: '低危' },
+]
+
+const VULN_LEVEL_OPTIONS = [
+  { value: 'critical', label: '严重' },
+  { value: 'high', label: '高危' },
+  { value: 'medium', label: '中危' },
+  { value: 'low', label: '低危' },
+]
+
+const VULN_TYPE_OPTIONS = [
+  { value: 'RCE', label: '远程代码执行' },
+  { value: 'sqli', label: 'SQL注入' },
+  { value: 'xss', label: 'XSS' },
+  { value: 'dos', label: '拒绝服务' },
+  { value: 'priv', label: '权限提升' },
 ]
 
 const vulnData = [

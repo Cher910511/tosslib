@@ -10,11 +10,11 @@
         <div class="org-hero-meta">
           <span class="org-hero-meta-item">
             <span class="org-hero-meta-label">管理员</span>
-            <span class="org-hero-meta-value">{{ org.adminIds.length }} 人</span>
+            <span class="org-hero-meta-value">{{ adminCount }} 人</span>
           </span>
           <span class="org-hero-meta-item">
             <span class="org-hero-meta-label">成员</span>
-            <span class="org-hero-meta-value">{{ org.memberIds.length }} 人</span>
+            <span class="org-hero-meta-value">{{ memberCount }} 人</span>
           </span>
           <span class="org-hero-meta-item">
             <span class="org-hero-meta-label">创建时间</span>
@@ -60,6 +60,8 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getOrgById, ORGS } from '../../data/orgData'
+import { findOrg, getOrgs } from '../../data/orgStore.js'
+import { getOrgMemberships } from '../../data/orgMembershipData.js'
 import OrgDashboardTab from './tabs/OrgDashboardTab.vue'
 import OrgInfoTab from './tabs/OrgInfoTab.vue'
 import OrgMembersTab from './tabs/OrgMembersTab.vue'
@@ -89,12 +91,21 @@ const activeTab = ref(
 )
 
 const org = computed(() => {
-  const o = getOrgById(route.params.orgId)
+  // 从「内置 + 平台新建」的组织源查找，否则新建组织打不开详情页
+  const o = findOrg(route.params.orgId)
   if (!o) {
-    return ORGS[0] || null
+    return getOrgs()[0] || null
   }
   return o
 })
+
+/**
+ * 管理员/成员人数从 (用户, 组织) 的组织身份统计（见 orgMembershipData），
+ * 而不是 orgData 里静态的 adminIds/memberIds —— 否则在「组织成员」页任免后人数不会更新。
+ */
+const memberships = computed(() => getOrgMemberships(org.value?.id))
+const adminCount = computed(() => memberships.value.filter((m) => m.orgRole === 'admin').length)
+const memberCount = computed(() => memberships.value.filter((m) => m.orgRole === 'member').length)
 
 function goBack() {
   router.push({ name: 'org-list' })

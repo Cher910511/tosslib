@@ -34,10 +34,7 @@
             </div>
             <div class="fa-field">
               <label class="fa-label">状态</label>
-              <select v-model="certFilters.status" class="fa-select">
-                <option value="">全部</option>
-                <option v-for="s in CERT_STATUS" :key="s" :value="s">{{ s }}</option>
-              </select>
+              <SearchSelect v-model="certFilters.status" class="fa-select" :options="CERT_STATUS" all-label="全部" />
             </div>
           </template>
           <!-- 软件入库需求反馈 筛选项 -->
@@ -150,11 +147,7 @@
           <button type="button" class="fa-page-btn" :disabled="page >= totalPages" aria-label="下一页" @click="page = Math.min(totalPages, page + 1)">›</button>
           <label class="fa-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="fa-page-select">
-              <option :value="10">10条/页</option>
-              <option :value="20">20条/页</option>
-              <option :value="50">50条/页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="fa-page-select" :options="PAGE_SIZE_OPTIONS" number />
           </label>
         </div>
       </footer>
@@ -211,11 +204,7 @@
             <button type="button" class="fa-page-btn" :disabled="detailPage >= detailPageCount" aria-label="下一页" @click="goDetailPage(detailPage + 1)">›</button>
             <label class="fa-page-size">
               <span class="visually-hidden">每页条数</span>
-              <select v-model.number="detailPageSize" class="fa-page-select">
-                <option :value="5">5条/页</option>
-                <option :value="10">10条/页</option>
-                <option :value="20">20条/页</option>
-              </select>
+              <SearchSelect v-model="detailPageSize" class="fa-page-select" :options="DETAIL_PAGE_SIZE_OPTIONS" number />
             </label>
           </div>
         </footer>
@@ -283,6 +272,7 @@
 import { ref, computed, reactive, watch, nextTick, onUnmounted } from 'vue'
 import { getInboundRequests, assignInboundRequest } from '../../data/inboundRequests.js'
 import { ORGS, USERS } from '../../data/orgData.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const TABS = [
   { key: 'cert', label: '企业认证审核' },
@@ -290,6 +280,17 @@ const TABS = [
 ]
 
 const CERT_STATUS = ['待审核', '已通过', '已驳回']
+
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
+const DETAIL_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: '5条/页' },
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+]
 
 const activeTab = ref('cert')
 const filterOpen = ref(true)

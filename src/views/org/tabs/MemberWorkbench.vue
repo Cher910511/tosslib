@@ -172,10 +172,7 @@
         <h3>我的可用软件</h3>
         <div class="mw-card-actions">
           <input v-model.trim="softKeyword" type="search" class="mw-search" placeholder="搜索软件名..." />
-          <select v-model="softTrain" class="mw-select">
-            <option value="">全部火车</option>
-            <option v-for="t in trains" :key="t.id" :value="t.code">{{ t.code }}</option>
-          </select>
+          <SearchSelect v-model="softTrain" class="mw-select" :options="trains" value-key="code" label-key="code" all-label="全部火车" />
         </div>
       </div>
       <div class="mw-soft-grid">
@@ -283,6 +280,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import SearchSelect from '../../../components/common/SearchSelect.vue'
 
 defineProps({ org: { type: Object, required: true } })
 const router = useRouter()

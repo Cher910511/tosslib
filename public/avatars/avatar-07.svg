@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="用户头像">
+  <defs>
+    <linearGradient id="a7bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ecfeff"/><stop offset="100%" stop-color="#cffafe"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" fill="url(#a7bg)"/>
+  <path d="M8 64c0-12 11-19 24-19s24 7 24 19z" fill="#0e7490"/>
+  <circle cx="32" cy="27" r="13" fill="#e3b48e"/>
+  <path d="M19 27a13 13 0 0 1 26 0c0-11-4-16-13-16s-13 5-13 16z" fill="#2b2b2b"/>
+  <path d="M20 34q4-3 8-1M36 33q4-2 8 1" stroke="#2b2b2b" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <circle cx="27" cy="27" r="1.6" fill="#2b2b2b"/><circle cx="37" cy="27" r="1.6" fill="#2b2b2b"/>
+  <path d="M28 33q4 3 8 0" stroke="#bf8460" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+</svg>

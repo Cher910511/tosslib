@@ -12,9 +12,7 @@
         <span class="wb-role-tag" :class="isAdmin ? 'wb-role-tag--admin' : 'wb-role-tag--member'">
           {{ isAdmin ? '库主' : '普通成员' }}
         </span>
-        <select v-if="hasMultiOrgs" v-model="activeOrgId" class="wb-org-switch" title="切换组织" @change="onOrgChange">
-          <option v-for="o in userOrgs" :key="o.id" :value="o.id">{{ o.name }}</option>
-        </select>
+        <SearchSelect v-if="hasMultiOrgs" v-model="activeOrgId" class="wb-org-switch" title="切换组织" :options="userOrgs" value-key="id" label-key="name" @change="onOrgChange" />
         <span class="wb-quick-sep" aria-hidden="true" />
         <!-- 常用快捷入口（所有角色通用） -->
         <button v-for="q in quickLinks" :key="q.label" type="button" class="wb-quick-link" @click="goQuick(q)">
@@ -25,10 +23,14 @@
 
       <!-- 右侧：演示切换 -->
       <div class="wb-user">
-        <select v-model="demoUserId" class="wb-role-switch" title="演示：切换用户" @change="onRoleSwitch">
-          <option v-for="u in DEMO_USERS" :key="u.id" :value="u.id">{{ u.label }}</option>
-        </select>
+        <SearchSelect v-model="demoUserId" class="wb-role-switch" title="演示：切换用户" :options="DEMO_USERS" @change="onRoleSwitch" />
       </div>
+    </div>
+
+    <!-- 登录校验提示：被禁用账号切换时提示「该账号已禁用」 -->
+    <div v-if="loginTip" class="wb-login-tip" role="alert">
+      <span class="wb-login-tip-ico" aria-hidden="true">!</span>
+      <span>{{ loginTip }}</span>
     </div>
 
     <!-- ===== 按角色渲染工作台 ===== -->
@@ -41,6 +43,8 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { USERS, ORGS, getOrgById, getUserOrgs, getUserOrgIds } from '../data/orgData'
+import { validateLogin } from '../data/accountData'
+import SearchSelect from '../components/common/SearchSelect.vue'
 import MemberWorkbench from './org/tabs/MemberWorkbench.vue'
 import OrgDashboardTab from './org/tabs/OrgDashboardTab.vue'
 
@@ -85,6 +89,9 @@ const DEMO_USERS = [
 /** 演示：选择用户（默认单组织库主，便于直接查看主场景） */
 const demoUserId = ref(route.query.user || 'user-admin-1')
 
+/** 最近一次成功切换的用户（用于被禁用账号拦截后回退） */
+const lastValidUserId = ref(demoUserId.value)
+
 /** 当前登录用户（mock） */
 const currentUser = computed(() => USERS.find((u) => u.id === demoUserId.value) || USERS[0])
 const isAdmin = computed(() => currentUser.value?.role === 'owner')
@@ -105,7 +112,26 @@ function onOrgChange() {
   // 切换组织后保持当前页（工作台内容随 currentOrg 联动刷新）
 }
 
+/**
+ * 演示：切换用户。此处是原型里事实上的「身份入口」，
+ * 因此接上登录校验：被禁用的账号不允许切换进去，并提示「该账号已禁用」。
+ */
+const loginTip = ref('')
+
 function onRoleSwitch() {
+  // 登录校验：禁用账号拦截，提示后回退到上一个可用用户。
+  // 注意传 username（登录账号）：静态用户的 username 是拼音、name 才是中文，二者不可混用
+  const u = currentUser.value
+  const check = validateLogin(u?.username || u?.name || '')
+  if (!check.ok) {
+    loginTip.value = check.reason
+    // 回退到切换前的用户，避免停留在被禁用账号上
+    demoUserId.value = lastValidUserId.value
+    window.setTimeout(() => { loginTip.value = '' }, 4000)
+    return
+  }
+  loginTip.value = ''
+  lastValidUserId.value = demoUserId.value
   // 切换用户后回到该用户的主组织
   const first = getUserOrgIds(currentUser.value)[0]
   if (first) activeOrgId.value = first
@@ -130,6 +156,33 @@ function avatarBg(name) {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* ===== 登录校验提示 ===== */
+.wb-login-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+.wb-login-tip-ico {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 50%;
 }
 
 /* ===== 头部 ===== */

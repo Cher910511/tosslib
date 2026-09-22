@@ -24,13 +24,7 @@
           </div>
           <div class="wav-field">
             <label class="wav-label">审核状态</label>
-            <select v-model="filters.status" class="wav-input">
-              <option value="">全部</option>
-              <option value="待审批">待审批</option>
-              <option value="已入库">已入库</option>
-              <option value="已拒绝">已拒绝</option>
-              <option value="已作废">已作废</option>
-            </select>
+            <SearchSelect v-model="filters.status" class="wav-input" :options="STATUS_OPTIONS" all-label="全部" />
           </div>
         </div>
       </div>
@@ -145,11 +139,7 @@
           <button type="button" class="wav-page-btn" :disabled="page >= totalPages" aria-label="下一页" @click="page = Math.min(totalPages, page + 1)">›</button>
           <label class="wav-page-size">
             <span class="visually-hidden">每页条数</span>
-            <select v-model.number="pageSize" class="wav-page-select">
-              <option :value="10">10条/页</option>
-              <option :value="20">20条/页</option>
-              <option :value="50">50条/页</option>
-            </select>
+            <SearchSelect v-model="pageSize" class="wav-page-select" :options="PAGE_SIZE_OPTIONS" number />
           </label>
         </div>
       </footer>
@@ -228,10 +218,23 @@ import { getInboundRequests, updateInboundStatus } from '../../data/inboundReque
 import { sendMessage } from '../../data/messagesStore.js'
 import { USERS } from '../../data/orgData.js'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 /* —— 筛选 —— */
 const filterOpen = ref(true)
 const filters = reactive({ name: '', owner: '', status: '' })
+
+const STATUS_OPTIONS = [
+  { value: '待审批', label: '待审批' },
+  { value: '已入库', label: '已入库' },
+  { value: '已拒绝', label: '已拒绝' },
+  { value: '已作废', label: '已作废' },
+]
+const PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10条/页' },
+  { value: 20, label: '20条/页' },
+  { value: 50, label: '50条/页' },
+]
 
 /** 审批列表：软件治理中已进入第 2 步（软件入库）的全部软件（新流程：治理结果随模板回传并提交审批后进入） */
 const allApprovalItems = computed(() =>

@@ -26,9 +26,7 @@
     <!-- 模板选择 -->
     <div class="template-bar">
       <span class="template-bar-label">当前模板：</span>
-      <select v-model="activeTemplateId" class="template-select" @change="loadTemplate">
-        <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}（{{ t.orgName }}）</option>
-      </select>
+      <SearchSelect v-model="activeTemplateId" class="template-select" :options="templateOptions" @change="loadTemplate" />
       <button type="button" class="template-delete" @click="deleteTemplate" :disabled="templates.length <= 1">删除</button>
     </div>
 
@@ -44,11 +42,7 @@
       </div>
       <div class="info-row">
         <span class="info-label">总分计算方式</span>
-        <select v-model="currentTemplate.scoreMethod" class="info-input info-select">
-          <option value="weighted_sum">加权求和 — 每个指标得分×权重，累加得总分</option>
-          <option value="weighted_avg">加权平均 — 总分归一化到 0-10 分</option>
-          <option value="min_pass">一票否决 — 任一指标不合格则总分为 0</option>
-        </select>
+        <SearchSelect v-model="currentTemplate.scoreMethod" class="info-input info-select" :options="SCORE_METHOD_OPTIONS" />
       </div>
     </div>
 
@@ -178,6 +172,7 @@ import {
   groupByLevelAndCategory,
 } from '../../data/standardIndicators.js'
 import { downloadCsv } from '../../utils/csvExport.js'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const LEVELS = STANDARD_LEVELS
 const activeLevel = ref('baseline')
@@ -192,6 +187,16 @@ const STORAGE_KEY = 'tosslib.standardTemplates'
 
 const templates = ref([])
 const activeTemplateId = ref('')
+
+const templateOptions = computed(() =>
+  templates.value.map((t) => ({ value: t.id, label: `${t.name}（${t.orgName}）` })),
+)
+
+const SCORE_METHOD_OPTIONS = [
+  { value: 'weighted_sum', label: '加权求和 — 每个指标得分×权重，累加得总分' },
+  { value: 'weighted_avg', label: '加权平均 — 总分归一化到 0-10 分' },
+  { value: 'min_pass', label: '一票否决 — 任一指标不合格则总分为 0' },
+]
 
 /** 公式字符间加空格 */
 function formatFormula(f) {

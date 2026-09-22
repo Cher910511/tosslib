@@ -98,14 +98,13 @@
         <div class="glow-card panel">
           <div class="dep-graph-head">
             <div class="panel-title">依赖链网络</div>
-            <select
+            <SearchSelect
+              v-model="activeDepGraph"
               class="dep-graph-select"
-              :value="activeDepGraph"
+              :options="depGraphNames"
               aria-label="选择软件"
               @change="onDepGraphChange"
-            >
-              <option v-for="name in depGraphNames" :key="name" :value="name">{{ name }}</option>
-            </select>
+            />
           </div>
           <div ref="depGraphChartRef" class="chart-dep-graph"></div>
         </div>
@@ -125,6 +124,7 @@ import VulnerabilityDonut from '../../components/VulnerabilityDonut.vue'
 import LicensePie from '../../components/LicensePie.vue'
 import IndustryBar from '../../components/IndustryBar.vue'
 import WorldMapChart from '../../components/WorldMapChart.vue'
+import SearchSelect from '../../components/common/SearchSelect.vue'
 import {
   analyticsKpiMetrics,
   vulnerabilityTrend,
@@ -254,8 +254,8 @@ const depGraphCategories = [
 const depGraphNames = Object.keys(dependencyGraphs)
 const activeDepGraph = ref(depGraphNames[0])
 
-function onDepGraphChange(e) {
-  activeDepGraph.value = e.target.value
+function onDepGraphChange(val) {
+  activeDepGraph.value = val
 }
 
 function updateDepGraphChart() {

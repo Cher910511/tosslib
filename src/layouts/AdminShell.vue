@@ -185,6 +185,13 @@
             >
               <span class="nav-label">审批入库</span>
             </RouterLink>
+            <RouterLink
+              class="admin-nav-item admin-nav-item--sub"
+              to="/software/permission-settings"
+              active-class="is-active"
+            >
+              <span class="nav-label">权限设置</span>
+            </RouterLink>
           </div>
         </div>
       </nav>
@@ -223,16 +230,14 @@
         <div v-else class="admin-header-center">
           <div ref="searchWrapRef" class="admin-search-wrap">
             <div class="admin-search">
-              <select
+              <SearchSelect
                 v-model="searchKind"
                 class="admin-search-type"
                 aria-label="搜索类型"
+                :options="SEARCH_KIND_OPTIONS"
                 @mousedown.stop
                 @change="onSearchKindChange"
-              >
-                <option value="software">软件</option>
-                <option value="component">组件</option>
-              </select>
+              />
               <input
                 v-model="searchQuery"
                 type="search"
@@ -469,6 +474,7 @@ import {
 } from '../composables/useAdminSearch'
 import { USERS } from '../data/orgData.js'
 import { getMessages, getUnreadCount, markMessageRead, markAllRead } from '../data/messagesStore.js'
+import SearchSelect from '../components/common/SearchSelect.vue'
 const route = useRoute()
 const router = useRouter()
 
@@ -601,6 +607,10 @@ const searchPlaceholder = computed(() =>
 )
 
 const searchWrapRef = ref(null)
+const SEARCH_KIND_OPTIONS = [
+  { value: 'software', label: '软件' },
+  { value: 'component', label: '组件' },
+]
 const searchKind = ref('software')
 const searchQuery = ref('')
 const searchPanelOpen = ref(false)
