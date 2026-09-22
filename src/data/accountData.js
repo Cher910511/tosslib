@@ -22,7 +22,8 @@ const DISABLED_KEY = 'tosslib_disabled_accounts'
 // 版本 3：账号模型统一为「用户名/密码/头像」—— loginName 改名 username、去掉 email/phone；
 //         旧版本存储里没有 username 字段，会导致列表「用户名」列为空，故必须升版本让旧数据失效
 // 版本 4：账号即用户名（改中文）+ 种子补初始密码，供列表「密码」列加密展示与复制
-const SEED_VERSION = 4
+// 版本 5：种子补充「已禁用」「未分配」两种状态的账号，使列表三态均可查看
+const SEED_VERSION = 5
 
 /** 新建账号时可选的机构类型（对应《用户设置说明》的一级用户） */
 export const INSTITUTION_TYPES = [
@@ -143,7 +144,46 @@ const SEED_ACCOUNTS = [
     updatedBy: 'admin',
     updatedAt: '2026-08-28 11:15',
   },
+  // 「已禁用」示例：角色与组织归属都保留，仅账号被停用（无法登录）
+  {
+    id: 'user-created-seed-6',
+    name: '孙停用',
+    username: '孙停用',
+    password: 'Sty@2026Off',
+    avatar: '',
+    role: 'member',
+    orgId: 'org-002',
+    orgIds: ['org-002'],
+    orgMemberships: [{ orgId: 'org-002', orgRole: 'member' }],
+    platformRoles: ['governor'],
+    institution: 'care',
+    createdBy: 'admin',
+    createdAt: '2026-09-01 09:30',
+    updatedBy: 'admin',
+    updatedAt: '2026-09-05 14:20',
+  },
+  // 「未分配」示例：既无平台角色、也无组织角色（账号不合法，无法登录）
+  {
+    id: 'user-created-seed-7',
+    name: '周未分配',
+    username: '周未分配',
+    password: 'Zwf@2026New',
+    avatar: '',
+    role: 'member',
+    orgId: null,
+    orgIds: [],
+    orgMemberships: [],
+    platformRoles: [],
+    institution: null,
+    createdBy: 'admin',
+    createdAt: '2026-09-03 16:45',
+    updatedBy: 'admin',
+    updatedAt: '2026-09-03 16:45',
+  },
 ]
+
+/** 种子中被禁用的账号（仅记录 userId，禁用状态单独存一个 key） */
+const SEED_DISABLED_IDS = ['user-created-seed-6']
 
 /**
  * 读取存储原始负载。
@@ -189,6 +229,8 @@ function ensureSeeded() {
   if (readRaw().exists) return
   const list = SEED_ACCOUNTS.map((a) => ({ ...a }))
   persist(list)
+  // 禁用状态单独存一个 key：种子里的禁用账号需一并落库，否则列表显示不出「已禁用」
+  writeDisabled([...SEED_DISABLED_IDS])
   // 同步：平台角色写入共享角色存储；组织身份写入组织成员存储
   list.forEach((u) => {
     if (u.platformRoles?.length) setMemberRoles(u.id, { platformRoles: u.platformRoles, operator: '系统初始化' })

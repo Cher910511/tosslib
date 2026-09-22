@@ -4,6 +4,7 @@ import AdminShell from '../layouts/AdminShell.vue'
 import HomeView from '../views/HomeView.vue'
 import WorkbenchView from '../views/WorkbenchView.vue'
 import DataScreenView from '../views/analytics/DataScreenView.vue'
+import RegulatorScreenView from '../views/analytics/RegulatorScreenView.vue'
 import ReportTablesView from '../views/analytics/report/ReportTablesView.vue'
 import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
 import SoftwareLibraryView from '../views/software/SoftwareLibraryView.vue'
@@ -337,6 +338,14 @@ const routes = [
     name: 'invite-register',
     component: InviteRegisterView,
     meta: { title: '邀请注册' },
+  },
+  /* 态势综合分析大屏：独立于后台布局（全屏 1920×1080 等比缩放），
+     与旧大屏 /dash（HomeView）并存，互不影响 */
+  {
+    path: '/screen/regulator',
+    name: 'regulator-screen',
+    component: RegulatorScreenView,
+    meta: { title: '态势综合分析' },
   },
 ]
 

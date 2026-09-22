@@ -138,6 +138,51 @@ export const industrySectors = [
 // 关键行业标签云
 export const keyIndustries = ['能源', '交通', '金融', '通信', '政务', '教育', '医疗', '水利', '工业']
 
+// 技术栈分类（41 类，与治理模板的技术栈枚举保持一致；value 为收录组件数）
+export const techStackCategories = [
+  { name: '大数据分析技术', value: 3860 },
+  { name: 'PaaS', value: 2450 },
+  { name: '存储及文件系统技术', value: 3120 },
+  { name: 'SOA技术', value: 1180 },
+  { name: 'Rel-MC', value: 640 },
+  { name: '安全组件', value: 4270 },
+  { name: '研发工具', value: 5180 },
+  { name: '媒体软件技术', value: 1960 },
+  { name: '数据压缩技术', value: 1520 },
+  { name: '分布式通信技术', value: 2340 },
+  { name: '编译器与编程语言技术', value: 4680 },
+  { name: 'WEB技术', value: 8920 },
+  { name: '分布式中间件', value: 2760 },
+  { name: '软件兼容性技术', value: 1340 },
+  { name: '虚拟化技术', value: 2180 },
+  { name: 'openstack', value: 920 },
+  { name: '操作系统技术', value: 5240 },
+  { name: '数据库技术', value: 6180 },
+  { name: '区块链技术', value: 870 },
+  { name: '搜索技术', value: 1460 },
+  { name: '可编程逻辑', value: 540 },
+  { name: 'NP', value: 320 },
+  { name: '光器件', value: 280 },
+  { name: '能源', value: 410 },
+  { name: '处理器', value: 760 },
+  { name: '存储器', value: 690 },
+  { name: '交换网', value: 350 },
+  { name: '器件', value: 480 },
+  { name: 'ADDA', value: 260 },
+  { name: '计算硬件网卡', value: 390 },
+  { name: '安卓应用与框架', value: 2240 },
+  { name: '应用多媒体', value: 1680 },
+  { name: '通信协议应用', value: 1920 },
+  { name: '软件测试', value: 2860 },
+  { name: '通用开发库技术', value: 4360 },
+  { name: '人工智能技术', value: 5480 },
+  { name: '桌面应用与框架技术', value: 1240 },
+  { name: '文本处理技术', value: 1080 },
+  { name: '鸿蒙应用与框架', value: 960 },
+  { name: '字体技术', value: 720 },
+  { name: '云计算技术', value: 4620 },
+]
+
 // 开发者国家 Top10
 export const developerCountryTop10 = [
   { name: '中国', value: 285000 },

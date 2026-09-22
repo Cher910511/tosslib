@@ -46,21 +46,13 @@
               <div class="panel-title">许可证分布</div>
               <LicensePie :data="licenseDistribution" />
             </div>
-            <div class="glow-card right-block">
-              <div class="panel-title">覆盖行业领域</div>
-              <IndustryBar :data="industrySectors" />
-            </div>
-            <div class="glow-card right-block tag-block">
-              <div class="panel-title">覆盖关键行业</div>
-              <TagCloud :tags="keyIndustries" />
+            <div class="glow-card right-block tech-block">
+              <div class="panel-title">技术栈分类</div>
+              <TechStackTags :data="techStackCategories" />
             </div>
             <div class="glow-card right-block bar-block">
               <div class="panel-title">开发者国家 Top10</div>
               <CountryBar :data="developerCountryTop10" />
-            </div>
-            <div class="glow-card right-block bar-block">
-              <div class="panel-title">Scorecard / Criticality 评分分布</div>
-              <ScoreDistribution :scorecard="scorecardDistribution" :criticality="criticalityDistribution" />
             </div>
           </div>
 
@@ -92,10 +84,8 @@ import VulnerabilityTrend from '../components/VulnerabilityTrend.vue'
 import CVEListTable from '../components/CVEListTable.vue'
 import MalwareListTable from '../components/MalwareListTable.vue'
 import LicensePie from '../components/LicensePie.vue'
-import IndustryBar from '../components/IndustryBar.vue'
-import TagCloud from '../components/TagCloud.vue'
+import TechStackTags from '../components/TechStackTags.vue'
 import CountryBar from '../components/CountryBar.vue'
-import ScoreDistribution from '../components/ScoreDistribution.vue'
 import SecurityGovernance from '../components/SecurityGovernance.vue'
 import {
   platformOverview,
@@ -105,12 +95,9 @@ import {
   securityNews,
   malwareSoftwareList,
   licenseDistribution,
-  industrySectors,
-  keyIndustries,
+  techStackCategories,
   developerCountryTop10,
   repoCountryTop10,
-  scorecardDistribution,
-  criticalityDistribution,
   securityGovernance,
 } from '../data/mockData.js'
 
@@ -380,9 +367,9 @@ onUnmounted(() => {
   flex: 1.05;
   overflow: hidden;
 }
-.tag-block {
-  flex: 0 0 auto;
-  min-height: 52px;
+/* 技术栈分类：41 类需占据右侧主要空间（自动滚动轮播） */
+.tech-block {
+  flex: 2.2;
 }
 .bar-block {
   flex: 1.15;

@@ -360,6 +360,14 @@
         >
           数据大屏
         </a>
+        <a
+          class="admin-dash-pill admin-dash-pill--regulator"
+          :href="regulatorScreenUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          态势综合分析
+        </a>
         <RouterLink
           class="admin-help-btn"
           to="/software/workbench"
@@ -703,6 +711,12 @@ const dataScreenHomeUrl = computed(() => {
   return new URL(href, window.location.origin).href
 })
 
+/** 态势综合分析大屏（/screen/regulator），新标签打开；含 GitHub Pages base */
+const regulatorScreenUrl = computed(() => {
+  const href = router.resolve({ name: 'regulator-screen' }).href
+  return new URL(href, window.location.origin).href
+})
+
 /** 使用手册，新标签打开 */
 const manualPageUrl = computed(() => {
   const href = router.resolve({ name: 'user-manual' }).href
@@ -973,6 +987,14 @@ const manualPageUrl = computed(() => {
     color 0.15s ease;
 }
 
+/* 态势综合分析大屏：用平台主题蓝区分于「数据大屏」 */
+.admin-dash-pill--regulator {
+  color: #fff;
+  background: #005bcb;
+}
+.admin-dash-pill--regulator:hover {
+  background: #004aa6;
+}
 .admin-dash-pill:hover {
   background: #fee2e2;
   color: #da203e;

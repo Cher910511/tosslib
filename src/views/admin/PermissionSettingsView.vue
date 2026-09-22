@@ -96,7 +96,7 @@
             <tr>
               <th>用户名</th>
               <th>平台角色</th>
-              <th class="perm-col-num">组织数</th>
+              <th class="perm-col-orgrole">组织角色</th>
               <th class="perm-col-status">状态</th>
               <th>更新人</th>
               <th>更新时间</th>
@@ -117,23 +117,30 @@
                   </span>
                   <span v-else class="perm-muted">—</span>
                 </td>
-                <td class="perm-col-num">
-                  <!-- 组织数可点击查看归属；为 0 时也可点开（弹窗显示空态） -->
-                  <button
-                    type="button"
-                    class="perm-count-btn"
-                    :class="{ 'is-zero': !row.memberships.length }"
-                    :title="row.memberships.length ? `查看 ${row.name} 的组织归属` : `${row.name} 未加入任何组织`"
-                    @click="openOrgDialog(row.userId)"
-                  >{{ row.memberships.length }}</button>
+                <td class="perm-col-orgrole">
+                  <!-- 组织角色：展示该账号在各组织中的角色（去重），可展开查看所属组织明细 -->
+                  <div class="perm-orgrole-cell">
+                    <button
+                      v-if="row.memberships.length"
+                      type="button"
+                      class="perm-expand-btn"
+                      :class="{ 'is-open': expandedIds.includes(row.userId) }"
+                      :aria-expanded="expandedIds.includes(row.userId) ? 'true' : 'false'"
+                      :title="expandedIds.includes(row.userId) ? '收起组织明细' : `展开 ${row.name} 的组织明细`"
+                      @click="toggleExpand(row.userId)"
+                    >›</button>
+                    <span v-if="orgRolesOf(row).length" class="perm-role-tags">
+                      <span v-for="rn in orgRolesOf(row)" :key="rn" class="perm-role-tag perm-role-tag--org">{{ rn }}</span>
+                    </span>
+                    <span v-else class="perm-muted">—</span>
+                  </div>
+                </td>
+                <!-- 顺序必须与表头一致：状态 在 更新人 之前 -->
+                <td class="perm-col-status">
+                  <span class="perm-status" :class="'perm-status--' + row.status">{{ row.statusName }}</span>
                 </td>
                 <td>
                   <span class="perm-role-tag perm-role-tag--current">{{ row.updatedBy }}</span>
-                </td>
-                <td class="perm-col-status">
-                  <span class="perm-status" :class="'perm-status--' + (row.status === 'disabled' ? 'disabled' : 'normal')">
-                    {{ row.status === 'disabled' ? '已禁用' : '正常' }}
-                  </span>
                 </td>
                 <td class="perm-muted">{{ row.updatedAt }}</td>
                 <td class="perm-col-ops">
@@ -151,6 +158,35 @@
                     class="perm-link perm-link--danger"
                     @click="toggleAccountDisabled(row, true)"
                   >禁用</button>
+                </td>
+              </tr>
+              <!-- 展开子行：该账号在所属组织中的组织角色明细 -->
+              <tr v-if="expandedIds.includes(row.userId)" class="perm-subrow">
+                <td colspan="7">
+                  <div class="perm-subtable">
+                    <table class="perm-table perm-table--sub">
+                      <thead>
+                        <tr>
+                          <th>所属组织</th>
+                          <th>组织角色</th>
+                          <th>加入时间</th>
+                          <th>更新人</th>
+                          <th>更新时间</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="m in row.memberships" :key="m.orgId">
+                          <td>{{ m.orgName }}</td>
+                          <td>
+                            <span class="perm-role-tag perm-role-tag--org">{{ m.orgRoleName }}</span>
+                          </td>
+                          <td class="perm-muted">{{ m.joinedAt || '—' }}</td>
+                          <td class="perm-muted">{{ m.updatedBy || '—' }}</td>
+                          <td class="perm-muted">{{ m.updatedAt || '—' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </td>
               </tr>
             </template>
@@ -553,58 +589,6 @@
       </Transition>
     </Teleport>
 
-    <!-- 组织归属弹窗：点击成员列表「组织数」查看 -->
-    <Teleport to="body">
-      <Transition name="perm-fade">
-        <div v-if="orgDialogRow" class="perm-modal-overlay" @click.self="closeOrgDialog">
-          <div class="perm-modal">
-            <header class="perm-modal-hd">
-              <div class="perm-modal-hd-info">
-                <h3 class="perm-modal-title">组织归属</h3>
-                <p class="perm-modal-sub">
-                  {{ orgDialogRow.name }}
-                  <span class="perm-drawer-login">{{ orgDialogRow.username }}</span>
-                </p>
-              </div>
-              <button type="button" class="perm-dialog-close" @click="closeOrgDialog">&times;</button>
-            </header>
-
-            <div class="perm-modal-body">
-              <table v-if="orgDialogRow.memberships.length" class="perm-table">
-                <thead>
-                  <tr>
-                    <th>所属组织</th>
-                    <th>组织角色</th>
-                    <th>加入时间</th>
-                    <th>更新人</th>
-                    <th>更新时间</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="m in orgDialogRow.memberships" :key="m.orgId">
-                    <td>{{ m.orgName }}</td>
-                    <td>
-                      <span class="perm-orgrole" :class="'perm-orgrole--' + m.orgRole">{{ m.orgRoleName }}</span>
-                    </td>
-                    <td class="perm-muted">{{ m.joinedAt || '—' }}</td>
-                    <td>
-                      <span class="perm-role-tag perm-role-tag--current">{{ m.updatedBy || '—' }}</span>
-                    </td>
-                    <td class="perm-muted">{{ m.updatedAt || '—' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p v-else class="perm-block-empty">该账号未加入任何组织</p>
-            </div>
-
-            <footer class="perm-modal-ft">
-              <button type="button" class="perm-btn" @click="closeOrgDialog">关闭</button>
-            </footer>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
     <!-- 删除账号二次确认 -->
     <Teleport to="body">
       <Transition name="perm-fade">
@@ -794,20 +778,21 @@ const allUsers = computed(() => {
   return getAllAccounts()
 })
 
-/* ===== 组织归属弹窗（点击「组织数」查看） ===== */
-const orgDialogUserId = ref('')
-/** 弹窗内展示的账号行 */
-const orgDialogRow = computed(() =>
-  memberRows.value.find((r) => r.userId === orgDialogUserId.value) || null)
+/* ===== 成员列表：组织角色列与内联展开 ===== */
+/** 已展开组织明细的账号 id 集合 */
+const expandedIds = ref([])
 
-function openOrgDialog(userId) {
-  orgDialogUserId.value = userId
+function toggleExpand(userId) {
+  const set = new Set(expandedIds.value)
+  if (set.has(userId)) set.delete(userId)
+  else set.add(userId)
+  expandedIds.value = [...set]
 }
 
-function closeOrgDialog() {
-  orgDialogUserId.value = ''
+/** 该账号在各组织中的组织角色名（去重，用于「组织角色」列展示） */
+function orgRolesOf(row) {
+  return [...new Set((row.memberships || []).map((m) => m.orgRoleName).filter(Boolean))]
 }
-
 
 /** 成员行：主行账号级信息，memberships 用于展开子行 */
 const memberRows = computed(() => {
@@ -1551,29 +1536,31 @@ watch(accountTotalPages, (total) => {
 /* ===== 成员列表：列宽与展开 ===== */
 .perm-col-num { width: 72px; text-align: center !important; }
 .perm-col-status { width: 88px; text-align: center !important; }
-/* 组织数：可点击查看组织归属 */
-.perm-count-btn {
-  min-width: 26px;
-  height: 22px;
-  padding: 0 8px;
-  font-size: 12px;
+/* 组织角色列：展开按钮 + 角色标签同行 */
+.perm-col-orgrole { min-width: 150px; }
+.perm-orgrole-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 展开/收起组织明细的箭头按钮 */
+.perm-expand-btn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
   font-family: inherit;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.perm-count-btn:hover { background: #dbeafe; border-color: #bfdbfe; }
-/* 组织数为 0：弱化但仍可点击（弹窗显示空态） */
-.perm-count-btn.is-zero {
-  color: #9ca3af;
+  color: #6b7280;
   background: #f3f4f6;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
 }
-.perm-count-btn.is-zero:hover { background: #e5e7eb; border-color: #d1d5db; }
+.perm-expand-btn:hover { background: #e5e7eb; color: #374151; }
+.perm-expand-btn.is-open { transform: rotate(90deg); }
 .perm-col-ops { width: 200px; white-space: nowrap; }
 
 /* ===== 成员列表：账号状态 ===== */
@@ -1597,17 +1584,18 @@ watch(accountTotalPages, (total) => {
   background: #f9fafb;
 }
 .perm-table--sub td { padding: 8px 12px; }
-.perm-orgrole {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-.perm-orgrole--admin { color: #b91c1c; background: #fee2e2; }
-.perm-orgrole--member { color: #1d4ed8; background: #eff6ff; }
 
+/* ===== 成员列表：组织明细展开子行 ===== */
+.perm-subrow > td {
+  padding: 0 16px 12px !important;
+  background: #fafbfc;
+}
+.perm-subtable {
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+}
 .perm-empty {
   padding: 40px 0 !important;
   text-align: center;
