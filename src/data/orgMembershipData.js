@@ -15,6 +15,7 @@
 import { USERS, ORGS, getUserOrgIds } from './orgData.js'
 import { findOrg } from './orgStore.js'
 import { findExtraUser } from './extraUsers.js'
+import { guardPlatformAdminOrgChange } from './permissionData.js'
 
 const STORAGE_KEY = 'tosslib_org_memberships'
 const SEED_VERSION = 1
@@ -182,6 +183,10 @@ export function validateOrgRoleChange({ userId, orgId, nextRole }) {
  * @returns {{ ok: boolean, record?: Object }}
  */
 export function addOrgMember(userId, orgId, orgRole = 'member', operator = '邀请注册') {
+  // 平台管理员账号的组织归属完全锁定。
+  // 建号流程（accountData.createAccount）已调整为「先落组织身份、再写平台角色」，故不会误伤。
+  const guard = guardPlatformAdminOrgChange(userId)
+  if (!guard.ok) return guard
   const list = getMemberships()
   const exist = list.find((m) => m.userId === userId && m.orgId === orgId)
   if (exist) return { ok: true, record: exist }
@@ -200,6 +205,9 @@ export function addOrgMember(userId, orgId, orgRole = 'member', operator = '邀�
  * @returns {{ ok: boolean, reason?: string, record?: Object }}
  */
 export function setOrgRole(userId, orgId, nextRole, operator = '组织管理员') {
+  // 平台管理员账号的组织归属完全锁定
+  const guard = guardPlatformAdminOrgChange(userId)
+  if (!guard.ok) return guard
   const check = validateOrgRoleChange({ userId, orgId, nextRole })
   if (!check.ok) return check
 
@@ -224,6 +232,9 @@ export function setOrgRole(userId, orgId, nextRole, operator = '组织管理员'
  * @returns {{ ok: boolean, reason?: string }}
  */
 export function removeOrgMember(userId, orgId) {
+  // 平台管理员账号的组织归属完全锁定
+  const guard = guardPlatformAdminOrgChange(userId)
+  if (!guard.ok) return guard
   const m = getMembership(userId, orgId)
   if (!m) return { ok: false, reason: '该成员不在本组织中' }
   if (m.orgRole === 'admin' && isLastAdmin(userId, orgId)) {

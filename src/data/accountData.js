@@ -293,6 +293,10 @@ export function isAccountDisabled(userId) {
 
 /** 禁用 / 启用账号 */
 export function setAccountDisabled(userId, disabled, operator = '系统') {
+  // 平台管理员账号一律不可禁用 / 启用（含自己）：避免管理员之间互相锁死、或无人可管
+  if (getMemberRolesOf(userId).includes('platform-admin')) {
+    return { ok: false, reason: '平台管理员账号不可禁用' }
+  }
   const list = readDisabled()
   const next = disabled
     ? [...new Set([...list, userId])]
@@ -472,14 +476,18 @@ export function createAccount(opts = {}) {
   list.push(user)
   persist(list)
 
+  // 落库组织身份，使其出现在「组织管理 → 组织成员」列表中。
+  // 必须在写平台角色之前：平台管理员账号的组织归属被锁定（guardPlatformAdminOrgChange），
+  // 若先写入 platform-admin 角色，随后的组织归属会被守卫拦截，导致建号残缺。
+  orgList.forEach((m) => addOrgMember(user.id, m.orgId, m.orgRole || 'member', operator))
+
   // 平台角色写入共享角色存储（permissionData）：保证成员列表 / 角色设置 / 权限矩阵
-  // 使用的是同一份数据，否则账号状态会被误判为「未分配」
+  // 使用的是同一份数据，否则账号状态会被误判为「未分配」。
+  // 新建账号此时尚无角色记录，守卫放行；守卫只拦截「已有 platform-admin 角色」的账号被改动。
   if (roles.length) {
     setMemberRoles(user.id, { platformRoles: roles, operator })
   }
 
-  // 落库组织身份，使其出现在「组织管理 → 组织成员」列表中
-  orgList.forEach((m) => addOrgMember(user.id, m.orgId, m.orgRole || 'member', operator))
   return { ok: true, user }
 }
 

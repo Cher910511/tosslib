@@ -117,9 +117,11 @@
                 <td class="perm-muted">{{ row.updatedAt }}</td>
                 <td class="perm-col-ops">
                   <button type="button" class="perm-link" @click="openRoleDrawer(row.userId)">设置角色</button>
+                  <!-- 平台管理员账号一律不可禁用/启用（含自己）：不展示该按钮，改为锁定说明 -->
+                  <span v-if="isPlatformAdminRow(row)" class="perm-muted">不可禁用</span>
                   <!-- 禁用/启用：已禁用的账号显示「启用」，正常账号显示「禁用」 -->
                   <button
-                    v-if="row.status === 'disabled'"
+                    v-else-if="row.status === 'disabled'"
                     type="button"
                     class="perm-link"
                     @click="toggleAccountDisabled(row, false)"
@@ -190,14 +192,21 @@
                 </div>
                 <div class="perm-field">
                   <label class="perm-label">密码 <span class="perm-req">*</span></label>
-                  <input v-model.trim="accountForm.password" type="text" class="perm-input perm-input--wide" placeholder="必填，即初始登录密码" />
+                  <input
+                    v-model.trim="accountForm.password"
+                    type="password"
+                    class="perm-input perm-input--wide"
+                    autocomplete="new-password"
+                    placeholder="必填，即初始登录密码"
+                  />
                 </div>
                 <div class="perm-field">
                   <label class="perm-label">确认密码 <span class="perm-req">*</span></label>
                   <input
                     v-model.trim="accountForm.confirmPassword"
-                    type="text"
+                    type="password"
                     class="perm-input perm-input--wide"
+                    autocomplete="new-password"
                     :class="{ 'is-invalid': passwordMismatch }"
                     placeholder="请再次输入密码"
                   />
@@ -314,6 +323,11 @@
             </header>
 
             <div class="perm-drawer-body">
+              <!-- 平台管理员账号：整体只读，避免管理员之间互相改权 -->
+              <p v-if="drawerLocked" class="perm-lock-tip">
+                该账号为<strong>平台管理员</strong>，其平台角色与组织归属均不可修改（平台管理员之间也不能互相修改）。
+              </p>
+
               <!-- 区块A：平台角色 -->
               <section class="perm-block">
                 <header class="perm-block-hd">
@@ -325,12 +339,13 @@
                     v-for="r in PLATFORM_ROLES"
                     :key="r.id"
                     class="perm-role-opt"
-                    :class="{ 'is-checked': drawerRoles.includes(r.id) }"
+                    :class="{ 'is-checked': drawerRoles.includes(r.id), 'is-locked': drawerLocked }"
                   >
                     <input
                       type="checkbox"
                       class="perm-check"
                       :checked="drawerRoles.includes(r.id)"
+                      :disabled="drawerLocked"
                       @change="toggleDrawerRole(r.id, $event.target.checked)"
                     />
                     <span class="perm-role-opt-info">
@@ -369,19 +384,26 @@
                             class="perm-select"
                             :options="orgRoleSelectOptions"
                             small
+                            :disabled="drawerLocked"
                             @change="changeDrawerOrgRole(m, $event)"
                           />
                         </td>
                         <td class="perm-col-ops">
-                          <button type="button" class="perm-link perm-link--danger" @click="removeDrawerOrg(m)">移出组织</button>
+                          <button
+                            v-if="!drawerLocked"
+                            type="button"
+                            class="perm-link perm-link--danger"
+                            @click="removeDrawerOrg(m)"
+                          >移出组织</button>
+                          <span v-else class="perm-muted">不可修改</span>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                   <p v-else class="perm-block-empty">该账号未加入任何组织</p>
 
-                  <!-- 添加组织 -->
-                  <div class="perm-join-row">
+                  <!-- 添加组织（平台管理员账号锁定，整行隐藏） -->
+                  <div v-if="!drawerLocked" class="perm-join-row">
                     <SearchSelect
                       v-model="joinOrgId"
                       class="perm-select"
@@ -397,10 +419,16 @@
 
             <footer class="perm-drawer-ft">
               <span v-if="drawerError" class="perm-drawer-error">{{ drawerError }}</span>
+              <span v-else-if="drawerLocked" class="perm-dialog-hint">该账号为平台管理员，不可修改</span>
               <span v-else class="perm-dialog-hint">变更会记录更新人为 {{ CURRENT_OPERATOR }}</span>
               <div class="perm-dialog-ft-actions">
-                <button type="button" class="perm-btn" @click="closeRoleDrawer">取消</button>
-                <button type="button" class="perm-btn perm-btn--primary" @click="saveRoleDrawer">保存</button>
+                <button type="button" class="perm-btn" @click="closeRoleDrawer">{{ drawerLocked ? '关闭' : '取消' }}</button>
+                <button
+                  v-if="!drawerLocked"
+                  type="button"
+                  class="perm-btn perm-btn--primary"
+                  @click="saveRoleDrawer"
+                >保存</button>
               </div>
             </footer>
           </aside>
@@ -471,7 +499,7 @@ import {
   MENU_PERMISSIONS,
   getMemberRoles,
   setMemberRoles,
-  guardSelfPlatformAdminChange,
+  guardPlatformAdminChange,
   getPermissionMatrix,
   setPermissionMatrix,
   resetPermissionMatrix,
@@ -742,6 +770,12 @@ const roleDrawerUserId = ref('')
 /** 抽屉内正在编辑的账号行 */
 const roleDrawerRow = computed(() =>
   memberRows.value.find((r) => r.userId === roleDrawerUserId.value) || null)
+/** 某行是否持有 platform-admin 角色（该账号的平台角色与组织归属均被锁定） */
+function isPlatformAdminRow(row) {
+  return (row?.platformRoles || []).includes('platform-admin')
+}
+/** 抽屉目标是否为平台管理员：是则整体只读 */
+const drawerLocked = computed(() => isPlatformAdminRow(roleDrawerRow.value))
 /** 抽屉草稿：平台角色（本地编辑，保存时落库） */
 const drawerRoles = ref([])
 /** 抽屉草稿：组织归属 [{ orgId, orgRole }] */
@@ -834,8 +868,8 @@ function saveRoleDrawer() {
     drawerError.value = '账号必须至少拥有一个平台角色或一个组织角色'
     return
   }
-  // 平台管理员不能修改自己的平台角色
-  const guard = guardSelfPlatformAdminChange(userId)
+  // 平台管理员账号的平台角色完全锁定：任何平台管理员（含自己）都不可修改
+  const guard = guardPlatformAdminChange(userId)
   if (!guard.ok) {
     drawerError.value = guard.reason
     return
@@ -1313,6 +1347,23 @@ function doCreateAccount() {
   background: #f9fafb;
 }
 .perm-table--sub td { padding: 8px 12px; }
+
+/* 平台管理员锁定提示：抽屉顶部整条说明 */
+.perm-lock-tip {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+}
+/* 锁定的角色选项：整行置灰、不可点 */
+.perm-role-opt.is-locked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
 
 .perm-empty {
   padding: 40px 0 !important;

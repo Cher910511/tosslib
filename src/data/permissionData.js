@@ -5,8 +5,6 @@
 //   不作为独立层级，统一归入下列角色，仅作为该角色「覆盖岗位」展示。
 // - 成员与角色的绑定关系存 localStorage，供「权限设置」页维护。
 
-import { CURRENT_USER_ID } from './orgData.js'
-
 const STORAGE_KEY = 'tosslib_member_roles'
 // 版本 3：从平台角色中移除「组织管理员」（改为 (人,组织) 上的组织身份，见 orgMembershipData.js）
 // 版本 4：平台角色改为多选（platformRole → platformRoles 数组），一人可同时持多个角色，权限取并集
@@ -344,20 +342,35 @@ function writeRoles(userId, platformRoles, operator) {
  *   兼容旧调用：传 platformRole 字符串时等价于单角色
  */
 /**
- * 平台管理员自改保护：平台管理员不能给自己增删平台角色，只能由其他平台管理员操作。
+ * 平台管理员保护：持有 platform-admin 角色的账号，其平台角色一律不可增删改
+ * （任何平台管理员都不能操作，包括自己与其他平台管理员之间）。
+ * 目的：避免平台管理员之间互相改权、或误撤全部管理员导致无人可管。
  * @returns {{ ok: boolean, reason?: string }}
  */
-export function guardSelfPlatformAdminChange(userId) {
+export function guardPlatformAdminChange(userId) {
   const isAdmin = getMemberRolesOf(userId).includes('platform-admin')
-  if (isAdmin && userId === CURRENT_USER_ID) {
-    return { ok: false, reason: '平台管理员不能修改自己的平台角色，请由其他平台管理员操作' }
+  if (isAdmin) {
+    return { ok: false, reason: '平台管理员的平台角色不可修改' }
+  }
+  return { ok: true }
+}
+
+/**
+ * 平台管理员组织归属保护：平台管理员账号的组织归属一律不可增删改
+ * （与平台角色同口径：任何平台管理员都不能操作，包括自己与其他平台管理员之间）。
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+export function guardPlatformAdminOrgChange(userId) {
+  const isAdmin = getMemberRolesOf(userId).includes('platform-admin')
+  if (isAdmin) {
+    return { ok: false, reason: '平台管理员的组织归属不可修改' }
   }
   return { ok: true }
 }
 
 /** 设置某成员的全部平台角色（整体覆盖）。传空数组即撤销全部平台角色。 */
 export function setMemberRoles(userId, { platformRoles, platformRole, operator = '系统' }) {
-  const guard = guardSelfPlatformAdminChange(userId)
+  const guard = guardPlatformAdminChange(userId)
   if (!guard.ok) return guard
   const roles = Array.isArray(platformRoles)
     ? platformRoles
@@ -370,7 +383,7 @@ export function setMemberRoles(userId, { platformRoles, platformRole, operator =
 
 /** 追加一个平台角色（不影响该成员已有角色） */
 export function addRole(userId, roleId, operator = '系统') {
-  const guard = guardSelfPlatformAdminChange(userId)
+  const guard = guardPlatformAdminChange(userId)
   if (!guard.ok) return guard
   const current = getMemberRolesOf(userId)
   if (current.includes(roleId)) return { ok: true, record: getMemberRole(userId) }
@@ -386,7 +399,7 @@ export function addRole(userId, roleId, operator = '系统') {
  * 只要该账号在某个组织里有组织角色，就仍然合法，故此处不再拦截。
  */
 export function removeRole(userId, roleId, operator = '系统') {
-  const guard = guardSelfPlatformAdminChange(userId)
+  const guard = guardPlatformAdminChange(userId)
   if (!guard.ok) return guard
   const current = getMemberRolesOf(userId)
   const next = current.filter((r) => r !== roleId)
@@ -395,7 +408,7 @@ export function removeRole(userId, roleId, operator = '系统') {
 
 /** 替换平台角色：把某成员的平台角色整体设为指定集合（可为空） */
 export function replaceRoles(userId, roleIds, operator = '系统') {
-  const guard = guardSelfPlatformAdminChange(userId)
+  const guard = guardPlatformAdminChange(userId)
   if (!guard.ok) return guard
   const roles = [...new Set(roleIds || [])]
   const mutex = validateRoleMutex(roles)
