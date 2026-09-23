@@ -2,34 +2,20 @@
   <div class="rs-viewport">
     <div class="rs-stage">
       <div class="rs-screen">
-        <!-- ===== 背景：极淡网格 / 坐标线 / 抽象节点网络 / 扫描线 / 粒子 ===== -->
+        <!-- ===== 背景：深空底 + 顶光 + 网格 + 光斑 + 粒子 ===== -->
         <div class="rs-bg" aria-hidden="true">
           <span class="rs-bg-halo" />
-          <span class="rs-bg-aurora rs-bg-aurora--a" />
-          <span class="rs-bg-aurora rs-bg-aurora--b" />
-          <span class="rs-bg-aurora rs-bg-aurora--c" />
+          <span class="rs-bg-blob rs-bg-blob--a" />
+          <span class="rs-bg-blob rs-bg-blob--b" />
           <span class="rs-bg-grid" />
-          <span class="rs-bg-diag" />
-          <span class="rs-bg-coord" />
-          <span class="rs-bg-network" />
-          <span class="rs-bg-constellation" />
-          <span class="rs-bg-orbit rs-bg-orbit--1" />
-          <span class="rs-bg-orbit rs-bg-orbit--2" />
-          <span class="rs-bg-orbit rs-bg-orbit--3" />
-          <span class="rs-bg-streak rs-bg-streak--a" />
-          <span class="rs-bg-streak rs-bg-streak--b" />
-          <span class="rs-bg-scan" />
-          <span v-for="p in 24" :key="`d${p}`" class="rs-bg-dot" :style="particleStyle(p)" />
-          <span class="rs-bg-corner rs-bg-corner--tl" />
-          <span class="rs-bg-corner rs-bg-corner--tr" />
-          <span class="rs-bg-corner rs-bg-corner--bl" />
-          <span class="rs-bg-corner rs-bg-corner--br" />
+          <span class="rs-bg-dots" />
+          <span v-for="p in 32" :key="`pt${p}`" class="rs-bg-particle" :style="particleStyle(p)" />
         </div>
 
-        <!-- ===== 顶部品牌标题区（标题居中，两侧对称装饰）===== -->
+        <!-- ===== 顶部标题区：居中标题 + 两侧刻度装饰 + 右侧时钟 ===== -->
         <header class="rs-top">
           <div class="rs-top-side" aria-hidden="true">
-            <span v-for="i in 5" :key="`tl${i}`" class="rs-tick" :style="{ opacity: 0.35 + i * 0.13 }" />
+            <span v-for="i in 6" :key="`tl${i}`" class="rs-tick" :style="{ opacity: 0.25 + i * 0.13 }" />
           </div>
           <div class="rs-title-block">
             <span class="rs-title-deco" aria-hidden="true" />
@@ -37,133 +23,46 @@
             <span class="rs-title-deco rs-title-deco--r" aria-hidden="true" />
           </div>
           <div class="rs-top-right">
-            <div class="rs-clock">
-              <span class="rs-clock-time">{{ clockLine }}</span>
-            </div>
+            <span class="rs-status"><i />{{ platformMeta.status }}</span>
+            <span class="rs-clock">{{ clockLine }}</span>
           </div>
         </header>
 
-        <!-- ===== 主体：非对称模块化布局 ===== -->
+        <!-- ===== 主体：左（用户行为）· 中（资产总览）· 右（风险行为） ===== -->
         <main class="rs-main">
-          <!-- 资产总览 -->
-          <section class="rs-panel p-assets">
-            <h3 class="rs-panel-title">资产总览</h3>
-            <div class="rs-asset-grid">
-              <div
-                v-for="c in assetCards"
-                :key="c.key"
-                class="rs-asset"
-                :class="{ 'is-featured': c.featured }"
-              >
-                <span class="rs-asset-label">{{ c.label }}</span>
-                <span class="rs-asset-value">
-                  <CountUp class="rs-asset-num" :end="c.value" />
-                  <em v-if="c.unit" class="rs-asset-unit">{{ c.unit }}</em>
-                </span>
-                <span v-if="c.hint" class="rs-asset-hint">{{ c.hint }}</span>
+          <!-- 左栏：用户行为 -->
+          <div class="rs-col rs-col--left">
+            <section class="rs-panel rs-flex--2">
+              <h3 class="rs-panel-title">用户行为总览</h3>
+              <div class="rs-kpi-grid">
+                <div v-for="u in userOverview" :key="u.key" class="rs-kpi">
+                  <span class="rs-kpi-label">{{ u.label }}</span>
+                  <span class="rs-kpi-value">
+                    <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
+                  </span>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- 最新漏洞动态 -->
-          <section class="rs-panel p-vulnfeed">
-            <div class="rs-panel-hd">
-              <h3 class="rs-panel-title">最新漏洞动态</h3>
-              <span class="rs-panel-count">{{ vulnFeed.length }} 条</span>
-            </div>
-            <div class="rs-panel-body">
-              <ScreenTable :columns="vulnColumns" :rows="vulnFeed" :duration="46" />
-            </div>
-          </section>
-
-          <!-- 安全风险总览 -->
-          <section class="rs-panel p-risk">
-            <h3 class="rs-panel-title">安全风险总览</h3>
-            <div class="rs-risk-list">
-              <div v-for="r in riskOverview" :key="r.key" class="rs-risk-row" :class="`is-${r.tone}`">
-                <span class="rs-risk-label">{{ r.label }}</span>
-                <CountUp class="rs-risk-num" :end="r.value" />
+            <section class="rs-panel rs-flex--2">
+              <h3 class="rs-panel-title">开源资产使用</h3>
+              <div class="rs-kpi-grid">
+                <div v-for="u in usageStats" :key="u.key" class="rs-kpi">
+                  <span class="rs-kpi-label">{{ u.label }}</span>
+                  <span class="rs-kpi-value">
+                    <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
+                    <em v-if="u.unit" class="rs-kpi-unit">{{ u.unit }}</em>
+                  </span>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- 漏洞风险等级分布（环形） -->
-          <section class="rs-panel p-vulnlevel">
-            <h3 class="rs-panel-title">漏洞风险等级分布</h3>
-            <div class="rs-panel-body">
-              <ScreenDonutChart :data="vulnLevelDistribution" unit="" :radius="['50%', '74%']" />
-            </div>
-          </section>
-
-          <!-- 恶意代码检测动态 -->
-          <section class="rs-panel p-malware">
-            <div class="rs-panel-hd">
-              <h3 class="rs-panel-title">恶意代码检测动态</h3>
-              <span class="rs-panel-count">{{ malwareFeed.length }} 条</span>
-            </div>
-            <div class="rs-panel-body">
-              <ScreenTable :columns="malwareColumns" :rows="malwareFeed" :duration="34" />
-            </div>
-          </section>
-
-          <!-- 风险情报趋势（面积） -->
-          <section class="rs-panel p-trend">
-            <div class="rs-panel-hd">
-              <h3 class="rs-panel-title">开源风险情报趋势</h3>
-              <span class="rs-panel-note">近十年 · 指数化（首年 = 100）</span>
-            </div>
-            <div class="rs-panel-body">
-              <ScreenLineChart :categories="riskTrendIndexed.years" :series="riskTrendIndexed.series" />
-            </div>
-          </section>
-
-          <!-- 技术栈分类分布（榜单） -->
-          <section class="rs-panel p-tech">
-            <div class="rs-panel-hd">
-              <h3 class="rs-panel-title">技术栈分类</h3>
-              <span class="rs-panel-note">共 {{ techStackTotal }} 类 · Top 10</span>
-            </div>
-            <div class="rs-panel-body">
-              <ScreenRankList :data="techStackTop10" />
-            </div>
-          </section>
-
-          <!-- 开发者国家 Top10（横向条形） -->
-          <section class="rs-panel p-country">
-            <h3 class="rs-panel-title">开源贡献者国家 Top10</h3>
-            <div class="rs-panel-body">
-              <ScreenBarChart :data="developerCountries" direction="horizontal" />
-            </div>
-          </section>
-
-          <!-- 开源资产使用统计 -->
-          <section class="rs-panel p-usage">
-            <h3 class="rs-panel-title">开源资产使用</h3>
-            <div class="rs-kpi-grid">
-              <div v-for="u in usageStats" :key="u.key" class="rs-kpi">
-                <span class="rs-kpi-label">{{ u.label }}</span>
-                <span class="rs-kpi-value">
-                  <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
-                  <em class="rs-kpi-unit">{{ u.unit }}</em>
-                </span>
+            <section class="rs-panel rs-flex--3">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">用户活跃 Top5</h3>
+                <span class="rs-panel-note">按页面浏览量</span>
               </div>
-            </div>
-          </section>
-
-          <!-- 用户信息与行为（KPI + 用户活跃 Top5） -->
-          <section class="rs-panel p-user">
-            <h3 class="rs-panel-title">用户信息与行为</h3>
-            <div class="rs-kpi-grid rs-kpi-grid--user">
-              <div v-for="u in userOverview" :key="u.key" class="rs-kpi">
-                <span class="rs-kpi-label">{{ u.label }}</span>
-                <span class="rs-kpi-value">
-                  <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
-                </span>
-              </div>
-            </div>
-            <div class="rs-user-rank">
-              <div class="rs-user-rank-hd">用户活跃 Top5<span>按页面浏览量</span></div>
-              <div class="rs-user-rank-list">
+              <div class="rs-user-rank">
                 <div v-for="(u, i) in topUsers5" :key="u.name" class="rs-user-rank-row">
                   <span class="rs-user-rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
                   <span class="rs-user-rank-name" :title="u.name">{{ u.name }}</span>
@@ -171,21 +70,105 @@
                   <span class="rs-user-rank-value">{{ u.pv.toLocaleString() }}</span>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- 最新数据动态 -->
-          <section class="rs-panel p-feed">
-            <div class="rs-panel-hd">
-              <h3 class="rs-panel-title">最新数据动态</h3>
-            </div>
-            <div class="rs-panel-body">
-              <ScreenScrollList :items="liveFeed" :duration="24" />
-            </div>
-          </section>
+            <section class="rs-panel rs-flex--2">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">最新数据动态</h3>
+              </div>
+              <div class="rs-panel-body">
+                <ScreenScrollList :items="liveFeed" :duration="24" />
+              </div>
+            </section>
+          </div>
+
+          <!-- 中栏：资产总览主视觉 + 趋势 -->
+          <div class="rs-col rs-col--center">
+            <section class="rs-panel rs-hero">
+              <h3 class="rs-panel-title">资产总览</h3>
+              <div class="rs-hero-stage">
+                <!-- 同心环能量球 -->
+                <div class="rs-orb" aria-hidden="true">
+                  <span class="rs-orb-ring rs-orb-ring--1" />
+                  <span class="rs-orb-ring rs-orb-ring--2" />
+                  <span class="rs-orb-ring rs-orb-ring--3" />
+                  <span class="rs-orb-ring rs-orb-ring--4" />
+                  <span class="rs-orb-core" />
+                  <span class="rs-orb-sat rs-orb-sat--1" />
+                  <span class="rs-orb-sat rs-orb-sat--2" />
+                </div>
+                <div class="rs-hero-total">
+                  <span class="rs-hero-label">可信开源资产总数</span>
+                  <span class="rs-hero-num"><CountUp :end="heroTotal.value" /></span>
+                  <span class="rs-hero-unit">{{ heroTotal.unit }}</span>
+                  <span class="rs-hero-hint">{{ heroTotal.hint }}</span>
+                </div>
+              </div>
+              <div class="rs-hero-grid">
+                <div v-for="c in heroSideCards" :key="c.key" class="rs-hero-cell">
+                  <span class="rs-hero-cell-label">{{ c.label }}</span>
+                  <span class="rs-hero-cell-value">
+                    <CountUp class="rs-hero-cell-num" :end="c.value" />
+                    <em v-if="c.unit" class="rs-hero-cell-unit">{{ c.unit }}</em>
+                  </span>
+                  <span class="rs-hero-cell-hint">{{ c.hint }}</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="rs-panel rs-flex--3">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">开源风险情报趋势</h3>
+                <span class="rs-panel-note">近十年</span>
+              </div>
+              <div class="rs-panel-body">
+                <ScreenLineChart :categories="riskTrendIndexed.years" :series="riskTrendIndexed.series" />
+              </div>
+            </section>
+          </div>
+
+          <!-- 右栏：风险行为 -->
+          <div class="rs-col rs-col--right">
+            <section class="rs-panel rs-flex--2">
+              <h3 class="rs-panel-title">安全风险总览</h3>
+              <div class="rs-risk-list">
+                <div v-for="r in riskOverview" :key="r.key" class="rs-risk-row" :class="`is-${r.tone}`">
+                  <span class="rs-risk-label">{{ r.label }}</span>
+                  <CountUp class="rs-risk-num" :end="r.value" />
+                </div>
+              </div>
+            </section>
+
+            <section class="rs-panel rs-flex--3">
+              <h3 class="rs-panel-title">漏洞风险等级分布</h3>
+              <div class="rs-panel-body rs-donut-center">
+                <ScreenDonutChart :data="vulnLevelDistribution" unit="" :radius="['52%', '72%']" />
+              </div>
+            </section>
+
+            <section class="rs-panel rs-flex--3">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">最新漏洞动态</h3>
+                <span class="rs-panel-note">{{ vulnFeed.length }} 条</span>
+              </div>
+              <div class="rs-panel-body">
+                <ScreenTable :columns="vulnColumns" :rows="vulnFeed" :duration="46" />
+              </div>
+            </section>
+
+            <section class="rs-panel rs-flex--3">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">恶意代码检测动态</h3>
+                <span class="rs-panel-note">{{ malwareFeed.length }} 条</span>
+              </div>
+              <div class="rs-panel-body">
+                <ScreenTable :columns="malwareColumns" :rows="malwareFeed" :duration="34" />
+              </div>
+            </section>
+          </div>
         </main>
 
-        <!-- ===== 底部版权 ===== -->
+        <!-- ===== 底部备案 ===== -->
         <footer class="rs-footer">
           <span>{{ footerInfo.copyright }}</span>
         </footer>
@@ -196,24 +179,22 @@
 
 <script setup>
 /**
- * 可信开源代码库数据大屏 · 数据驾驶舱（1920×1080 单屏）
+ * 可信开源代码库数据大屏 · 政务科技风三栏布局
  *
- * 视觉方向：深色 · 克制科技感 · 数据驾驶舱
- * - 深海军蓝渐变底 + 半透明玻璃卡片 + 极细 #005BCB 描边
- * - 非对称模块化布局，关系网络作为中心视觉焦点
- * - 橙色/红色仅用于高危与告警，正常数据用蓝/青/白分层
+ * 布局参考经典政务大屏「左-中-右」三栏：
+ *   左栏 = 用户行为（行为总览 KPI / 用户活跃 Top5 / 最新数据动态）
+ *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 开源风险情报趋势
+ *   右栏 = 风险行为（安全风险总览 / 漏洞等级分布 / 漏洞动态 / 恶意代码检测动态）
  *
- * 数据原则：平台已有概念取自 mockData.js；下载与接口、访问行为两块
- * 取自平台真实数据看板（cntoss.cn /admin/board，近 7 天）。
+ * 视觉：深空蓝底 + #005BCB 品牌青蓝 + 面板四角括号 + 中央能量球；
+ *       克制发光与装饰密度，保证政务场景的高级感。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
-import ScreenBarChart from '../../components/screen/ScreenBarChart.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import ScreenDonutChart from '../../components/screen/ScreenDonutChart.vue'
 import ScreenScrollList from '../../components/screen/ScreenScrollList.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
-import ScreenRankList from '../../components/screen/ScreenRankList.vue'
 import {
   platformMeta,
   assetCards,
@@ -222,17 +203,18 @@ import {
   vulnFeed,
   malwareFeed,
   riskTrendIndexed,
-  techStackTop10,
-  techStackTotal,
-  developerCountries,
-  usageStats,
   userOverview,
+  usageStats,
   topUsers,
   liveFeed,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
-/* ===== 用户活跃 Top5（真实数据，按 PV 归一化进度条）===== */
+/* ===== 资产总览：中心总数 + 环侧分项 ===== */
+const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
+const heroSideCards = assetCards.filter((c) => c.key !== 'total')
+
+/* ===== 用户活跃 Top5（按 PV 归一化进度条）===== */
 const topUsers5 = computed(() => {
   const list = topUsers.slice(0, 5)
   const max = Math.max(...list.map((u) => u.pv), 1)
@@ -241,23 +223,19 @@ const topUsers5 = computed(() => {
 
 /* ===== 表格列定义 ===== */
 const vulnColumns = [
-  { key: 'level', label: '等级', width: '62px', align: 'center', tag: true },
-  { key: 'time', label: '时间', width: '82px' },
+  { key: 'level', label: '等级', width: '56px', align: 'center', tag: true },
+  { key: 'time', label: '时间', width: '78px' },
   { key: 'name', label: '软件名称', width: 'minmax(0, 1fr)' },
-  { key: 'version', label: '版本', width: '74px' },
-  { key: 'cve', label: '漏洞编号', width: '124px' },
-  { key: 'cwe', label: 'CWE 类型', width: 'minmax(0, 1fr)' },
+  { key: 'version', label: '版本', width: '64px' },
+  { key: 'cve', label: '漏洞编号', width: '110px' },
 ]
 
 const malwareColumns = [
   { key: 'software', label: '软件', width: 'minmax(0, 1fr)' },
-  { key: 'category', label: '恶意类别', width: '80px' },
-  { key: 'type', label: '类型小类', width: 'minmax(0, 0.85fr)' },
-  { key: 'threatLevel', label: '威胁等级', width: '72px', align: 'center', tag: true },
-  { key: 'result', label: '检测结果', width: '84px', align: 'center', tag: true },
+  { key: 'category', label: '恶意类别', width: '72px' },
+  { key: 'threatLevel', label: '威胁等级', width: '62px', align: 'center', tag: true },
+  { key: 'result', label: '检测结果', width: '74px', align: 'center', tag: true },
 ]
-
-/* ===== 自适应布局：随视口尺寸伸缩，不做固定像素缩放 ===== */
 
 /* ===== 顶部时钟 ===== */
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
@@ -265,22 +243,12 @@ const now = ref(new Date())
 let clockTimer = null
 
 const pad2 = (n) => String(n).padStart(2, '0')
-const clockTime = computed(() => {
-  const d = now.value
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
-})
-const clockDate = computed(() => {
-  const d = now.value
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${WEEKDAYS[d.getDay()]}`
-})
-
-/** 时钟：时间与日期拼成一行展示 */
 const clockLine = computed(() => {
   const d = now.value
-  return `${clockTime.value}  ${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${WEEKDAYS[d.getDay()]}`
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}  ${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${WEEKDAYS[d.getDay()]}`
 })
 
-/** 背景漂浮光点：确定性伪随机（同一序号位置固定，避免刷新跳动） */
+/** 背景粒子：确定性伪随机（同一序号位置固定，避免刷新跳动） */
 function particleStyle(i) {
   const rnd = ((i * 9301 + 49297) % 233280) / 233280
   const rnd2 = ((i * 4523 + 12345) % 233280) / 233280
@@ -288,7 +256,7 @@ function particleStyle(i) {
     left: `${(rnd * 100).toFixed(2)}%`,
     top: `${(rnd2 * 100).toFixed(2)}%`,
     animationDelay: `${(rnd * 9).toFixed(2)}s`,
-    animationDuration: `${8 + (i % 6) * 1.8}s`,
+    animationDuration: `${9 + (i % 5) * 2}s`,
   }
 }
 
@@ -303,39 +271,39 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* ==================================================================
-   墨玉 × 香槟金 · 数据驾驶舱（流式自适应，随视口伸缩不破版）
+   政务科技风 · 三栏驾驶舱（流式自适应）
+   深空蓝底 / #005BCB 品牌青蓝 / 中央能量球 / 四角括号面板
    ================================================================== */
 .rs-viewport {
-  /* 品牌与文字层次 */
+  /* 品牌与辉光层次 */
   --brand: #005BCB;
-  --brand-bright: #4CD7FF;
-  --cyan: #2DE3EE;
-  --text-strong: #F7FBFF;
-  --text: #DCE9F8;
-  --text-sub: #AFC7E4;
-  --text-dim: #8AA6C6;
-  /* 告警色：仅用于高危与异常 */
+  --brand-bright: #38BDF8;
+  --cyan: #22D3EE;
+  --gold: #FFD98A;
+  /* 文字层次 */
+  --text-strong: #F5FAFF;
+  --text: #D6E7FA;
+  --text-sub: #9DC0E4;
+  --text-dim: #6F94BC;
+  /* 告警色：仅高危与异常 */
   --danger: #FF6B6B;
   --warn: #FBBF6E;
-  --ok: #6EE7A8;
-  /* 玻璃卡片 */
-  --glass: rgba(43, 92, 154, 0.62);
-  --glass-strong: rgba(52, 108, 176, 0.72);
-  --hairline: rgba(0, 145, 255, 0.52);
-  --hairline-soft: rgba(0, 145, 255, 0.3);
-  --gap: 11px;
+  /* 面板 */
+  --glass: rgba(16, 56, 108, 0.3);
+  --glass-strong: rgba(20, 68, 128, 0.42);
+  --hairline: rgba(0, 145, 255, 0.4);
+  --hairline-soft: rgba(0, 145, 255, 0.2);
+  --gap: 12px;
 
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  /* 深海军蓝 → 蓝黑渐变，克制、不做大面积亮色渐变 */
-  /* 青蓝驾驶舱底：色相从藏青往青调一档，层次更透亮 */
+  /* 深空蓝：上亮下暗的纵深感，顶部青光聚焦 */
   background:
-    radial-gradient(1200px 640px at 16% -8%, rgba(0, 137, 201, 0.4), transparent 62%),
-    radial-gradient(1000px 560px at 88% 4%, rgba(45, 212, 235, 0.26), transparent 64%),
-    radial-gradient(900px 520px at 50% 112%, rgba(56, 200, 248, 0.24), transparent 66%),
-    radial-gradient(760px 460px at 76% 82%, rgba(34, 211, 238, 0.16), transparent 68%),
-    linear-gradient(168deg, #0E3A54 0%, #0C3050 46%, #08253F 100%);
+    radial-gradient(1300px 620px at 50% -12%, rgba(0, 132, 220, 0.32), transparent 64%),
+    radial-gradient(900px 520px at 6% 6%, rgba(0, 91, 203, 0.28), transparent 60%),
+    radial-gradient(900px 520px at 96% 8%, rgba(34, 211, 238, 0.14), transparent 62%),
+    linear-gradient(180deg, #0A2E52 0%, #072040 52%, #051630 100%);
 }
 .rs-stage {
   width: 100%;
@@ -349,11 +317,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   padding: 12px 16px 6px;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   color: var(--text);
 }
 
-/* ===== 背景：极淡网格 / 坐标线 / 抽象节点网络 / 扫描线 / 粒子 ===== */
+/* ===== 背景装饰 ===== */
 .rs-bg {
   position: absolute;
   inset: 0;
@@ -361,282 +329,103 @@ onBeforeUnmount(() => {
   pointer-events: none;
   overflow: hidden;
 }
-/* 细网格 */
-.rs-bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0, 91, 203, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 91, 203, 0.09) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: radial-gradient(ellipse at 50% 40%, #000 24%, transparent 82%);
-  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 24%, transparent 82%);
-}
-/* 坐标刻度线：仅在上下边缘示意，营造仪表感 */
-.rs-bg-coord {
-  position: absolute;
-  inset: 0;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(0, 91, 203, 0.22) 0 1px, transparent 1px 72px),
-    repeating-linear-gradient(0deg, rgba(0, 91, 203, 0.16) 0 1px, transparent 1px 72px);
-  background-size: 100% 6px, 6px 100%;
-  background-position: 0 0, 0 0;
-  background-repeat: no-repeat;
-  opacity: 0.5;
-}
-/* 抽象节点网络：用多重径向渐变模拟，透明度极低 */
-.rs-bg-network {
-  position: absolute;
-  inset: 0;
-  opacity: 0.5;
-  background-image:
-    radial-gradient(circle at 12% 22%, rgba(56, 189, 248, 0.5) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 28% 68%, rgba(56, 189, 248, 0.4) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 46% 34%, rgba(34, 211, 238, 0.4) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 63% 78%, rgba(56, 189, 248, 0.36) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 78% 26%, rgba(34, 211, 238, 0.42) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 90% 62%, rgba(56, 189, 248, 0.34) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 34% 12%, rgba(0, 91, 203, 0.5) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 70% 52%, rgba(0, 91, 203, 0.44) 0 1.2px, transparent 1.2px);
-}
-/* 扫描线：缓慢自上而下 */
-.rs-bg-scan {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.055), transparent);
-  animation: rs-bg-scan 15s linear infinite;
-}
-@keyframes rs-bg-scan {
-  0% { transform: translateY(-200px); }
-  100% { transform: translateY(1080px); }
-}
-/* 漂浮光点 */
-.rs-bg-dot {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(56, 189, 248, 0.6);
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
-  animation-name: rs-bg-float;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-@keyframes rs-bg-float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.18; }
-  50% { transform: translateY(-26px) scale(1.3); opacity: 0.7; }
-}
-
-/* 顶部中央光晕：给整屏一个「舞台灯」焦点，打破灰败的均匀感 */
-.rs-bg-halo {
-  position: absolute;
-  top: -240px;
-  left: 50%;
-  width: 1100px;
-  height: 560px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(96, 210, 255, 0.22), rgba(45, 227, 238, 0.08) 46%, transparent 72%);
-  filter: blur(30px);
-  pointer-events: none;
-}
-/* 星座连线：星点 + 细连线，像星图一样铺在背景上 */
-.rs-bg-constellation {
-  position: absolute;
-  inset: 0;
-  opacity: 0.55;
-  background-image:
-    radial-gradient(circle at 8% 18%, rgba(94, 234, 212, 0.65) 0 1.6px, transparent 1.6px),
-    radial-gradient(circle at 15% 62%, rgba(94, 234, 212, 0.5) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 26% 34%, rgba(125, 211, 252, 0.6) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 38% 76%, rgba(94, 234, 212, 0.45) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 47% 12%, rgba(125, 211, 252, 0.55) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 58% 54%, rgba(94, 234, 212, 0.5) 0 1.6px, transparent 1.6px),
-    radial-gradient(circle at 67% 28%, rgba(125, 211, 252, 0.45) 0 1.2px, transparent 1.2px),
-    radial-gradient(circle at 76% 68%, rgba(94, 234, 212, 0.55) 0 1.4px, transparent 1.4px),
-    radial-gradient(circle at 86% 20%, rgba(125, 211, 252, 0.6) 0 1.6px, transparent 1.6px),
-    radial-gradient(circle at 92% 58%, rgba(94, 234, 212, 0.45) 0 1.2px, transparent 1.2px),
-    linear-gradient(12deg, transparent 49.85%, rgba(94, 234, 212, 0.14) 49.85%, rgba(94, 234, 212, 0.14) 50.15%, transparent 50.15%),
-    linear-gradient(78deg, transparent 49.85%, rgba(125, 211, 252, 0.12) 49.85%, rgba(125, 211, 252, 0.12) 50.15%, transparent 50.15%),
-    linear-gradient(-24deg, transparent 49.85%, rgba(94, 234, 212, 0.1) 49.85%, rgba(94, 234, 212, 0.1) 50.15%, transparent 50.15%),
-    linear-gradient(140deg, transparent 49.85%, rgba(125, 211, 252, 0.1) 49.85%, rgba(125, 211, 252, 0.1) 50.15%, transparent 50.15%);
-}
-/* 轨道光弧环：右下角三层同心弧，缓慢旋转 */
-.rs-bg-orbit {
-  position: absolute;
-  right: -160px;
-  bottom: -200px;
-  border: 1px solid rgba(94, 234, 212, 0.22);
-  border-radius: 50%;
-  will-change: transform;
-}
-.rs-bg-orbit--1 {
-  width: 460px;
-  height: 460px;
-  border-top-color: rgba(94, 234, 212, 0.5);
-  animation: rs-orbit 40s linear infinite;
-}
-.rs-bg-orbit--2 {
-  width: 640px;
-  height: 640px;
-  right: -250px;
-  bottom: -290px;
-  border-style: dashed;
-  border-color: rgba(125, 211, 252, 0.2);
-  border-bottom-color: rgba(125, 211, 252, 0.45);
-  animation: rs-orbit 55s linear infinite reverse;
-}
-.rs-bg-orbit--3 {
-  width: 840px;
-  height: 840px;
-  right: -350px;
-  bottom: -390px;
-  border-color: rgba(94, 234, 212, 0.12);
-  border-top-color: rgba(94, 234, 212, 0.3);
-  animation: rs-orbit 70s linear infinite;
-}
-@keyframes rs-orbit {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* 氛围光斑：三团缓慢漂移的彩色光晕，提亮背景层次 */
-.rs-bg-aurora {
+.rs-bg-blob {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
   will-change: transform;
 }
-.rs-bg-aurora--a {
-  top: -10%;
-  left: 4%;
-  width: 46%;
-  height: 34%;
-  background: radial-gradient(circle, rgba(0, 132, 255, 0.34), transparent 68%);
-  animation: rs-aurora-a 28s ease-in-out infinite;
+.rs-bg-blob--a {
+  top: -12%; left: 6%; width: 44%; height: 38%;
+  background: radial-gradient(circle, rgba(0, 132, 220, 0.24), transparent 68%);
+  animation: rs-blob-a 32s ease-in-out infinite;
 }
-.rs-bg-aurora--b {
-  top: 14%;
-  right: -8%;
-  width: 44%;
-  height: 40%;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.26), transparent 70%);
-  animation: rs-aurora-b 34s ease-in-out infinite;
+.rs-bg-blob--b {
+  bottom: -14%; right: 2%; width: 42%; height: 36%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.13), transparent 70%);
+  animation: rs-blob-b 38s ease-in-out infinite;
 }
-.rs-bg-aurora--c {
-  bottom: -14%;
-  left: 26%;
-  width: 54%;
-  height: 32%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 72%);
-  animation: rs-aurora-c 31s ease-in-out infinite;
-}
-@keyframes rs-aurora-a {
+@keyframes rs-blob-a {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(7%, 9%) scale(1.14); }
+  50% { transform: translate(6%, 8%) scale(1.1); }
 }
-@keyframes rs-aurora-b {
-  0%, 100% { transform: translate(0, 0) scale(1.06); }
-  50% { transform: translate(-9%, 7%) scale(1); }
+@keyframes rs-blob-b {
+  0%, 100% { transform: translate(0, 0) scale(1.05); }
+  50% { transform: translate(-7%, -6%) scale(1); }
 }
-@keyframes rs-aurora-c {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-6%, -8%) scale(1.12); }
-}
-/* 斜向条纹：增加织物般的质感 */
-.rs-bg-diag {
+.rs-bg-grid {
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(56, 189, 248, 0.05) 0 1px,
-    transparent 1px 26px
-  );
-  opacity: 0.6;
+  background-image:
+    linear-gradient(rgba(0, 145, 255, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 145, 255, 0.11) 1px, transparent 1px);
+  background-size: 76px 76px;
+  mask-image: radial-gradient(ellipse at 50% 36%, #000 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 36%, #000 20%, transparent 80%);
 }
-/* 斜向流光带：缓慢明暗呼吸 */
-.rs-bg-streak {
+.rs-bg-dots {
   position: absolute;
-  width: 1px;
-  height: 170%;
-  background: linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.55), transparent);
-  opacity: 0.4;
+  inset: 0;
+  background-image: radial-gradient(rgba(56, 189, 248, 0.14) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at 50% 45%, #000 15%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 15%, transparent 78%);
 }
-.rs-bg-streak--a {
-  left: 24%;
-  transform: rotate(16deg);
-  animation: rs-streak 10s ease-in-out infinite;
-}
-.rs-bg-streak--b {
-  right: 27%;
-  transform: rotate(-16deg);
-  animation: rs-streak 12s ease-in-out infinite 2.5s;
-}
-@keyframes rs-streak {
-  0%, 100% { opacity: 0.12; }
-  50% { opacity: 0.6; }
-}
-/* 四角装饰：细线角标，营造仪表盘边界感 */
-.rs-bg-corner {
+/* 漂浮粒子 */
+.rs-bg-particle {
   position: absolute;
-  width: 56px;
-  height: 56px;
-  border: 2px solid rgba(56, 189, 248, 0.42);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+  opacity: 0;
+  animation-name: rs-particle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
-.rs-bg-corner--tl { top: 8px; left: 10px; border-right: none; border-bottom: none; }
-.rs-bg-corner--tr { top: 8px; right: 10px; border-left: none; border-bottom: none; }
-.rs-bg-corner--bl { bottom: 8px; left: 10px; border-right: none; border-top: none; }
-.rs-bg-corner--br { bottom: 8px; right: 10px; border-left: none; border-top: none; }
+@keyframes rs-particle {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
+  50% { transform: translateY(-30px) scale(1.25); opacity: 0.8; }
+}
 
-/* ===== 顶部品牌标题区：标题居中，左右对称装饰 ===== */
+/* ===== 顶部标题区 ===== */
 .rs-top {
   position: relative;
   z-index: 5;
   flex-shrink: 0;
-  /* 三列等分：左装饰 1fr / 标题 auto / 右侧 1fr —— 两侧等宽才能保证标题真居中
-     （此前用 flex + 只有左侧 flex:1，导致标题被挤向右侧） */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 16px;
-  height: 70px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--hairline-soft);
+  height: clamp(52px, 6.5vh, 70px);
+  padding-bottom: 10px;
 }
-/* 标题底部的流光分隔线 */
+/* 横幅底部流光线 */
 .rs-top::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.75), rgba(34, 211, 238, 0.75), transparent);
-  animation: rs-top-line 5s ease-in-out infinite;
+  height: 2px;
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 145, 255, 0.75) 18%, rgba(34, 211, 238, 0.9) 50%, rgba(0, 145, 255, 0.75) 82%, transparent);
 }
-@keyframes rs-top-line {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
-}
-/* 两侧对称刻度装饰 */
 .rs-top-side {
-  /* min-width:0 防止内容撑破 1fr 轨道，从而保证标题始终居中 */
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .rs-tick {
-  width: 30px;
+  width: clamp(18px, 1.6vw, 30px);
   height: 3px;
   border-radius: 2px;
-  background: linear-gradient(90deg, rgba(56, 189, 248, 0.85), rgba(0, 91, 203, 0.08));
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.85), rgba(0, 91, 203, 0.1));
 }
-/* 居中标题块 */
 .rs-title-block {
-  flex-shrink: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -646,103 +435,102 @@ onBeforeUnmount(() => {
   font-size: clamp(19px, 1.56vw, 30px);
   font-weight: 700;
   letter-spacing: clamp(3px, 0.31vw, 6px);
-  /* 白→青渐变字：高级感核心 */
-  background: linear-gradient(180deg, #FFFFFF 18%, #CFF3FF 52%, #7FD8FF 100%);
+  background: linear-gradient(180deg, #FFFFFF 22%, #BFE7FF 55%, #56C2FF 88%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 14px rgba(77, 215, 255, 0.45)) drop-shadow(0 2px 8px rgba(0, 20, 40, 0.6));
+  filter: drop-shadow(0 0 16px rgba(86, 194, 255, 0.45));
+  white-space: nowrap;
 }
-@keyframes rs-title-glow {
-  0%, 100% { text-shadow: 0 0 22px rgba(56, 189, 248, 0.5), 0 0 44px rgba(0, 91, 203, 0.35); }
-  50% { text-shadow: 0 0 32px rgba(56, 189, 248, 0.8), 0 0 62px rgba(34, 211, 238, 0.45); }
-}
-/* 标题两侧的发光短条 */
 .rs-title-deco {
-  width: 54px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--brand-bright));
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+  width: clamp(30px, 2.8vw, 54px);
+  height: 10px;
+  clip-path: polygon(0 50%, 30% 0, 100% 0, 70% 50%, 100% 100%, 30% 100%);
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.15), var(--brand-bright));
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 .rs-title-deco--r {
-  background: linear-gradient(270deg, transparent, var(--brand-bright));
+  transform: scaleX(-1);
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), var(--cyan));
 }
 .rs-top-right {
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
+  gap: 12px;
+}
+.rs-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #6EE7A8;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.rs-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  animation: rs-blink 2s ease-in-out infinite;
+}
+@keyframes rs-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 .rs-clock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  padding: 4px 13px;
-  background: var(--glass);
-  border: 1px solid var(--hairline);
-  border-radius: 7px;
-}
-.rs-clock-time {
-  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
-  font-size: clamp(13px, 1.04vw, 20px);
-  font-weight: 700;
-  line-height: 1.1;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: clamp(12px, 0.95vw, 16px);
+  font-weight: 600;
   color: var(--brand-bright);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 
-/* ===== 主体：非对称模块化布局（12 列 × 4 行）=====
-   刻意避免机械三栏等分：关系网络占据中心 4×2 的大焦点，
-   表格占右侧 4×2 纵向长条，其余模块按信息量分配宽窄。 */
+/* ===== 主体三栏 ===== */
 .rs-main {
   position: relative;
   z-index: 2;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: repeat(8, minmax(0, 1fr));
-  column-gap: var(--gap);
-  row-gap: 6px;
-  padding-top: 10px;
+  grid-template-columns: 26fr 48fr 26fr;
+  /* 关键：行高约束在可用空间内，防止面板内容把整页撑出视口 */
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--gap);
+  padding-top: var(--gap);
 }
-/* 第 1 行（占 2 细行）：开源资产使用 / 资产总览（最宽焦点）/ 安全风险 */
-.p-usage { grid-column: 1 / 3; grid-row: 1 / 3; }
-.p-assets { grid-column: 3 / 10; grid-row: 1 / 3; }
-.p-risk { grid-column: 10 / 13; grid-row: 1 / 3; }
-/* 第 2 视觉行：漏洞等级 / 漏洞动态 / 风险趋势（右侧 3/8 高，不再纵贯两行） */
-.p-vulnlevel { grid-column: 1 / 4; grid-row: 3 / 5; }
-.p-vulnfeed { grid-column: 4 / 8; grid-row: 3 / 5; }
-.p-trend { grid-column: 8 / 13; grid-row: 3 / 6; }
-/* 第 3 视觉行：恶意代码 / 最新数据动态 / 用户信息（补在趋势下方） */
-.p-malware { grid-column: 1 / 5; grid-row: 5 / 7; }
-.p-feed { grid-column: 5 / 8; grid-row: 5 / 7; }
-.p-user { grid-column: 8 / 13; grid-row: 6 / 9; }
-/* 第 4 视觉行：技术栈 / 开发者国家 */
-.p-tech { grid-column: 1 / 5; grid-row: 7 / 9; }
-.p-country { grid-column: 5 / 8; grid-row: 7 / 9; }
+.rs-col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+/* 栏内纵向配比：数值越大分得越高 */
+.rs-flex--2 { flex: 2; }
+.rs-flex--3 { flex: 3; }
+.rs-col--center .rs-hero { flex: 5; }
 
-
-/* ===== 玻璃卡片：半透明深蓝 + 噪点纹理 + 极细描边 ===== */
+/* ===== 面板：玻璃面 + 辉光勾边 + 四角科技括号 ===== */
 .rs-panel {
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 9px 12px 11px;
-  /* 轻微渐变 + 噪点纹理 */
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
-    linear-gradient(158deg, rgba(58, 118, 190, 0.56) 0%, rgba(34, 78, 136, 0.52) 100%);
+  padding: 10px 13px 12px;
+  background-image: linear-gradient(160deg, var(--glass-strong) 0%, var(--glass) 100%);
   border: 1px solid var(--hairline);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow:
-    0 1px 0 rgba(160, 220, 255, 0.12) inset,
-    0 8px 28px rgba(0, 10, 30, 0.4);
+    0 0 18px rgba(0, 145, 255, 0.12) inset,
+    0 8px 26px rgba(0, 4, 12, 0.45);
   backdrop-filter: blur(7px);
   overflow: hidden;
   animation: rs-enter 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -751,7 +539,7 @@ onBeforeUnmount(() => {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-/* 左上角极细高光：替代传统发光边框 */
+/* 面板顶缘辉光线 */
 .rs-panel::before {
   content: '';
   position: absolute;
@@ -759,59 +547,63 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(76, 201, 255, 0.9), rgba(34, 211, 238, 0.35) 42%, transparent 72%);
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(34, 211, 238, 0.4) 50%, transparent 92%);
   pointer-events: none;
 }
-/* 悬停：描边微亮，不做大面积发光 */
-.rs-panel:hover { border-color: rgba(56, 189, 248, 0.5); }
+/* 四角科技括号 */
+.rs-panel::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--brand-bright), var(--brand-bright)) left top / 12px 2px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) left top / 2px 12px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) right top / 12px 2px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) right top / 2px 12px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) left bottom / 12px 2px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) left bottom / 2px 12px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) right bottom / 12px 2px no-repeat,
+    linear-gradient(var(--brand-bright), var(--brand-bright)) right bottom / 2px 12px no-repeat;
+  opacity: 0.4;
+  transition: opacity 0.25s;
+}
+.rs-panel:hover::after { opacity: 1; }
 
-/* 面板头部 */
 .rs-panel-hd {
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
   gap: 9px;
-  margin-bottom: 6px;
 }
 .rs-panel-title {
   position: relative;
-  margin: 0;
-  padding-left: 12px;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
+  margin: 0 0 8px;
+  padding-left: 13px;
   font-size: clamp(11.5px, 0.7vw, 13.5px);
   font-weight: 600;
   letter-spacing: 0.8px;
   color: var(--text-strong);
   white-space: nowrap;
-  /* 标题底线：从中线渐隐，增强模块秩序感 */
-  border-bottom: 1px solid transparent;
-  border-image: linear-gradient(90deg, rgba(77, 215, 255, 0.55), rgba(77, 215, 255, 0.06) 60%, transparent) 1;
 }
-/* 标题前竖条：亮青渐变 + 辉光 */
 .rs-panel-title::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 3px;
-  bottom: 11px;
+  top: 2px;
+  bottom: 2px;
   width: 3px;
   border-radius: 2px;
-  background: linear-gradient(180deg, var(--brand-bright), rgba(45, 227, 238, 0.25));
-  box-shadow: 0 0 8px rgba(77, 215, 255, 0.55);
+  background: linear-gradient(180deg, var(--cyan), rgba(0, 91, 203, 0.35));
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
 }
+.rs-panel-hd .rs-panel-title { margin-bottom: 0; }
 .rs-panel-note {
   font-size: 10.5px;
-  color: var(--text-sub);
+  color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.rs-panel-count {
-  margin-left: auto;
-  font-size: 10.5px;
-  color: var(--text-sub);
-  font-variant-numeric: tabular-nums;
 }
 .rs-panel-body {
   flex: 1;
@@ -820,140 +612,181 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* ===== 资产总览（3×2 玻璃小卡）===== */
-.rs-asset-grid {
+/* ===== 中栏主视觉：能量球 ===== */
+.rs-hero-stage {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  place-items: center;
 }
-.rs-asset {
+.rs-orb {
+  position: relative;
+  width: min(38vh, 72%);
+  aspect-ratio: 1;
+}
+/* 同心环：错速旋转 */
+.rs-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+.rs-orb-ring--1 { animation: rs-spin 26s linear infinite; border-top-color: rgba(56, 189, 248, 0.85); }
+.rs-orb-ring--2 {
+  inset: 9%;
+  border-style: dashed;
+  border-color: rgba(0, 145, 255, 0.22);
+  border-bottom-color: rgba(34, 211, 238, 0.7);
+  animation: rs-spin 38s linear infinite reverse;
+}
+.rs-orb-ring--3 { inset: 19%; border-color: rgba(0, 145, 255, 0.16); border-top-color: rgba(56, 189, 248, 0.5); animation: rs-spin 30s linear infinite; }
+.rs-orb-ring--4 { inset: 30%; border-color: rgba(34, 211, 238, 0.12); }
+@keyframes rs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* 核心光球 */
+.rs-orb-core {
+  position: absolute;
+  inset: 38%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 32%, rgba(120, 210, 255, 0.55), rgba(0, 91, 203, 0.4) 55%, rgba(4, 22, 48, 0.9) 100%);
+  box-shadow:
+    0 0 34px rgba(56, 189, 248, 0.5),
+    0 0 90px rgba(0, 132, 220, 0.35) inset;
+  animation: rs-breathe 5s ease-in-out infinite;
+}
+@keyframes rs-breathe {
+  0%, 100% { box-shadow: 0 0 26px rgba(56, 189, 248, 0.4), 0 0 80px rgba(0, 132, 220, 0.3) inset; }
+  50% { box-shadow: 0 0 48px rgba(56, 189, 248, 0.65), 0 0 110px rgba(0, 132, 220, 0.4) inset; }
+}
+/* 环上卫星光点 */
+.rs-orb-sat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 50%;
+  background: #7DDCFF;
+  box-shadow: 0 0 12px rgba(125, 220, 255, 0.95);
+}
+.rs-orb-sat--1 { animation: rs-orbit-a 26s linear infinite; }
+.rs-orb-sat--2 { animation: rs-orbit-b 38s linear infinite; }
+@keyframes rs-orbit-a {
+  from { transform: rotate(0deg) translateX(calc(min(38vh, 72%) / 2)); }
+  to { transform: rotate(360deg) translateX(calc(min(38vh, 72%) / 2)); }
+}
+@keyframes rs-orbit-b {
+  from { transform: rotate(160deg) translateX(calc(min(38vh, 72%) * 0.41)); }
+  to { transform: rotate(-200deg) translateX(calc(min(38vh, 72%) * 0.41)); }
+}
+/* 中心数字 */
+.rs-hero-total {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  transform: translateY(-6%);
+}
+.rs-hero-label {
+  font-size: clamp(12px, 0.85vw, 15px);
+  letter-spacing: 3px;
+  color: var(--text-sub);
+}
+.rs-hero-num {
+  font-family: 'DIN Alternate', 'Bahnschrift', ui-monospace, monospace;
+  font-size: clamp(34px, 3.4vw, 62px);
+  font-weight: 700;
+  line-height: 1.05;
+  color: #FFFFFF;
+  text-shadow: 0 0 26px rgba(56, 189, 248, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+.rs-hero-unit {
+  font-size: clamp(12px, 0.9vw, 15px);
+  color: var(--gold);
+}
+.rs-hero-hint {
+  font-size: 10.5px;
+  color: #6EE7A8;
+}
+/* 球下分项：5 张数据卡 */
+.rs-hero-grid {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 4px;
+}
+.rs-hero-cell {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 2px;
-  padding: 7px 10px 7px 14px;
-  background: linear-gradient(135deg, rgba(96, 168, 236, 0.3), rgba(60, 110, 170, 0.16) 60%, rgba(40, 80, 130, 0.22));
+  padding: 8px 10px;
+  background: rgba(6, 34, 70, 0.55);
   border: 1px solid var(--hairline-soft);
   border-radius: 6px;
   overflow: hidden;
-  transition: border-color 0.18s, background 0.18s;
+  transition: border-color 0.2s;
 }
-/* 小卡左侧渐变光条：数字卡片的秩序感来源 */
-.rs-asset::before {
+.rs-hero-cell::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 14%;
-  bottom: 14%;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--brand-bright), rgba(45, 227, 238, 0.15));
-  opacity: 0.75;
-}
-.rs-asset:hover {
-  border-color: rgba(76, 201, 255, 0.6);
-  background: rgba(96, 164, 230, 0.34);
-}
-/* 核心资产：仅用左侧品牌色细线强调，不做整卡发光 */
-.rs-asset.is-featured {
-  border-color: rgba(56, 189, 248, 0.42);
-  background: linear-gradient(140deg, rgba(0, 145, 255, 0.44), rgba(84, 150, 218, 0.32));
-}
-.rs-asset.is-featured::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 12%;
-  bottom: 12%;
+  top: 0;
+  bottom: 0;
   width: 2px;
-  border-radius: 1px;
-  background: var(--brand-bright);
+  background: linear-gradient(180deg, var(--cyan), transparent);
 }
-.rs-asset-label {
-  font-size: 11px;
+.rs-hero-cell:hover { border-color: rgba(34, 211, 238, 0.55); }
+.rs-hero-cell-label {
+  font-size: 10.5px;
   color: var(--text-sub);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rs-asset-value { display: flex; align-items: baseline; gap: 3px; }
-/* 数字：等宽科技感字体，白/亮蓝分层 */
-.rs-asset-num {
-  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
-  font-size: clamp(16px, 1.25vw, 24px);
+.rs-hero-cell-value { display: flex; align-items: baseline; gap: 3px; }
+.rs-hero-cell-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(15px, 1.2vw, 22px);
   font-weight: 700;
-  line-height: 1.1;
   color: var(--text-strong);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 16px rgba(76, 201, 255, 0.55);
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
 }
-.rs-asset.is-featured .rs-asset-num { color: var(--brand-bright); }
-.rs-asset-unit { font-style: normal; font-size: 11px; color: var(--text-sub); }
-.rs-asset-hint {
-  font-size: 10px;
+.rs-hero-cell-unit { font-style: normal; font-size: 10px; color: var(--text-sub); }
+.rs-hero-cell-hint {
+  font-size: 9.5px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ===== 安全风险总览（3 行）===== */
-.rs-risk-list {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-.rs-risk-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 11px;
-  background: rgba(84, 150, 218, 0.24);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-}
-.rs-risk-label {
-  font-size: 11.5px;
-  color: var(--text-sub);
-  white-space: nowrap;
-}
-.rs-risk-num {
-  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
-  font-size: clamp(15px, 1.15vw, 22px);
-  font-weight: 700;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-}
-/* 告警色仅用于高危与恶意代码，不做整屏红 */
-.rs-risk-row.is-danger { border-color: rgba(255, 107, 107, 0.5); background: rgba(140, 52, 62, 0.42); }
-.rs-risk-row.is-danger .rs-risk-num { color: var(--danger); }
-.rs-risk-row.is-warn { border-color: rgba(251, 191, 110, 0.46); background: rgba(128, 92, 42, 0.4); }
-.rs-risk-row.is-warn .rs-risk-num { color: var(--warn); }
-
-/* ===== KPI 网格（资产使用 / 用户信息）===== */
+/* ===== 左栏：用户行为 KPI ===== */
 .rs-kpi-grid {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 7px;
 }
 .rs-kpi {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
-  padding: 5px 9px;
-  background: rgba(84, 150, 218, 0.24);
+  gap: 2px;
+  padding: 5px 10px;
+  background: rgba(6, 34, 70, 0.55);
   border: 1px solid var(--hairline-soft);
   border-radius: 6px;
   overflow: hidden;
@@ -965,74 +798,46 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rs-kpi-value { display: flex; align-items: baseline; gap: 2px; }
 .rs-kpi-num {
-  font-family: 'DIN Alternate', 'Bahnschrift', 'Orbitron', ui-monospace, monospace;
-  font-size: clamp(14px, 1.04vw, 20px);
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(14px, 1.05vw, 20px);
   font-weight: 700;
   color: var(--brand-bright);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(76, 201, 255, 0.5);
-}
-.rs-kpi-unit { font-style: normal; font-size: 10px; color: var(--text-sub); }
-/* 用户面板：KPI 收紧为 3×2，剩余高度给活跃榜单 */
-.rs-kpi-grid--user {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  flex: none;
-  height: 44%;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
 }
 
-/* ===== 用户活跃 Top5 榜单 ===== */
+/* ===== 左栏：用户活跃 Top5 ===== */
 .rs-user-rank {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  margin-top: 6px;
-}
-.rs-user-rank-hd {
-  flex-shrink: 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text);
-}
-.rs-user-rank-hd span { font-size: 10px; font-weight: 400; color: var(--text-dim); }
-.rs-user-rank-list {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-rows: repeat(5, minmax(0, 1fr));
-  gap: 3px;
+  gap: 5px;
 }
 .rs-user-rank-row {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1.15fr) minmax(0, 1fr) 44px;
+  grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) 46px;
   align-items: center;
-  gap: 6px;
-  padding: 0 7px;
-  background: rgba(84, 150, 218, 0.24);
+  gap: 7px;
+  padding: 0 8px;
+  background: rgba(6, 34, 70, 0.55);
   border: 1px solid var(--hairline-soft);
   border-radius: 5px;
   overflow: hidden;
 }
 .rs-user-rank-no {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   display: grid;
   place-items: center;
-  font-family: 'Orbitron', ui-monospace, monospace;
+  font-family: ui-monospace, monospace;
   font-size: 9.5px;
   font-weight: 700;
   color: var(--text-sub);
-  background: rgba(120, 175, 235, 0.22);
+  background: rgba(56, 120, 190, 0.24);
   border-radius: 3px;
 }
-/* 前三名：金银铜徽标 */
 .rs-user-rank-no.is-1 { color: #1A1305; background: linear-gradient(160deg, #FFE08A, #E8B33B); }
 .rs-user-rank-no.is-2 { color: #0E1622; background: linear-gradient(160deg, #E8F1FA, #AFC4D8); }
 .rs-user-rank-no.is-3 { color: #211004; background: linear-gradient(160deg, #F0BE93, #C77E45); }
@@ -1046,24 +851,98 @@ onBeforeUnmount(() => {
 .rs-user-rank-bar {
   height: 5px;
   border-radius: 3px;
-  background: rgba(10, 26, 46, 0.5);
+  background: rgba(3, 14, 29, 0.6);
   overflow: hidden;
 }
 .rs-user-rank-bar i {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, rgba(0, 91, 203, 0.55), #4CC9FF);
-  box-shadow: 0 0 8px rgba(76, 201, 255, 0.45);
+  background: linear-gradient(90deg, rgba(0, 91, 203, 0.6), #38BDF8);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
 }
 .rs-user-rank-value {
-  font-family: 'Orbitron', ui-monospace, monospace;
+  font-family: ui-monospace, monospace;
   font-size: 11px;
   font-weight: 700;
   color: var(--brand-bright);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ===== 右栏：安全风险总览 ===== */
+.rs-risk-list {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.rs-risk-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 11px 5px 16px;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+}
+.rs-risk-row::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand-bright);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+.rs-risk-label { font-size: 11.5px; color: var(--text-sub); white-space: nowrap; }
+.rs-risk-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(16px, 1.2vw, 23px);
+  font-weight: 700;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+/* 漏洞总数（primary）：淡红 */
+.rs-risk-row.is-primary { border-color: rgba(255, 138, 138, 0.5); }
+.rs-risk-row.is-primary::before { background: #FF8A8A; box-shadow: 0 0 10px rgba(255, 138, 138, 0.85); }
+.rs-risk-row.is-primary .rs-risk-num {
+  color: #FF8A8A;
+  text-shadow: 0 0 16px rgba(255, 138, 138, 0.7);
+}
+/* 高危漏洞数（danger）：深红 */
+.rs-risk-row.is-danger { border-color: rgba(183, 28, 28, 0.75); }
+.rs-risk-row.is-danger::before { background: #B71C1C; box-shadow: 0 0 10px rgba(183, 28, 28, 0.9); }
+.rs-risk-row.is-danger .rs-risk-num { color: #D32F2F; text-shadow: 0 0 16px rgba(183, 28, 28, 0.9); }
+.rs-risk-row.is-warn { border-color: rgba(251, 191, 110, 0.5); }
+.rs-risk-row.is-warn::before { background: var(--warn); box-shadow: 0 0 10px rgba(251, 191, 110, 0.9); }
+.rs-risk-row.is-warn .rs-risk-num { color: #FFC876; text-shadow: 0 0 16px rgba(251, 191, 110, 0.7); }
+
+/* ===== 右栏：漏洞等级分布（环形居中，图例置底横排） ===== */
+.rs-donut-center :deep(.donut) {
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.rs-donut-center :deep(.donut-chart) {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+.rs-donut-center :deep(.donut-legend) {
+  flex: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+}
+.rs-donut-center :deep(.donut-legend-item) { flex: none; }
 
 /* ===== 底部备案 ===== */
 .rs-footer {
@@ -1073,33 +952,31 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  height: 24px;
+  height: 22px;
   font-size: 10.5px;
   color: var(--text-dim);
 }
 
-/* 各区段依次入场（按视觉顺序错峰） */
-.p-assets { animation-delay: 0.04s; }
-.p-usage { animation-delay: 0.08s; }
-.p-risk { animation-delay: 0.12s; }
-.p-vulnlevel { animation-delay: 0.16s; }
-.p-vulnfeed { animation-delay: 0.20s; }
-.p-trend { animation-delay: 0.26s; }
-.p-malware { animation-delay: 0.32s; }
-.p-feed { animation-delay: 0.36s; }
-.p-tech { animation-delay: 0.42s; }
-.p-country { animation-delay: 0.46s; }
-.p-user { animation-delay: 0.50s; }
-
+/* 各面板依次入场 */
+.rs-col--left .rs-panel:nth-child(1) { animation-delay: 0.05s; }
+.rs-col--left .rs-panel:nth-child(2) { animation-delay: 0.12s; }
+.rs-col--left .rs-panel:nth-child(3) { animation-delay: 0.19s; }
+.rs-col--center .rs-panel:nth-child(1) { animation-delay: 0.09s; }
+.rs-col--center .rs-panel:nth-child(2) { animation-delay: 0.16s; }
+.rs-col--right .rs-panel:nth-child(1) { animation-delay: 0.07s; }
+.rs-col--right .rs-panel:nth-child(2) { animation-delay: 0.14s; }
+.rs-col--right .rs-panel:nth-child(3) { animation-delay: 0.21s; }
+.rs-col--right .rs-panel:nth-child(4) { animation-delay: 0.28s; }
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .rs-panel,
-  .rs-bg-scan,
-  .rs-bg-dot,
-  .rs-bg-orbit,
-  .rs-bg-streak {
+  .rs-bg-blob,
+  .rs-bg-particle,
+  .rs-orb-ring,
+  .rs-orb-core,
+  .rs-orb-sat,
+  .rs-status i {
     animation: none !important;
   }
 }

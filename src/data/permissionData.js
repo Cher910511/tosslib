@@ -19,20 +19,20 @@ const SEED_VERSION = 8
 
 // ==================== 角色模型（两类独立身份，不可混用） ====================
 // 铁律：平台角色列只出现平台角色；组织角色只出现在组织归属里。
-// 任何页面都不允许把「审核专家、一般人员」这类混合值放进同一格。
+// 任何页面都不允许把「审核人员、一般人员」这类混合值放进同一格。
 //
 // 账号 → 平台角色：一对多（可多选，各角色权限取并集）
 // 账号 → 组织：多对多
 // 账号 → 组织内角色：每个组织一个
 
 /**
- * 平台级角色（平台管理员 / 审核专家 / 治理人员 / 监管机构）。
+ * 平台级角色（平台管理员 / 审核人员 / 治理人员 / 监管人员）。
  * posts 为该角色覆盖的岗位（仅作说明展示，不参与权限计算）。
  */
 export const PLATFORM_ROLES = [
   {
     id: 'audit-expert',
-    name: '审核专家',
+    name: '审核人员',
     group: '治理和看护',
     posts: ['出入库审核员'],
     desc: '审核代码入库/出库合规性，负责治理任务分配与入库审核确认',
@@ -46,8 +46,8 @@ export const PLATFORM_ROLES = [
   },
   {
     id: 'regulator',
-    name: '监管机构',
-    group: '监管机构',
+    name: '监管人员',
+    group: '监管人员',
     posts: ['风险预警', '平台运营监管员'],
     desc: '监控安全风险、发起预警、监督平台运营规范性',
   },
@@ -224,7 +224,7 @@ const SEED_MEMBERS = [
   // 组织管理员：无平台角色，其权限来自组织归属（组织级角色 = 组织管理员）
   { userId: 'user-admin-1', platformRoles: [], updatedBy: 'admin', updatedAt: '2026-08-01 09:10' },
   { userId: 'user-admin-2', platformRoles: ['audit-expert'], updatedBy: 'admin', updatedAt: '2026-08-02 10:20' },
-  // 治理人员 + 监管机构：多平台角色示例（互斥规则已取消，可自由叠加）
+  // 治理人员 + 监管人员：多平台角色示例（互斥规则已取消，可自由叠加）
   { userId: 'user-admin-3', platformRoles: ['governor', 'regulator'], updatedBy: 'admin', updatedAt: '2026-08-02 10:25' },
   { userId: 'user-admin-4', platformRoles: ['regulator'], updatedBy: 'admin', updatedAt: '2026-08-03 14:05' },
   // 以下均为组织成员：无平台角色，权限来自组织归属（组织级角色 = 一般人员）
@@ -426,8 +426,9 @@ export function countByPlatformRole() {
 // 锁定规则（见 isMatrixCellLocked）：仅平台管理员列恒为全开，不接受修改。
 const MATRIX_KEY = 'tosslib_permission_matrix'
 const LOG_KEY = 'tosslib_permission_log'
-/** 日志种子版本：变更种子内容时递增，使旧日志让位新种子 */
-const LOG_SEED_VERSION = 2
+/** 日志种子版本：变更种子内容时递增，使旧日志让位新种子
+ *  版本 3：角色改名（审核专家→审核人员、监管机构→监管人员），旧日志需让位 */
+const LOG_SEED_VERSION = 3
 /** 更新日志保留条数上限 */
 const LOG_LIMIT = 200
 
@@ -501,13 +502,13 @@ const SEED_LOGS = [
   },
   {
     at: '2026-08-27 10:35', operator: 'admin', type: 'cell',
-    menuName: '个人设置-我的反馈清单', roleName: '审核专家', before: true, after: false,
-    summary: '为「审核专家」关闭「个人设置-我的反馈清单」',
+    menuName: '个人设置-我的反馈清单', roleName: '审核人员', before: true, after: false,
+    summary: '为「审核人员」关闭「个人设置-我的反馈清单」',
   },
   {
     at: '2026-08-26 15:08', operator: 'zhangjianguo', type: 'cell',
-    menuName: '后台管理-软件出入库', roleName: '监管机构', before: false, after: true,
-    summary: '为「监管机构」开通「后台管理-软件出入库」',
+    menuName: '后台管理-软件出入库', roleName: '监管人员', before: false, after: true,
+    summary: '为「监管人员」开通「后台管理-软件出入库」',
   },
   {
     at: '2026-08-25 09:40', operator: 'admin', type: 'reset', count: 3,

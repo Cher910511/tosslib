@@ -74,17 +74,17 @@ function formatNum(n) {
   font-family: 'Orbitron', -apple-system, sans-serif;
   font-size: 11px;
   font-weight: 700;
-  color: #94A9C4;
-  background: rgba(100, 116, 139, 0.22);
+  color: #6B7686;
+  background: rgba(27, 36, 48, 0.08);
   border-radius: 4px;
 }
-.rk-no--t1 { color: #fff; background: linear-gradient(135deg, #F59E0B, #D97706); }
-.rk-no--t2 { color: #fff; background: linear-gradient(135deg, #94A3B8, #64748B); }
-.rk-no--t3 { color: #fff; background: linear-gradient(135deg, #D97706, #92400E); }
+.rk-no--t1 { color: #fff; background: linear-gradient(135deg, #D99A26, #B0761B); }
+.rk-no--t2 { color: #fff; background: linear-gradient(135deg, #8E99A8, #5F6B7A); }
+.rk-no--t3 { color: #fff; background: linear-gradient(135deg, #C08A54, #96601F); }
 
 .rk-name {
   font-size: 12px;
-  color: #C8D8EC;
+  color: #3D4754;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -93,7 +93,7 @@ function formatNum(n) {
 
 .rk-bar {
   height: 5px;
-  background: rgba(0, 91, 203, 0.2);
+  background: rgba(46, 107, 214, 0.12);
   border-radius: 3px;
   overflow: hidden;
 }

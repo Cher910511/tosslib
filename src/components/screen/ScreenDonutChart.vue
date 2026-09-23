@@ -43,7 +43,7 @@ function update() {
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(10, 22, 40, 0.96)',
-      borderColor: 'rgba(0, 91, 203, 0.45)',
+      borderColor: 'rgba(0, 145, 255, 0.45)',
       borderWidth: 1,
       padding: [8, 12],
       textStyle: { color: '#E2ECF8', fontSize: 12 },
@@ -56,7 +56,7 @@ function update() {
         type: 'text',
         left: 'center',
         top: 'middle',
-        style: { text: props.centerLabel, fill: '#005BCB', fontSize: 12, fontWeight: 600 },
+        style: { text: props.centerLabel, fill: '#56C2FF', fontSize: 12, fontWeight: 600 },
       }]
       : [],
     series: [
@@ -67,7 +67,7 @@ function update() {
         avoidLabelOverlap: true,
         label: { show: false },
         labelLine: { show: false },
-        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderColor: '#FFFFFF', borderWidth: 2 },
         emphasis: { scale: true, scaleSize: 6 },
         data: props.data.map((d) => ({
           name: d.name,
@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
 .donut-name {
   flex: 1;
   min-width: 0;
-  color: #A8BEDA;
+  color: #9DC0E4;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

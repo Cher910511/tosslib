@@ -23,8 +23,8 @@ const chartRef = ref(null)
 let chart = null
 let ro = null
 
-const AXIS_TEXT = '#7C93B0'
-const SPLIT = 'rgba(0, 91, 203, 0.18)'
+const AXIS_TEXT = '#9DC0E4'
+const SPLIT = 'rgba(0, 145, 255, 0.18)'
 
 function update() {
   if (!chart) return
@@ -40,7 +40,7 @@ function update() {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(10, 22, 40, 0.96)',
-      borderColor: 'rgba(0, 91, 203, 0.45)',
+      borderColor: 'rgba(0, 145, 255, 0.45)',
       borderWidth: 1,
       padding: [8, 12],
       textStyle: { color: '#E2ECF8', fontSize: 12 },

@@ -18,7 +18,7 @@ const props = defineProps({
   /** 纵向柱状时是否使用对数刻度 */
   log: { type: Boolean, default: false },
   /** 主轴色（默认主题蓝） */
-  color: { type: String, default: '#005BCB' },
+  color: { type: String, default: '#2E6BD6' },
   /** 是否显示数值标签 */
   showValue: { type: Boolean, default: false },
   /** 对数刻度的范围（仅 log 为 true 时生效） */
@@ -30,17 +30,17 @@ const chartRef = ref(null)
 let chart = null
 let ro = null
 
-const AXIS_TEXT = '#7C93B0'
-const SPLIT = 'rgba(0, 91, 203, 0.18)'
+const AXIS_TEXT = '#6B7686'
+const SPLIT = 'rgba(27, 36, 48, 0.1)'
 
 function tooltipBase() {
   return {
-    backgroundColor: 'rgba(10, 22, 40, 0.96)',
-    borderColor: 'rgba(0, 91, 203, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderColor: 'rgba(27, 36, 48, 0.15)',
     borderWidth: 1,
     padding: [8, 12],
-    textStyle: { color: '#E2ECF8', fontSize: 12 },
-    extraCssText: 'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55); border-radius: 6px;',
+    textStyle: { color: '#1B2430', fontSize: 12 },
+    extraCssText: 'box-shadow: 0 8px 24px rgba(27, 36, 48, 0.18); border-radius: 6px;',
   }
 }
 
@@ -54,7 +54,7 @@ function update() {
     type: 'category',
     data: names,
     axisLabel: { color: AXIS_TEXT, fontSize: 11, interval: 0 },
-    axisLine: { lineStyle: { color: 'rgba(0, 91, 203, 0.2)' } },
+    axisLine: { lineStyle: { color: 'rgba(27, 36, 48, 0.15)' } },
     axisTick: { show: false },
   }
   const valueAxis = {
@@ -75,7 +75,7 @@ function update() {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(0, 91, 203, 0.06)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(46, 107, 214, 0.07)' } },
       ...tooltipBase(),
       formatter: (p) => {
         const x = p[0]

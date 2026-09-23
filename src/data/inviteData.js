@@ -110,7 +110,7 @@ const SEED_INVITES = [
     createdAt: '2026-08-20 09:05',
     updatedBy: 'admin',
     updatedAt: '2026-08-20 09:05',
-    note: '审核专家定向邀请',
+    note: '审核人员定向邀请',
     revoked: false,
   },
   {

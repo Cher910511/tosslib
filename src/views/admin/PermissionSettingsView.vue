@@ -28,36 +28,19 @@
     <!-- 成员角色 / 功能权限矩阵 -->
     <section class="perm-card">
       <header class="perm-card-hd perm-hd-bar">
-        <div class="perm-tabs" role="tablist">
-          <button
-            v-for="t in TABS"
-            :key="t.id"
-            type="button"
-            class="perm-tab"
-            :class="{ 'is-active': activeTab === t.id }"
-            @click="activeTab = t.id"
-          >{{ t.label }}</button>
-        </div>
+        <!-- 原「成员列表 / 功能权限矩阵」Tab 已改为标题（矩阵 Tab 已移除，恢复时改回按钮组即可） -->
+        <h3 class="perm-title perm-title--bar">成员列表</h3>
 
         <div class="perm-bar-actions">
-          <template v-if="activeTab === 'members'">
-            <input v-model.trim="keyword" type="text" class="perm-input" placeholder="搜索成员姓名 / 组织" />
-          </template>
-          <template v-else-if="activeTab === 'matrix'">
-            <button type="button" class="perm-btn" @click="toggleLogPanel">
-              更新日志{{ permissionLogs.length ? `（${permissionLogs.length}）` : '' }}
-            </button>
-            <button type="button" class="perm-btn" @click="resetMatrix">恢复默认</button>
-          </template>
-          <template v-else>
-            <span class="perm-hint">平台级角色在此建号并分配；组织一般成员也可由组织管理员发送邀请链接自助注册</span>
-          </template>
+          <input v-model.trim="keyword" type="text" class="perm-input" placeholder="搜索成员姓名 / 组织" />
+          <button type="button" class="perm-btn" @click="exportMembers">导出成员列表</button>
+          <button type="button" class="perm-btn perm-btn--primary" @click="openCreateDialog">新建账号</button>
         </div>
       </header>
 
       <p v-if="tip" class="perm-tip">{{ tip }}</p>
 
-      <!-- 成员列表：主行账号级信息，展开子行看组织归属 -->
+      <!-- 成员列表：主行账号级信息，组织角色列平铺展示 -->
       <div v-if="activeTab === 'members'">
         <!-- 筛选栏：平台角色 / 组织 / 账号状态 -->
         <div class="perm-filter-bar">
@@ -118,22 +101,11 @@
                   <span v-else class="perm-muted">—</span>
                 </td>
                 <td class="perm-col-orgrole">
-                  <!-- 组织角色：展示该账号在各组织中的角色（去重），可展开查看所属组织明细 -->
-                  <div class="perm-orgrole-cell">
-                    <button
-                      v-if="row.memberships.length"
-                      type="button"
-                      class="perm-expand-btn"
-                      :class="{ 'is-open': expandedIds.includes(row.userId) }"
-                      :aria-expanded="expandedIds.includes(row.userId) ? 'true' : 'false'"
-                      :title="expandedIds.includes(row.userId) ? '收起组织明细' : `展开 ${row.name} 的组织明细`"
-                      @click="toggleExpand(row.userId)"
-                    >›</button>
-                    <span v-if="orgRolesOf(row).length" class="perm-role-tags">
-                      <span v-for="rn in orgRolesOf(row)" :key="rn" class="perm-role-tag perm-role-tag--org">{{ rn }}</span>
-                    </span>
-                    <span v-else class="perm-muted">—</span>
-                  </div>
+                  <!-- 组织角色：按「组织名（组织角色名）」顿号分隔平铺展示 -->
+                  <span v-if="row.memberships.length" class="perm-orgrole-text">
+                    {{ orgRoleTextOf(row) }}
+                  </span>
+                  <span v-else class="perm-muted">—</span>
                 </td>
                 <!-- 顺序必须与表头一致：状态 在 更新人 之前 -->
                 <td class="perm-col-status">
@@ -158,35 +130,6 @@
                     class="perm-link perm-link--danger"
                     @click="toggleAccountDisabled(row, true)"
                   >禁用</button>
-                </td>
-              </tr>
-              <!-- 展开子行：该账号在所属组织中的组织角色明细 -->
-              <tr v-if="expandedIds.includes(row.userId)" class="perm-subrow">
-                <td colspan="7">
-                  <div class="perm-subtable">
-                    <table class="perm-table perm-table--sub">
-                      <thead>
-                        <tr>
-                          <th>所属组织</th>
-                          <th>组织角色</th>
-                          <th>加入时间</th>
-                          <th>更新人</th>
-                          <th>更新时间</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="m in row.memberships" :key="m.orgId">
-                          <td>{{ m.orgName }}</td>
-                          <td>
-                            <span class="perm-role-tag perm-role-tag--org">{{ m.orgRoleName }}</span>
-                          </td>
-                          <td class="perm-muted">{{ m.joinedAt || '—' }}</td>
-                          <td class="perm-muted">{{ m.updatedBy || '—' }}</td>
-                          <td class="perm-muted">{{ m.updatedAt || '—' }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </td>
               </tr>
             </template>
@@ -221,261 +164,137 @@
         </footer>
       </div>
 
-      <!-- 功能权限矩阵：列分两组（组织级 / 平台级），单元格两态 √ / 空 -->
-      <div v-else-if="activeTab === 'matrix'" class="perm-matrix-wrap">
-        <p class="perm-matrix-tip">
-          勾选表示该角色可访问对应功能；平台管理员列恒为全部权限，不可修改。
-        </p>
-        <div class="perm-table-wrap">
-          <table class="perm-table perm-table--matrix">
-            <thead>
-              <tr>
-                <th class="perm-col-menu">功能菜单</th>
-                <th
-                  v-for="r in MATRIX_ROLES"
-                  :key="r.id"
-                  class="perm-col-role"
-                  :class="{ 'is-group-start': r.id === 'audit-expert' }"
-                  :title="r.desc"
-                >
-                  <!-- 两行：主标题=角色名，副标题=覆盖岗位 -->
-                  <span class="perm-role-name">{{ r.name }}</span>
-                  <span class="perm-role-group">{{ (r.posts || []).length ? r.posts.join('、') : '—' }}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="menu in MENU_PERMISSIONS" :key="menu.id">
-                <td class="perm-col-menu">
-                  <span class="perm-menu-name">{{ menu.name }}</span>
-                  <span class="perm-menu-desc">{{ menu.desc }}</span>
-                </td>
-                <td
-                  v-for="r in MATRIX_ROLES"
-                  :key="r.id"
-                  class="perm-col-role"
-                  :class="{ 'is-group-start': r.id === 'audit-expert' }"
-                >
-                  <!-- 平台管理员：恒为全部权限，不可改 -->
+      <!-- 功能权限矩阵区块已从页面移除（数据层与脚本逻辑保留，便于后续恢复） -->
+    </section>
+
+    <!-- 新建账号弹窗：基本信息 + 权限分配（平台角色与组织归属至少填一项） -->
+    <Teleport to="body">
+      <Transition name="perm-fade">
+        <div v-if="createOpen" class="perm-modal-overlay" @click.self="closeCreateDialog">
+          <div class="perm-modal">
+            <header class="perm-modal-hd">
+              <div class="perm-modal-hd-info">
+                <h3 class="perm-modal-title">新建账号</h3>
+                <p class="perm-modal-sub">平台级角色在此直接建号并设置角色；组织一般成员可由组织管理员发送邀请链接自助注册</p>
+              </div>
+              <button type="button" class="perm-dialog-close" @click="closeCreateDialog">&times;</button>
+            </header>
+
+            <div class="perm-modal-body">
+              <!-- 基本信息 -->
+              <h4 class="perm-form-group">基本信息</h4>
+              <div class="perm-invite-grid">
+                <div class="perm-field">
+                  <label class="perm-label">用户名 <span class="perm-req">*</span></label>
+                  <input v-model.trim="accountForm.username" type="text" class="perm-input perm-input--wide" placeholder="即登录账号，平台唯一" />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">密码 <span class="perm-req">*</span></label>
+                  <input v-model.trim="accountForm.password" type="text" class="perm-input perm-input--wide" placeholder="必填，即初始登录密码" />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">确认密码 <span class="perm-req">*</span></label>
                   <input
-                    v-if="isCellLocked(menu.id, r.id)"
-                    type="checkbox"
-                    class="perm-check"
-                    checked
-                    disabled
-                    :title="`${r.name}恒为全部权限，不可修改`"
-                    :aria-label="`${r.name} · ${menu.name}：可访问（锁定）`"
+                    v-model.trim="accountForm.confirmPassword"
+                    type="text"
+                    class="perm-input perm-input--wide"
+                    :class="{ 'is-invalid': passwordMismatch }"
+                    placeholder="请再次输入密码"
                   />
-                  <!-- 其余单元格：勾选框 -->
-                  <input
-                    v-else
-                    type="checkbox"
-                    class="perm-check"
-                    :checked="cellState(menu.id, r.id) === 'yes'"
-                    :title="`${r.name} · ${menu.name}：${cellState(menu.id, r.id) === 'yes' ? '已授予访问权限' : '未授予访问权限'}`"
-                    :aria-label="`${r.name} · ${menu.name}：${cellState(menu.id, r.id) === 'yes' ? '可访问' : '不可访问'}`"
-                    @change="toggleCell(menu.id, r.id, $event.target.checked)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 新建账号：基本信息 + 权限分配（平台角色与组织归属至少填一项） -->
-      <div v-else class="perm-invite">
-        <section class="perm-invite-form">
-          <h3 class="perm-invite-title">新建账号</h3>
-          <p class="perm-account-tip">
-            平台级角色（审核专家 / 治理人员 / 监管机构 / 平台管理员）在此直接建号并设置角色；
-            组织一般成员也可由<strong>组织管理员</strong>在「组织管理 → 组织成员」发送邀请链接自助注册。
-          </p>
-
-          <!-- 基本信息 -->
-          <h4 class="perm-form-group">基本信息</h4>
-          <div class="perm-invite-grid">
-            <div class="perm-field">
-              <label class="perm-label">用户名 <span class="perm-req">*</span></label>
-              <input v-model.trim="accountForm.username" type="text" class="perm-input perm-input--wide" placeholder="即登录账号，平台唯一" />
-            </div>
-            <div class="perm-field">
-              <label class="perm-label">初始密码</label>
-              <input v-model.trim="accountForm.password" type="text" class="perm-input perm-input--wide" placeholder="选填，留空则系统生成" />
-            </div>
-          </div>
-
-          <!-- 权限分配：至少填一项 -->
-          <h4 class="perm-form-group">
-            权限分配
-            <span class="perm-form-group-hint">平台角色与组织归属至少填一项</span>
-          </h4>
-          <div class="perm-invite-grid">
-            <div class="perm-field perm-field--full">
-              <label class="perm-label">平台角色（可选，可多选）</label>
-              <div ref="roleMsRef" class="perm-ms">
-                <button
-                  type="button"
-                  class="perm-ms-trigger"
-                  :class="{ 'is-open': roleMsOpen }"
-                  @click="roleMsOpen = !roleMsOpen"
-                >
-                  <span v-if="accountForm.platformRoles.length" class="perm-ms-tags">
-                    <span v-for="rid in accountForm.platformRoles" :key="rid" class="perm-role-tag">{{ roleNameOf(rid) }}</span>
-                  </span>
-                  <span v-else class="perm-ms-placeholder">请选择平台角色</span>
-                  <span class="perm-ms-arrow" aria-hidden="true">⌄</span>
-                </button>
-                <div v-if="roleMsOpen" class="perm-ms-panel">
-                  <label v-for="r in PLATFORM_ROLES" :key="r.id" class="perm-ms-item">
-                    <input
-                      type="checkbox"
-                      class="perm-check"
-                      :checked="accountForm.platformRoles.includes(r.id)"
-                      @change="toggleAccountRole(r.id, $event.target.checked)"
-                    />
-                    <span class="perm-ms-item-name">{{ r.name }}</span>
-                    <span class="perm-ms-item-posts">{{ (r.posts || []).length ? r.posts.join('、') : '—' }}</span>
-                  </label>
+                  <span v-if="passwordMismatch" class="perm-field-error">两次输入的密码不一致</span>
                 </div>
               </div>
-            </div>
 
-            <!-- 组织归属：可多条 -->
-            <div class="perm-field perm-field--full">
-              <label class="perm-label">组织归属（可选，可多条）</label>
-              <table v-if="accountForm.orgMemberships.length" class="perm-table perm-table--sub">
-                <thead>
-                  <tr>
-                    <th>加入组织</th>
-                    <th>组织角色</th>
-                    <th class="perm-col-ops">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(m, idx) in accountForm.orgMemberships" :key="idx">
-                    <td>{{ orgNameOf(m.orgId) }}</td>
-                    <td>
-                      <SearchSelect v-model="m.orgRole" class="perm-select" :options="orgRoleSelectOptions" small />
-                    </td>
-                    <td class="perm-col-ops">
-                      <button type="button" class="perm-link perm-link--danger" @click="removeAccountOrg(idx)">移除</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <p v-else class="perm-block-empty">暂未加入任何组织</p>
-
-              <div class="perm-join-row">
-                <SearchSelect
-                  v-model="accountJoinOrgId"
-                  class="perm-select"
-                  :options="accountJoinOrgSelectOptions"
-                  placeholder="选择已有组织…"
-                />
-                <SearchSelect v-model="accountJoinOrgRole" class="perm-select" :options="orgRoleSelectOptions" />
-                <button type="button" class="perm-btn" :disabled="!accountJoinOrgId" @click="addAccountOrg">+ 加入组织</button>
-              </div>
-              <p class="perm-field-hint">
-                未找到目标组织？
-                <RouterLink class="perm-link" :to="{ name: 'org-list' }" target="_blank">前往组织管理新建组织</RouterLink>
-                ，建好后回到本页即可选择。
-              </p>
-            </div>
-          </div>
-
-          <div class="perm-invite-actions">
-            <button type="button" class="perm-btn" @click="resetAccountForm">取消</button>
-            <button type="button" class="perm-btn perm-btn--primary" @click="doCreateAccount">创建</button>
-          </div>
-
-          <p v-if="accountMsg" class="perm-account-msg" :class="{ 'is-error': accountMsgError }">{{ accountMsg }}</p>
-        </section>
-
-        <section class="perm-invite-list">
-          <h3 class="perm-invite-title">已新建账号</h3>
-          <table class="perm-table">
-            <thead>
-              <tr>
-                <th>用户名</th>
-                <th>密码</th>
-                <th>平台角色</th>
-                <th>加入组织</th>
-                <th>创建人</th>
-                <th>创建时间</th>
-                <th class="perm-col-ops">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="acc in paginatedAccounts" :key="acc.id">
-                <td class="perm-user">
-                  <img class="perm-avatar perm-avatar--img" :src="avatarUrl(acc)" :alt="acc.username" />
-                  <span class="perm-user-name">{{ acc.username }}</span>
-                </td>
-                <td>
-                  <!-- 密码加密展示，可单独复制；也可一键复制「用户名+密码」 -->
-                  <div class="perm-pwd">
-                    <span class="perm-pwd-text">{{ maskPassword(acc) }}</span>
+              <!-- 权限分配：至少填一项 -->
+              <h4 class="perm-form-group">
+                权限分配
+                <span class="perm-form-group-hint">平台角色与组织归属至少填一项</span>
+              </h4>
+              <div class="perm-invite-grid">
+                <div class="perm-field perm-field--full">
+                  <label class="perm-label">平台角色（可选，可多选）</label>
+                  <div ref="roleMsRef" class="perm-ms">
                     <button
                       type="button"
-                      class="perm-pwd-btn"
-                      :title="`复制 ${acc.username} 的密码`"
-                      @click="copyPassword(acc)"
-                    >复制</button>
+                      class="perm-ms-trigger"
+                      :class="{ 'is-open': roleMsOpen }"
+                      @click="roleMsOpen = !roleMsOpen"
+                    >
+                      <span v-if="accountForm.platformRoles.length" class="perm-ms-tags">
+                        <span v-for="rid in accountForm.platformRoles" :key="rid" class="perm-role-tag">{{ roleNameOf(rid) }}</span>
+                      </span>
+                      <span v-else class="perm-ms-placeholder">请选择平台角色</span>
+                      <span class="perm-ms-arrow" aria-hidden="true">⌄</span>
+                    </button>
+                    <div v-if="roleMsOpen" class="perm-ms-panel">
+                      <label v-for="r in PLATFORM_ROLES" :key="r.id" class="perm-ms-item">
+                        <input
+                          type="checkbox"
+                          class="perm-check"
+                          :checked="accountForm.platformRoles.includes(r.id)"
+                          @change="toggleAccountRole(r.id, $event.target.checked)"
+                        />
+                        <span class="perm-ms-item-name">{{ r.name }}</span>
+                        <span class="perm-ms-item-posts">{{ (r.posts || []).length ? r.posts.join('、') : '—' }}</span>
+                      </label>
+                    </div>
                   </div>
-                </td>
-                <td>
-                  <!-- 平台角色可多个：逐个人标签展示 -->
-                  <span v-if="(acc.platformRoles || []).length" class="perm-role-tags">
-                    <span v-for="rid in acc.platformRoles" :key="rid" class="perm-role-tag">{{ roleNameOf(rid) }}</span>
-                  </span>
-                  <span v-else class="perm-muted">—</span>
-                </td>
-                <td>
-                  <!-- 加入组织可多个：逐个组织标签展示 -->
-                  <span v-if="orgIdsOf(acc).length" class="perm-role-tags">
-                    <span v-for="oid in orgIdsOf(acc)" :key="oid" class="perm-role-tag perm-role-tag--org">{{ orgNameOf(oid) }}</span>
-                  </span>
-                  <span v-else class="perm-muted">—</span>
-                </td>
-                <td class="perm-muted">{{ acc.createdBy || '—' }}</td>
-                <td class="perm-muted">{{ acc.createdAt || '—' }}</td>
-                <td class="perm-col-ops">
-                  <button type="button" class="perm-link" @click="copyAccount(acc)">复制账号密码</button>
-                  <button type="button" class="perm-link perm-link--danger" @click="askDeleteAccount(acc)">删除</button>
-                </td>
-              </tr>
-              <tr v-if="accountList.length === 0">
-                <td colspan="7" class="perm-empty">暂无新建账号，可在上方创建</td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
 
-          <!-- 已建账号分页 -->
-          <footer v-if="accountList.length" class="perm-footer">
-            <span class="perm-total">共计 {{ accountList.length }} 条</span>
-            <div class="perm-pager">
-              <button type="button" class="perm-page-btn" :disabled="accountPage <= 1" aria-label="上一页" @click="accountPage = Math.max(1, accountPage - 1)">‹</button>
-              <template v-for="(p, idx) in accountPageItems" :key="`${p}-${idx}`">
-                <span v-if="p === '…'" class="perm-page-ellipsis">…</span>
-                <button v-else type="button" class="perm-page-btn" :class="{ 'is-active': p === accountPage }" @click="accountPage = p">{{ p }}</button>
-              </template>
-              <button type="button" class="perm-page-btn" :disabled="accountPage >= accountTotalPages" aria-label="下一页" @click="accountPage = Math.min(accountTotalPages, accountPage + 1)">›</button>
-              <label class="perm-page-size">
-                <span class="visually-hidden">每页条数</span>
-                <SearchSelect
-                  v-model.number="accountPageSize"
-                  class="perm-page-ss"
-                  :options="PAGE_SIZE_OPTIONS"
-                  number
-                  small
-                />
-              </label>
+                <!-- 组织归属：可多条 -->
+                <div class="perm-field perm-field--full">
+                  <label class="perm-label">组织归属（可选，可多条）</label>
+                  <table v-if="accountForm.orgMemberships.length" class="perm-table perm-table--sub">
+                    <thead>
+                      <tr>
+                        <th>添加组织</th>
+                        <th>组织角色</th>
+                        <th class="perm-col-ops">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(m, idx) in accountForm.orgMemberships" :key="idx">
+                        <td>{{ orgNameOf(m.orgId) }}</td>
+                        <td>
+                          <SearchSelect v-model="m.orgRole" class="perm-select" :options="orgRoleSelectOptions" small />
+                        </td>
+                        <td class="perm-col-ops">
+                          <button type="button" class="perm-link perm-link--danger" @click="removeAccountOrg(idx)">移除</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p v-else class="perm-block-empty">暂未加入任何组织</p>
+
+                  <div class="perm-join-row">
+                    <SearchSelect
+                      v-model="accountJoinOrgId"
+                      class="perm-select"
+                      :options="accountJoinOrgSelectOptions"
+                      placeholder="选择已有组织…"
+                    />
+                    <SearchSelect v-model="accountJoinOrgRole" class="perm-select" :options="orgRoleSelectOptions" />
+                    <button type="button" class="perm-btn" :disabled="!accountJoinOrgId" @click="addAccountOrg">+ 添加组织</button>
+                  </div>
+                  <p class="perm-field-hint">
+                    未找到目标组织？
+                    <RouterLink class="perm-link" :to="{ name: 'org-list' }" target="_blank">前往组织管理新建组织</RouterLink>
+                    ，建好后回到本页即可选择。
+                  </p>
+                </div>
+              </div>
+
+              <p v-if="accountMsg" class="perm-account-msg" :class="{ 'is-error': accountMsgError }">{{ accountMsg }}</p>
             </div>
-          </footer>
-        </section>
-      </div>
-    </section>
+
+            <footer class="perm-modal-ft">
+              <button type="button" class="perm-btn" @click="closeCreateDialog">取消</button>
+              <button type="button" class="perm-btn perm-btn--primary" @click="doCreateAccount">创建</button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 设置角色抽屉：平台角色区 + 组织角色区，两个区块互不干扰 -->
     <Teleport to="body">
@@ -561,7 +380,7 @@
                   </table>
                   <p v-else class="perm-block-empty">该账号未加入任何组织</p>
 
-                  <!-- 加入组织 -->
+                  <!-- 添加组织 -->
                   <div class="perm-join-row">
                     <SearchSelect
                       v-model="joinOrgId"
@@ -570,7 +389,7 @@
                       placeholder="选择组织…"
                     />
                     <SearchSelect v-model="joinOrgRole" class="perm-select" :options="orgRoleSelectOptions" />
-                    <button type="button" class="perm-btn" :disabled="!joinOrgId" @click="joinDrawerOrg">加入组织</button>
+                    <button type="button" class="perm-btn" :disabled="!joinOrgId" @click="joinDrawerOrg">添加组织</button>
                   </div>
                 </div>
               </section>
@@ -585,30 +404,6 @@
               </div>
             </footer>
           </aside>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- 删除账号二次确认 -->
-    <Teleport to="body">
-      <Transition name="perm-fade">
-        <div v-if="deleteTarget" class="perm-modal-overlay" @click.self="closeDeleteConfirm">
-          <div class="perm-modal perm-modal--sm">
-            <header class="perm-modal-hd">
-              <h3 class="perm-modal-title">确认删除账号</h3>
-              <button type="button" class="perm-dialog-close" @click="closeDeleteConfirm">&times;</button>
-            </header>
-            <div class="perm-modal-body">
-              <p class="perm-confirm-text">
-                确定要删除账号 <strong>{{ deleteTarget.username }}</strong> 吗？
-              </p>
-              <p class="perm-confirm-warn">删除后该账号无法登录，其平台角色与组织归属一并解除，且不可恢复。</p>
-            </div>
-            <footer class="perm-modal-ft">
-              <button type="button" class="perm-btn" @click="closeDeleteConfirm">取消</button>
-              <button type="button" class="perm-btn perm-btn--danger" @click="confirmDeleteAccount">确认删除</button>
-            </footer>
-          </div>
         </div>
       </Transition>
     </Teleport>
@@ -661,13 +456,12 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 import { getOrgs } from '../../data/orgStore.js'
 import { avatarUrl } from '../../utils/avatar.js'
+import { downloadCsv } from '../../utils/csvExport.js'
 import { getCurrentUsername } from '../../data/orgData.js'
 import {
   getAllAccounts,
   accountSourceName,
-  getCreatedAccounts,
   createAccount,
-  deleteAccount,
   setAccountDisabled,
 } from '../../data/accountData.js'
 import {
@@ -702,8 +496,7 @@ const CURRENT_OPERATOR = getCurrentUsername()
 
 const TABS = [
   { id: 'members', label: '成员列表' },
-  { id: 'matrix', label: '功能权限矩阵' },
-  { id: 'invite', label: '新建账号' },
+  // 「功能权限矩阵」Tab 已从页面移除（数据层与逻辑保留在 permissionData.js / 本文件脚本中，便于后续恢复）
 ]
 const activeTab = ref('members')
 const tip = ref('')
@@ -778,23 +571,13 @@ const allUsers = computed(() => {
   return getAllAccounts()
 })
 
-/* ===== 成员列表：组织角色列与内联展开 ===== */
-/** 已展开组织明细的账号 id 集合 */
-const expandedIds = ref([])
-
-function toggleExpand(userId) {
-  const set = new Set(expandedIds.value)
-  if (set.has(userId)) set.delete(userId)
-  else set.add(userId)
-  expandedIds.value = [...set]
+/* ===== 成员列表：组织角色列 ===== */
+/** 组织角色列文案：多条按「组织名（组织角色名）」顿号分隔 */
+function orgRoleTextOf(row) {
+  return (row.memberships || []).map((m) => `${m.orgName}（${m.orgRoleName}）`).join('、')
 }
 
-/** 该账号在各组织中的组织角色名（去重，用于「组织角色」列展示） */
-function orgRolesOf(row) {
-  return [...new Set((row.memberships || []).map((m) => m.orgRoleName).filter(Boolean))]
-}
-
-/** 成员行：主行账号级信息，memberships 用于展开子行 */
+/** 成员行：主行账号级信息，memberships 用于组织角色列展示 */
 const memberRows = computed(() => {
   const bindingById = new Map(bindings.value.map((m) => [m.userId, m]))
   const rows = allUsers.value.map((u) => {
@@ -848,6 +631,33 @@ function clearMemberFilters() {
   orgFilter.value = ''
   statusFilter.value = ''
   keyword.value = ''
+}
+
+/** 导出成员列表：导出当前筛选结果，组织角色按「组织名（组织角色名）」多条合并 */
+function exportMembers() {
+  const columns = [
+    { key: 'name', label: '用户名' },
+    { key: 'platformRoleNames', label: '平台角色' },
+    { key: 'orgRoleText', label: '组织角色' },
+    { key: 'statusName', label: '状态' },
+    { key: 'updatedBy', label: '更新人' },
+    { key: 'updatedAt', label: '更新时间' },
+  ]
+  const rows = filteredMembers.value.map((row) => ({
+    name: row.name,
+    // 平台角色列只含平台角色，无则「—」（与表格一致）
+    platformRoleNames: row.platformRoles.length
+      ? row.platformRoles.map(roleNameOf).join('、')
+      : '—',
+    orgRoleText: row.memberships.length
+      ? row.memberships.map((m) => `${m.orgName}（${m.orgRoleName}）`).join('、')
+      : '—',
+    statusName: row.statusName,
+    updatedBy: row.updatedBy,
+    updatedAt: row.updatedAt,
+  }))
+  downloadCsv('成员列表.csv', columns, rows)
+  showTip(`已导出 ${rows.length} 条成员记录`)
 }
 
 const filteredMembers = computed(() => {
@@ -988,7 +798,7 @@ function changeDrawerOrgRole(m, nextRole) {
   drawerError.value = ''
 }
 
-/** 加入组织（草稿，保存时落库） */
+/** 添加组织（草稿，保存时落库） */
 function joinDrawerOrg() {
   if (!joinOrgId.value) return
   if (drawerOrgs.value.some((m) => m.orgId === joinOrgId.value)) return
@@ -1124,19 +934,25 @@ function doClearLogs() {
   showTip('权限矩阵更新日志已清空')
 }
 
-/* ===== 新建账号：基本信息 + 权限分配（平台角色与组织归属至少一项） ===== */
-const accountList = ref(getCreatedAccounts())
+/* ===== 新建账号弹窗：基本信息 + 权限分配（平台角色与组织归属至少一项） ===== */
+const createOpen = ref(false)
 const accountMsg = ref('')
 const accountMsgError = ref(false)
 const accountForm = reactive({
-  // 新建账号只填用户名 + 初始密码；姓名/手机邮箱为可选，表单未提供
+  // 新建账号只填用户名 + 密码；姓名/手机邮箱为可选，表单未提供
   username: '',
   password: '',
+  // 二次确认密码：仅前端校验，不落库
+  confirmPassword: '',
   // 平台角色与组织归属至少填一项（账号合法性铁律）
   platformRoles: [],
   // 组织归属可多条：[{ orgId, orgRole }]
   orgMemberships: [],
 })
+
+/** 两次密码是否不一致（任一为空时不提示，由提交时的必填校验负责） */
+const passwordMismatch = computed(() =>
+  Boolean(accountForm.confirmPassword) && accountForm.password !== accountForm.confirmPassword)
 
 /** 表单：平台角色下拉（面板内勾选） */
 const roleMsOpen = ref(false)
@@ -1193,67 +1009,22 @@ function removeAccountOrg(idx) {
   accountMsg.value = ''
 }
 
-/** 账号已加入的组织 id 列表（用于「加入组织」多标签展示） */
-function orgIdsOf(acc) {
-  return acc.orgIds?.length ? acc.orgIds : (acc.orgId ? [acc.orgId] : [])
+/** 打开新建账号弹窗：清掉上一次的草稿与提示 */
+function openCreateDialog() {
+  resetAccountForm()
+  createOpen.value = true
 }
 
-/** 密码加密展示：固定长度掩码，不暴露真实字符数 */
-function maskPassword(acc) {
-  return acc.password ? '••••••••' : '—'
-}
-
-/** 复制密码（剪贴板不可用时提示手动复制） */
-function copyPassword(acc) {
-  if (!acc.password) {
-    showTip(`「${acc.username}」未设置密码`)
-    return
-  }
-  writeClipboard(acc.password, `已复制「${acc.username}」的密码`)
-}
-
-/** 一键复制「用户名 + 密码」，便于直接发给使用者 */
-function copyAccount(acc) {
-  const text = `用户名：${acc.username}\n密码：${acc.password || '（未设置）'}`
-  writeClipboard(text, `已复制「${acc.username}」的账号密码`)
-}
-
-/** 写剪贴板并给出反馈 */
-function writeClipboard(text, okMsg) {
-  const done = () => showTip(okMsg)
-  const fail = () => showTip('复制失败，请手动选中复制')
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(fail)
-  } else {
-    fail()
-  }
-}
-
-/** 删除账号：先弹二次确认 */
-const deleteTarget = ref(null)
-
-function askDeleteAccount(acc) {
-  deleteTarget.value = acc
-}
-
-function closeDeleteConfirm() {
-  deleteTarget.value = null
-}
-
-function confirmDeleteAccount() {
-  const acc = deleteTarget.value
-  if (!acc) return
-  deleteAccount(acc.id)
-  accountList.value = getCreatedAccounts()
-  accountVersion.value += 1
-  deleteTarget.value = null
-  accountMsgError.value = false
-  accountMsg.value = `已删除账号「${acc.username}」`
+/** 关闭新建账号弹窗 */
+function closeCreateDialog() {
+  createOpen.value = false
+  roleMsOpen.value = false
 }
 
 function resetAccountForm() {
   accountForm.username = ''
   accountForm.password = ''
+  accountForm.confirmPassword = ''
   accountForm.platformRoles = []
   accountForm.orgMemberships = []
   accountJoinOrgId.value = ''
@@ -1263,6 +1034,17 @@ function resetAccountForm() {
 
 /** 创建账号：基本信息 + 平台角色 + 组织归属（至少一项） */
 function doCreateAccount() {
+  // 密码必填且两次一致（createAccount 侧仍保留留空自动生成的能力，仅本表单强制填写）
+  if (!accountForm.password) {
+    accountMsgError.value = true
+    accountMsg.value = '请填写密码'
+    return
+  }
+  if (accountForm.password !== accountForm.confirmPassword) {
+    accountMsgError.value = true
+    accountMsg.value = '两次输入的密码不一致，请重新确认'
+    return
+  }
   const res = createAccount({
     username: accountForm.username,
     password: accountForm.password,
@@ -1279,55 +1061,13 @@ function doCreateAccount() {
     ? res.user.platformRoles.map(roleNameOf).join('、')
     : '无平台角色'
   const orgText = res.user.orgIds.length ? `，已加入 ${res.user.orgIds.map(orgNameOf).join('、')}` : ''
-  accountMsg.value = `账号「${res.user.name}」已创建（${roleText}）${orgText}`
 
-  // 平台角色已由 createAccount 写入共享角色存储，此处只需刷新列表
+  // 平台角色已由 createAccount 写入共享角色存储，此处刷新成员列表即可
   bindings.value = getMemberRoles()
   accountVersion.value += 1
-  accountList.value = getCreatedAccounts()
-  resetAccountForm()
+  closeCreateDialog()
+  showTip(`账号「${res.user.name}」已创建（${roleText}）${orgText}`)
 }
-
-function doDeleteAccount(acc) {
-  deleteAccount(acc.id)
-  accountList.value = getCreatedAccounts()
-  accountVersion.value += 1
-  accountMsgError.value = false
-  accountMsg.value = `已删除账号「${acc.name}」`
-}
-
-/* ===== 已建账号分页 ===== */
-const accountPage = ref(1)
-const accountPageSize = ref(10)
-
-const accountTotalPages = computed(() =>
-  Math.max(1, Math.ceil(accountList.value.length / accountPageSize.value)))
-
-const paginatedAccounts = computed(() => {
-  const start = (accountPage.value - 1) * accountPageSize.value
-  return accountList.value.slice(start, start + accountPageSize.value)
-})
-
-/** 页码项：超过 7 页时折叠中间部分（与治理清单页一致） */
-const accountPageItems = computed(() => {
-  const total = accountTotalPages.value
-  const cur = accountPage.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const items = [1]
-  if (cur > 3) items.push('…')
-  const start = Math.max(2, cur - 1)
-  const end = Math.min(total - 1, cur + 1)
-  for (let i = start; i <= end; i++) items.push(i)
-  if (cur < total - 2) items.push('…')
-  items.push(total)
-  return items
-})
-
-watch(accountPageSize, () => { accountPage.value = 1 })
-// 新增/删除账号后结果集变化，当前页越界时自动回退
-watch(accountTotalPages, (total) => {
-  if (accountPage.value > total) accountPage.value = total
-})
 </script>
 
 <style scoped>
@@ -1397,7 +1137,7 @@ watch(accountTotalPages, (total) => {
 }
 .perm-kpi-label { font-size: 13px; font-weight: 500; color: #374151; }
 
-/* ===== 工具条 / Tabs ===== */
+/* ===== 工具条 ===== */
 .perm-hd-bar {
   display: flex;
   align-items: center;
@@ -1405,6 +1145,13 @@ watch(accountTotalPages, (total) => {
   gap: 12px;
   flex-wrap: wrap;
 }
+/* 工具条左侧标题（原 Tab 按钮组位置） */
+.perm-title--bar {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+/* 原 Tab 按钮组样式：矩阵 Tab 已移除，保留以便恢复 */
 .perm-tabs { display: flex; gap: 6px; }
 .perm-tab {
   padding: 7px 16px;
@@ -1533,34 +1280,16 @@ watch(accountTotalPages, (total) => {
 .perm-filter-bar .perm-btn { flex-shrink: 0; }
 
 
-/* ===== 成员列表：列宽与展开 ===== */
+/* ===== 成员列表：列宽 ===== */
 .perm-col-num { width: 72px; text-align: center !important; }
 .perm-col-status { width: 88px; text-align: center !important; }
-/* 组织角色列：展开按钮 + 角色标签同行 */
-.perm-col-orgrole { min-width: 150px; }
-.perm-orgrole-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* 组织角色列：纯文字，多条顿号分隔 */
+.perm-col-orgrole { min-width: 200px; }
+.perm-orgrole-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
 }
-/* 展开/收起组织明细的箭头按钮 */
-.perm-expand-btn {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  font-size: 14px;
-  line-height: 1;
-  font-family: inherit;
-  color: #6b7280;
-  background: #f3f4f6;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
-}
-.perm-expand-btn:hover { background: #e5e7eb; color: #374151; }
-.perm-expand-btn.is-open { transform: rotate(90deg); }
 .perm-col-ops { width: 200px; white-space: nowrap; }
 
 /* ===== 成员列表：账号状态 ===== */
@@ -1576,7 +1305,7 @@ watch(accountTotalPages, (total) => {
 .perm-status--unassigned { color: #b91c1c; background: #fee2e2; }
 .perm-status--disabled { color: #6b7280; background: #f3f4f6; }
 
-/* 组织角色标签（抽屉/弹窗共用） */
+/* 子表格（抽屉/弹窗内的组织归属表共用） */
 .perm-table--sub { font-size: 12px; }
 .perm-table--sub th {
   padding: 8px 12px;
@@ -1585,17 +1314,6 @@ watch(accountTotalPages, (total) => {
 }
 .perm-table--sub td { padding: 8px 12px; }
 
-/* ===== 成员列表：组织明细展开子行 ===== */
-.perm-subrow > td {
-  padding: 0 16px 12px !important;
-  background: #fafbfc;
-}
-.perm-subtable {
-  padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #eef0f3;
-  border-radius: 8px;
-}
 .perm-empty {
   padding: 40px 0 !important;
   text-align: center;
@@ -1690,30 +1408,6 @@ watch(accountTotalPages, (total) => {
   border-radius: 10px;
   white-space: nowrap;
 }
-/* 密码列：掩码展示 + 复制按钮 */
-.perm-pwd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.perm-pwd-text {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  letter-spacing: 1px;
-  color: #4b5563;
-}
-.perm-pwd-btn {
-  padding: 0;
-  font-size: 12px;
-  font-family: inherit;
-  color: #da203e;
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.perm-pwd-btn:hover { text-decoration: underline; }
-
 /* 弹窗候选行：展示成员当前已有角色（次要信息，弱化显示） */
 .perm-role-tag--current {
   color: #6b7280;
@@ -1817,33 +1511,19 @@ watch(accountTotalPages, (total) => {
 /* 单元格：勾选框居中 */
 .perm-table--matrix td.perm-col-role { text-align: center; }
 
-/* ===== 新建账号 ===== */
-.perm-invite { display: flex; flex-direction: column; }
-/* 表单区/列表区留白与 .perm-card-hd 保持一致（16px 20px），避免同页内边距参差 */
-.perm-invite-form {
-  padding: 16px 20px 20px;
-  border-bottom: 1px solid #f0f1f3;
-}
-.perm-invite-list { padding: 16px 20px 20px; }
-.perm-invite-title {
-  margin: 0 0 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-}
-/* 职责说明：平台级角色在此建号，组织一般成员走组织侧邀请 */
-.perm-account-tip {
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #92400e;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 6px;
-}
+/* ===== 新建账号弹窗 ===== */
 /* 必填星号 */
 .perm-req { color: #da203e; }
+/* 校验失败：输入框描红 + 字段级错误提示 */
+.perm-input.is-invalid {
+  border-color: #da203e;
+  background: #fff5f6;
+}
+.perm-field-error {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #da203e;
+}
 /* 表单分组标题：基本信息 / 权限分配 */
 .perm-form-group {
   display: flex;
@@ -1895,47 +1575,8 @@ watch(accountTotalPages, (total) => {
 .perm-label { font-size: 13px; font-weight: 500; color: #374151; }
 .perm-select--wide,
 .perm-input--wide { width: 100%; min-width: 0; }
-.perm-invite-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-/* 生成结果：链接 + 复制 */
-.perm-invite-result {
-  margin-top: 16px;
-  padding: 14px 16px;
-  background: #f0fdf4;
-  border: 1px solid #dcfce7;
-  border-radius: 8px;
-}
-.perm-invite-result-tip { margin: 0 0 10px; font-size: 13px; color: #166534; }
-.perm-invite-link { display: flex; gap: 8px; }
-.perm-input--link {
-  flex: 1;
-  min-width: 0;
-  color: #4b5563;
-  background: #fff;
-  font-size: 12px;
-}
-
-/* 邀请记录状态 */
-.perm-invite-status {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-.perm-invite-status.is-ok { color: #166534; background: #dcfce7; }
-.perm-invite-status.is-revoked { color: #6b7280; background: #f3f4f6; }
-.perm-invite-status.is-expired { color: #b45309; background: #fef3c7; }
 
 /* 行内文字操作 */
-.perm-invite-ops { white-space: nowrap; }
 .perm-link {
   padding: 0;
   margin-right: 10px;
@@ -2041,24 +1682,6 @@ watch(accountTotalPages, (total) => {
   border-radius: 12px;
   box-shadow: 0 16px 48px rgba(15, 23, 42, 0.2);
   overflow: hidden;
-}
-/* 小尺寸弹窗（二次确认类） */
-.perm-modal--sm { max-width: 420px; }
-.perm-confirm-text {
-  margin: 8px 0 10px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #1f2937;
-}
-.perm-confirm-warn {
-  margin: 0;
-  padding: 9px 12px;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #b45309;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 6px;
 }
 .perm-modal-hd {
   display: flex;
@@ -2194,7 +1817,7 @@ watch(accountTotalPages, (total) => {
 .perm-role-opt-name { font-size: 13px; font-weight: 500; color: #111827; }
 .perm-role-opt-desc { font-size: 12px; line-height: 1.5; color: #9ca3af; }
 
-/* 加入组织一行 */
+/* 添加组织一行 */
 .perm-join-row {
   display: flex;
   align-items: center;
