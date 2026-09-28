@@ -87,33 +87,126 @@
             <section class="rs-panel rs-hero">
               <h3 class="rs-panel-title">资产总览</h3>
               <div class="rs-hero-stage">
-                <!-- 同心环能量球 -->
-                <div class="rs-orb" aria-hidden="true">
-                  <span class="rs-orb-ring rs-orb-ring--1" />
-                  <span class="rs-orb-ring rs-orb-ring--2" />
-                  <span class="rs-orb-ring rs-orb-ring--3" />
-                  <span class="rs-orb-ring rs-orb-ring--4" />
-                  <span class="rs-orb-core" />
-                  <span class="rs-orb-sat rs-orb-sat--1" />
-                  <span class="rs-orb-sat rs-orb-sat--2" />
-                </div>
-                <div class="rs-hero-total">
-                  <span class="rs-hero-label">可信开源资产总数</span>
-                  <span class="rs-hero-value">
-                    <CountUp class="rs-hero-num" :end="heroTotal.value" />
-                    <em class="rs-hero-unit">{{ heroTotal.unit }}</em>
+                <!-- 背景图：透视网格 + 电路走线 + 节点（内联 SVG，随面板拉伸铺满） -->
+                <svg
+                  class="rs-hero-bg"
+                  viewBox="0 0 800 420"
+                  preserveAspectRatio="xMidYMid slice"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="rsBgFade" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.5" />
+                      <stop offset="60%" stop-color="#38BDF8" stop-opacity="0.16" />
+                      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0" />
+                    </linearGradient>
+                    <radialGradient id="rsBgGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#0EA5E9" stop-opacity="0.3" />
+                      <stop offset="70%" stop-color="#0EA5E9" stop-opacity="0.04" />
+                      <stop offset="100%" stop-color="#0EA5E9" stop-opacity="0" />
+                    </radialGradient>
+                  </defs>
+
+                  <!-- 中心柔光 -->
+                  <ellipse cx="400" cy="210" rx="330" ry="200" fill="url(#rsBgGlow)" />
+
+                  <!-- 透视网格：纵向线自消失点发散 -->
+                  <g stroke="url(#rsBgFade)" stroke-width="1" fill="none" opacity="0.5">
+                    <path d="M400 168 L-40 420" /><path d="M400 168 L80 420" />
+                    <path d="M400 168 L200 420" /><path d="M400 168 L320 420" />
+                    <path d="M400 168 L480 420" /><path d="M400 168 L600 420" />
+                    <path d="M400 168 L720 420" /><path d="M400 168 L840 420" />
+                  </g>
+                  <!-- 透视网格：横向线间距递增 -->
+                  <g stroke="url(#rsBgFade)" stroke-width="1" fill="none" opacity="0.32">
+                    <path d="M-40 232 H840" /><path d="M-40 262 H840" />
+                    <path d="M-40 300 H840" /><path d="M-40 348 H840" />
+                    <path d="M-40 404 H840" />
+                  </g>
+
+                  <!-- 电路走线：正交折线 + 端点节点 -->
+                  <g stroke="#38BDF8" stroke-width="1.2" fill="none" opacity="0.42">
+                    <path d="M0 96 H118 L152 130 H268" />
+                    <path d="M0 306 H96 L128 274 H236" />
+                    <path d="M800 118 H676 L644 152 H540" />
+                    <path d="M800 330 H690 L656 296 H556" />
+                    <path d="M60 420 V356 L96 320" />
+                    <path d="M742 420 V368 L706 332" />
+                  </g>
+                  <g fill="#7DDCFF" opacity="0.85">
+                    <circle cx="268" cy="130" r="2.6" /><circle cx="236" cy="274" r="2.6" />
+                    <circle cx="540" cy="152" r="2.6" /><circle cx="556" cy="296" r="2.6" />
+                    <circle cx="118" cy="96" r="2" /><circle cx="676" cy="118" r="2" />
+                    <circle cx="96" cy="306" r="2" /><circle cx="690" cy="330" r="2" />
+                  </g>
+                  <!-- 角落方括号装饰 -->
+                  <g stroke="#38BDF8" stroke-width="1.5" fill="none" opacity="0.5">
+                    <path d="M18 54 V18 H54" /><path d="M746 18 H782 V54" />
+                    <path d="M18 366 V402 H54" /><path d="M746 402 H782 V366" />
+                  </g>
+                </svg>
+
+                <!-- 四角指标卡：左上 / 右上 / 左下 / 右下 -->
+                <div
+                  v-for="(c, i) in heroSideCards"
+                  :key="c.key"
+                  class="rs-hero-metric"
+                  :class="[`is-${c.tone || 'primary'}`, `is-corner-${CORNER_POS[i % 4]}`]"
+                  :title="c.hint || c.label"
+                >
+                  <span class="rs-hero-metric-label">{{ c.label }}</span>
+                  <span class="rs-hero-metric-value">
+                    <CountUp class="rs-hero-metric-num" :end="c.value" :decimals="c.decimals || 0" />
+                    <em v-if="c.unit" class="rs-hero-metric-unit">{{ c.unit }}</em>
                   </span>
-                  <span class="rs-hero-hint">{{ heroTotal.hint }}</span>
+                </div>
+
+                <!-- 中心：能量球 + 地台 -->
+                <div class="rs-hero-center">
+                  <div class="rs-orb" aria-hidden="true">
+                    <span class="rs-orb-ticks" />
+                    <span class="rs-orb-ring rs-orb-ring--1" />
+                    <span class="rs-orb-ring rs-orb-ring--2" />
+                    <span class="rs-orb-ring rs-orb-ring--3" />
+                    <span class="rs-orb-ring rs-orb-ring--4" />
+                    <span class="rs-orb-arc rs-orb-arc--a" />
+                    <span class="rs-orb-arc rs-orb-arc--b" />
+                    <span class="rs-orb-arc rs-orb-arc--c" />
+                    <span class="rs-orb-core" />
+                    <span class="rs-orb-pulse" />
+                    <span class="rs-orb-pulse rs-orb-pulse--2" />
+                    <!-- 卫星光点：外层容器自转，光点贴在容器边缘 → 自动跟随球体尺寸 -->
+                    <span class="rs-orb-orbit rs-orb-orbit--1"><i class="rs-orb-sat" /></span>
+                    <span class="rs-orb-orbit rs-orb-orbit--2"><i class="rs-orb-sat" /></span>
+                    <span class="rs-orb-orbit rs-orb-orbit--3"><i class="rs-orb-sat" /></span>
+                  </div>
+                  <div class="rs-hero-total">
+                    <span class="rs-hero-label">可信开源资产总数</span>
+                    <span class="rs-hero-value">
+                      <CountUp class="rs-hero-num" :end="heroTotal.value" />
+                      <em class="rs-hero-unit">{{ heroTotal.unit }}</em>
+                    </span>
+                    <span class="rs-hero-hint">{{ heroTotal.hint }}</span>
+                  </div>
+                  <!-- 立体地台：椭圆光环平台 + 球体投影 -->
+                  <div class="rs-hero-plinth" aria-hidden="true">
+                    <span class="rs-hero-plinth-ring rs-hero-plinth-ring--1" />
+                    <span class="rs-hero-plinth-ring rs-hero-plinth-ring--2" />
+                    <span class="rs-hero-plinth-ring rs-hero-plinth-ring--3" />
+                  </div>
                 </div>
               </div>
-              <div class="rs-hero-grid">
-                <div v-for="c in heroSideCards" :key="c.key" class="rs-hero-cell">
-                  <span class="rs-hero-cell-label">{{ c.label }}</span>
-                  <span class="rs-hero-cell-value">
-                    <CountUp class="rs-hero-cell-num" :end="c.value" />
-                    <em v-if="c.unit" class="rs-hero-cell-unit">{{ c.unit }}</em>
-                  </span>
-                </div>
+
+              <!-- 底部指标带：SBOM 覆盖率（进度条形式，把余量用起来） -->
+              <div class="rs-hero-band">
+                <span class="rs-hero-band-label">{{ heroBand.label }}</span>
+                <span class="rs-hero-band-bar">
+                  <i :style="{ width: `${heroBand.value}%` }" />
+                </span>
+                <span class="rs-hero-band-value">
+                  <CountUp :end="heroBand.value" :decimals="heroBand.decimals || 1" />
+                  <em>{{ heroBand.unit }}</em>
+                </span>
               </div>
             </section>
 
@@ -218,9 +311,19 @@ import {
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
-/* ===== 资产总览：中心总数 + 环侧分项 ===== */
+/* ===== 资产总览：中心总数 + 左右指标列 + 底部指标带 ===== */
 const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
-const heroSideCards = assetCards.filter((c) => c.key !== 'total')
+/** 底部指标带：SBOM 覆盖率（百分比，用进度条形式呈现） */
+const heroBand = assetCards.find((c) => c.key === 'sbom') || { label: 'SBOM 覆盖率', value: 0, unit: '%', decimals: 1 }
+/**
+ * 左右指标列：仅使用「资产总览」的真实字段（去掉总数与底部带）。
+ * 注意：不要用 regulatorMetrics —— 那是平台暂无口径的**演示数据**，
+ * 拿它填充主视觉属于造数，需等平台补齐真实口径后再纳入。
+ */
+const heroSideCards = computed(() =>
+  assetCards.filter((c) => c.key !== 'total' && c.key !== 'sbom'))
+/** 四角方位：按顺序落到 左上 → 右上 → 左下 → 右下 */
+const CORNER_POS = ['tl', 'tr', 'bl', 'br']
 
 /* ===== 用户活跃 Top5（按 PV 归一化进度条）===== */
 const topUsers5 = computed(() => {
@@ -625,17 +728,214 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* ===== 中栏主视觉：能量球 ===== */
+/* ===== 中栏主视觉：中央能量球 + 四角指标卡 =====
+   注意：此处只允许有一条 .rs-hero-stage 规则。四角卡片用绝对定位落在
+   圆形主视觉之外的四个角落（圆的外接矩形四角天然留白）。 */
 .rs-hero-stage {
   position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
+  /* 仅 .rs-hero-center 在流内，居中即可；四角卡片为绝对定位不受影响 */
   place-items: center;
+  /* 关键：作为尺寸容器，让球体/地台按「stage 自身高度」定尺寸。
+     此前用 vh 定尺寸，而 stage 高度往往小于视口高度（面板被其它区块挤压），
+     导致球体外接矩形高出 stage、压到四角卡片上（实测侵入 26px）。 */
+  container-type: size;
 }
+
+/* ---- 背景图：透视网格 + 电路走线（内联 SVG，随面板拉伸铺满） ---- */
+.rs-hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* ---- 四角指标卡：左上 / 右上 / 左下 / 右下 ---- */
+.rs-hero-metric {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(2px, 0.4vh, 5px);
+  /* 放大：卡片更宽更高，承载大号数值 */
+  min-width: clamp(132px, 11vw, 210px);
+  min-height: clamp(62px, 8.4vh, 104px);
+  padding: clamp(7px, 0.9vh, 13px) clamp(10px, 0.85vw, 17px);
+  background: linear-gradient(150deg, rgba(6, 34, 70, 0.8), rgba(4, 20, 44, 0.55));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+/* 四角定位 */
+.rs-hero-metric.is-corner-tl { top: 0; left: 0; }
+.rs-hero-metric.is-corner-tr { top: 0; right: 0; }
+.rs-hero-metric.is-corner-bl { bottom: 0; left: 0; }
+.rs-hero-metric.is-corner-br { bottom: 0; right: 0; }
+/* 左侧色条：按 tone 着色 */
+.rs-hero-metric::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--metric-tone, var(--cyan)), transparent);
+}
+/* 右上角柔光点缀 */
+.rs-hero-metric::after {
+  content: '';
+  position: absolute;
+  right: -12px;
+  top: -12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(56, 189, 248, 0.26), transparent 70%);
+}
+.rs-hero-metric:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  background: linear-gradient(150deg, rgba(10, 46, 92, 0.9), rgba(4, 20, 44, 0.65));
+}
+.rs-hero-metric-label {
+  font-size: clamp(10px, 0.68vw, 13px);
+  line-height: 1.35;
+  color: var(--text-sub);
+  /* 标题最多两行，超出省略 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rs-hero-metric-value { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
+.rs-hero-metric-num {
+  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
+  /* 放大：指标数值比上一版更大 */
+  font-size: clamp(19px, 1.5vw, 32px);
+  font-weight: 700;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.55);
+}
+.rs-hero-metric-unit { font-style: normal; font-size: clamp(10px, 0.62vw, 12px); color: var(--text-sub); }
+
+/* tone 配色：仅改色条 + 数值色，保持整体克制 */
+.rs-hero-metric.is-primary { --metric-tone: var(--brand-bright); }
+.rs-hero-metric.is-danger  { --metric-tone: var(--danger); }
+.rs-hero-metric.is-warn    { --metric-tone: var(--warn); }
+.rs-hero-metric.is-ok      { --metric-tone: #34D399; }
+.rs-hero-metric.is-danger .rs-hero-metric-num { color: #FF8A7A; text-shadow: 0 0 14px rgba(255, 107, 107, 0.6); }
+.rs-hero-metric.is-warn .rs-hero-metric-num { color: #FFC876; text-shadow: 0 0 14px rgba(251, 191, 110, 0.6); }
+.rs-hero-metric.is-ok .rs-hero-metric-num { color: #6EE7A8; text-shadow: 0 0 14px rgba(52, 211, 153, 0.6); }
+
+/* ---- 中央：能量球 + 地台 ---- */
+.rs-hero-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* ---- 立体地台：球体下方三层椭圆光环平台（透视压扁成椭圆） ---- */
+.rs-hero-plinth {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  /* 与 .rs-orb 同用容器查询单位，比球体宽约 12% 以"托住"它 */
+  width: min(108cqh, 63cqw);
+  height: calc(min(108cqh, 63cqw) * 0.2);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.rs-hero-plinth-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+/* 内圈：亮实线 + 辉光，作为球体的落点 */
+.rs-hero-plinth-ring--1 {
+  border-color: rgba(125, 220, 255, 0.6);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.4), inset 0 0 22px rgba(56, 189, 248, 0.22);
+}
+/* 中圈：虚线扩散环 */
+.rs-hero-plinth-ring--2 {
+  inset: 12% -6%;
+  border-style: dashed;
+  border-color: rgba(0, 145, 255, 0.3);
+  animation: rs-plinth 7s ease-out infinite;
+}
+/* 外圈：更大更淡的呼吸环 */
+.rs-hero-plinth-ring--3 {
+  inset: 26% -14%;
+  border-color: rgba(34, 211, 238, 0.2);
+  animation: rs-plinth 7s ease-out infinite;
+  animation-delay: 3.5s;
+}
+@keyframes rs-plinth {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1.16); opacity: 0; }
+}
+
+/* ---- 底部指标带：SBOM 覆盖率 ---- */
+.rs-hero-band {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 7px 12px;
+  background: linear-gradient(90deg, rgba(6, 34, 70, 0.72), rgba(4, 20, 44, 0.45));
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+}
+.rs-hero-band-label {
+  flex-shrink: 0;
+  font-size: clamp(10px, 0.66vw, 12px);
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+.rs-hero-band-bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(3, 14, 29, 0.6);
+  overflow: hidden;
+}
+.rs-hero-band-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(0, 91, 203, 0.6), var(--cyan));
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+.rs-hero-band-value {
+  flex-shrink: 0;
+  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(12px, 0.85vw, 16px);
+  font-weight: 700;
+  color: var(--brand-bright);
+  font-variant-numeric: tabular-nums;
+}
+.rs-hero-band-value em { font-style: normal; font-size: 10px; color: var(--text-sub); margin-left: 2px; }
 .rs-orb {
   position: relative;
-  width: min(38vh, 72%);
+  /* 不能用百分比宽度（曾因 auto 列循环依赖塌陷为 0×0）。
+     改用容器查询单位：cqh/cqw = stage 高度/宽度的 1%，故球体永远不超过 stage。
+     96cqh / 56cqw 为「放大到接近四角卡片、仍保留约 20px 间隙」的实测安全值
+     （间隙按圆几何算：卡片内角点到圆心距离 − 半径，必须 > 0）。
+     改此值需同步 .rs-hero-plinth。 */
+  height: min(96cqh, 56cqw);
   aspect-ratio: 1;
 }
 /* 同心环：错速旋转 */
@@ -659,6 +959,61 @@ onBeforeUnmount(() => {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+/* ---- 环外刻度尺：最外圈 60 格刻度，静止，压住外缘留白 ---- */
+.rs-orb-ticks {
+  position: absolute;
+  /* 收到 -5%：保证在 stage 余量最小时（矮屏）也不越出面板内容区 */
+  inset: -5%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(56, 189, 248, 0.42) 0deg 0.6deg,
+    transparent 0.6deg 6deg
+  );
+  mask-image: radial-gradient(circle, transparent 0 88%, #000 88% 100%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 88%, #000 88% 100%, transparent 100%);
+  opacity: 0.75;
+}
+
+/* ---- 分段弧：三道光弧，长短错落，与环反向/同向旋转 ---- */
+.rs-orb-arc {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+.rs-orb-arc--a {
+  inset: 4.5%;
+  border-top-color: rgba(56, 189, 248, 0.9);
+  border-right-color: rgba(56, 189, 248, 0.35);
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.7));
+  animation: rs-spin 16s linear infinite;
+}
+.rs-orb-arc--b {
+  inset: 14%;
+  border-bottom-color: rgba(34, 211, 238, 0.85);
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.6));
+  animation: rs-spin 22s linear infinite reverse;
+}
+.rs-orb-arc--c {
+  inset: 25%;
+  border-left-color: rgba(125, 220, 255, 0.75);
+  animation: rs-spin 12s linear infinite;
+}
+
+/* ---- 呼吸脉冲：从核心向外扩散的圆环 ---- */
+.rs-orb-pulse {
+  position: absolute;
+  inset: 38%;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 220, 255, 0.55);
+  animation: rs-pulse-out 3.6s ease-out infinite;
+}
+.rs-orb-pulse--2 { animation-delay: 1.8s; }
+@keyframes rs-pulse-out {
+  0% { transform: scale(0.9); opacity: 0.85; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
 /* 核心光球 */
 .rs-orb-core {
   position: absolute;
@@ -675,27 +1030,34 @@ onBeforeUnmount(() => {
   0%, 100% { box-shadow: 0 0 26px rgba(56, 189, 248, 0.4), 0 0 80px rgba(0, 132, 220, 0.3) inset; }
   50% { box-shadow: 0 0 48px rgba(56, 189, 248, 0.65), 0 0 110px rgba(0, 132, 220, 0.4) inset; }
 }
-/* 环上卫星光点 */
+/* 环上卫星光点：外层轨道容器自转，光点贴在容器边缘
+   → 尺寸自动跟随球体，不必在 keyframes 里硬编码（旧写法的坑） */
+.rs-orb-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation-name: rs-orb-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.rs-orb-orbit--1 { animation-duration: 26s; }
+.rs-orb-orbit--2 { animation-duration: 38s; animation-direction: reverse; animation-delay: -12s; }
+.rs-orb-orbit--3 { animation-duration: 46s; animation-delay: -28s; }
 .rs-orb-sat {
   position: absolute;
-  top: 50%;
+  /* 贴在轨道容器顶部边缘 = 环上 */
+  top: 0;
   left: 50%;
   width: 7px;
   height: 7px;
-  margin: -3.5px;
+  margin: -3.5px 0 0 -3.5px;
   border-radius: 50%;
   background: #7DDCFF;
   box-shadow: 0 0 12px rgba(125, 220, 255, 0.95);
 }
-.rs-orb-sat--1 { animation: rs-orbit-a 26s linear infinite; }
-.rs-orb-sat--2 { animation: rs-orbit-b 38s linear infinite; }
-@keyframes rs-orbit-a {
-  from { transform: rotate(0deg) translateX(calc(min(38vh, 72%) / 2)); }
-  to { transform: rotate(360deg) translateX(calc(min(38vh, 72%) / 2)); }
-}
-@keyframes rs-orbit-b {
-  from { transform: rotate(160deg) translateX(calc(min(38vh, 72%) * 0.41)); }
-  to { transform: rotate(-200deg) translateX(calc(min(38vh, 72%) * 0.41)); }
+@keyframes rs-orb-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 /* 中心数字 */
 .rs-hero-total {
@@ -708,7 +1070,7 @@ onBeforeUnmount(() => {
   transform: translateY(-6%);
 }
 .rs-hero-label {
-  font-size: clamp(12px, 0.85vw, 15px);
+  font-size: clamp(13px, 0.95vw, 17px);
   letter-spacing: 3px;
   color: var(--text-sub);
 }
@@ -724,69 +1086,23 @@ onBeforeUnmount(() => {
      注意：本类现在挂在 CountUp 根元素上，必须自行带上 Orbitron，
      否则会被组件内置的 .count-up 字体栈覆盖成系统等宽字 */
   font-family: 'Orbitron', 'DIN Alternate', 'Bahnschrift', ui-monospace, monospace;
-  font-size: clamp(34px, 3.4vw, 62px);
+  /* 放大：中心数据是主视觉，字号明显大于四角指标 */
+  font-size: clamp(44px, 4.6vw, 86px);
   font-weight: 700;
   line-height: 1.05;
   color: #FFFFFF;
-  text-shadow: 0 0 26px rgba(56, 189, 248, 0.75);
+  text-shadow: 0 0 30px rgba(56, 189, 248, 0.8);
   font-variant-numeric: tabular-nums;
 }
 .rs-hero-unit {
   font-style: normal;
-  font-size: clamp(13px, 1vw, 17px);
+  font-size: clamp(16px, 1.2vw, 22px);
   color: var(--gold);
 }
 .rs-hero-hint {
   font-size: 10.5px;
   color: #6EE7A8;
 }
-/* 球下分项：5 张数据卡 */
-.rs-hero-grid {
-  flex-shrink: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding-top: 4px;
-}
-.rs-hero-cell {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-  overflow: hidden;
-  transition: border-color 0.2s;
-}
-.rs-hero-cell::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(180deg, var(--cyan), transparent);
-}
-.rs-hero-cell:hover { border-color: rgba(34, 211, 238, 0.55); }
-.rs-hero-cell-label {
-  font-size: 10.5px;
-  color: var(--text-sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rs-hero-cell-value { display: flex; align-items: baseline; gap: 3px; }
-.rs-hero-cell-num {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(15px, 1.2vw, 22px);
-  font-weight: 700;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
-}
-.rs-hero-cell-unit { font-style: normal; font-size: 10px; color: var(--text-sub); }
 
 /* ===== 左栏：用户行为 KPI ===== */
 .rs-kpi-grid {
@@ -1024,9 +1340,14 @@ onBeforeUnmount(() => {
   }
   .rs-kpi { padding: 4px 7px; }
   .rs-kpi-label { font-size: 9.5px; }
-  .rs-hero-cell { padding: 6px 7px; }
-  .rs-hero-grid { gap: 6px; }
-  .rs-footer { height: 18px; }
+  /* 四角卡片收紧，给中央球体留出更高空间 */
+  .rs-hero-metric {
+    min-width: clamp(116px, 10vw, 178px);
+    min-height: clamp(54px, 7.6vh, 88px);
+    padding: 6px 10px 7px;
+  }
+  .rs-hero-metric-num { font-size: clamp(17px, 1.35vw, 27px); }
+  .rs-footer { height: 26px; }
 }
 
 /* --- 二档：宽度不足（笔记本 / 小尺寸屏）时收紧横向密度 --- */
@@ -1044,7 +1365,13 @@ onBeforeUnmount(() => {
     gap: 5px;
     padding: 0 6px;
   }
-  .rs-hero-cell-num { font-size: clamp(14px, 1.1vw, 18px); }
+  /* 横向空间变窄：卡片与球体同步收一档，避免贴边 */
+  .rs-hero-metric {
+    min-width: clamp(120px, 11vw, 172px);
+    min-height: clamp(56px, 7.8vh, 92px);
+  }
+  .rs-hero-metric-num { font-size: clamp(17px, 1.35vw, 26px); }
+  /* 球体尺寸由容器查询单位自适应，此处不再覆盖 width（覆盖会与 cq 的 height 冲突） */
 }
 
 /* --- 三档：窄屏或极矮屏：三栏降级为纵向单栏，允许滚动，避免内容被裁切 --- */
@@ -1063,13 +1390,35 @@ onBeforeUnmount(() => {
   .rs-flex--3,
   .rs-col--center .rs-hero { flex: none; }
   .rs-panel { min-height: 200px; }
-  .rs-col--center .rs-hero { min-height: 340px; }
-  .rs-hero-stage { min-height: 240px; }
-  .rs-orb { width: min(30vh, 62%); }
+  /* 窄屏下卡片回到常规流与球体共用高度，stage 必须留出「球体 + 两行卡片」的空间。
+     注意 container-type: size 含 contain: size —— 内容不会撑高容器，
+     所以这里必须显式给足高度，否则内容溢出（实测球体被顶出 20px）。 */
+  .rs-col--center .rs-hero { min-height: 560px; }
+  .rs-hero-stage {
+    min-height: 480px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    align-content: center;
+  }
+  /* 球体尺寸必须让出卡片占用：不能沿用 96cqh（那会让球体吃掉整个 stage 高度） */
+  .rs-orb { height: min(40cqh, 46cqw); }
+  .rs-hero-center {
+    order: -1;
+    margin-bottom: 8px;
+    /* 跨满整行 */
+    grid-column: 1 / -1;
+  }
+  /* 卡片脱离四角绝对定位，回到常规流参与 2×2 网格 */
+  .rs-hero-metric {
+    position: static;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* 球体尺寸由容器查询单位自适应（cqh 跟随 stage 高度），无需在此覆盖 */
   .rs-footer { height: 26px; }
 }
 
-/* --- 四档：移动端窄幅：进一步压缩字号与留白，KPI 改单列以外的最小可用布局 --- */
+/* --- 四档：移动端窄幅：进一步压缩字号与留白 --- */
 @media (max-width: 640px) {
   .rs-viewport { --gap: 7px; }
   .rs-top { height: auto; flex-wrap: wrap; }
@@ -1079,7 +1428,12 @@ onBeforeUnmount(() => {
   .rs-clock { font-size: 11px; }
   .rs-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(52px, auto); }
   .rs-kpi-label { font-size: 10px; white-space: normal; }
-  .rs-hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 极窄屏：卡片保持 2 列（继承三档的常规流），仅再压一档字号 */
+  .rs-hero-metric { padding: 7px 9px 8px; }
+  .rs-hero-metric-label { font-size: 10px; }
+  .rs-hero-metric-num { font-size: 18px; }
+  .rs-hero-band { flex-wrap: wrap; }
+  .rs-hero-band-label { flex: 1 1 auto; }
   .rs-panel { min-height: 180px; }
   .rs-user-rank-value { font-size: 10px; }
 }
@@ -1091,7 +1445,7 @@ onBeforeUnmount(() => {
   .rs-bg-particle,
   .rs-orb-ring,
   .rs-orb-core,
-  .rs-orb-sat,
+  .rs-orb-orbit,
   .rs-status i {
     animation: none !important;
   }
