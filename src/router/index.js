@@ -5,6 +5,7 @@ import HomeView from '../views/HomeView.vue'
 import WorkbenchView from '../views/WorkbenchView.vue'
 import DataScreenView from '../views/analytics/DataScreenView.vue'
 import RegulatorScreenView from '../views/analytics/RegulatorScreenView.vue'
+import MaintenanceView from '../views/MaintenanceView.vue'
 import ReportTablesView from '../views/analytics/report/ReportTablesView.vue'
 import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
 import SoftwareLibraryView from '../views/software/SoftwareLibraryView.vue'
@@ -346,6 +347,14 @@ const routes = [
     name: 'regulator-screen',
     component: RegulatorScreenView,
     meta: { title: '态势综合分析' },
+  },
+  /* 系统维护升级页：流水线发版期间对外展示，独立于后台布局（无侧边栏/顶栏），
+     不依赖登录态与任何接口，静态页面 */
+  {
+    path: '/maintenance',
+    name: 'maintenance',
+    component: MaintenanceView,
+    meta: { title: '系统维护升级中' },
   },
 ]
 

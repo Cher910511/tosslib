@@ -1,8 +1,8 @@
 <template>
   <div class="donut">
-    <div ref="chartRef" class="donut-chart"></div>
-    <!-- 图例：右侧竖排，显示名称与占比 -->
-    <ul class="donut-legend">
+    <div ref="chartRef" class="donut-chart" :class="{ 'is-full': hideLegend }"></div>
+    <!-- 图例：右侧竖排，显示名称与占比（hideLegend 时不渲染，整宽让给主图） -->
+    <ul v-if="!hideLegend" class="donut-legend">
       <li v-for="d in data" :key="d.name" class="donut-legend-item">
         <span class="donut-dot" :style="{ background: d.color }" />
         <span class="donut-name">{{ d.name }}</span>
@@ -29,6 +29,12 @@ const props = defineProps({
   centerLabel: { type: String, default: '' },
   /** 环宽占比 */
   radius: { type: Array, default: () => ['58%', '78%'] },
+  /** 玫瑰图：扇形半径按数值占比展开（主图更饱满，避免两侧留白） */
+  rose: { type: Boolean, default: false },
+  /** 隐藏右侧图例，把整个面板宽度让给主图 */
+  hideLegend: { type: Boolean, default: false },
+  /** 在扇形上直接显示数值标签（替代图例读数） */
+  showValueLabel: { type: Boolean, default: false },
 })
 
 const chartRef = ref(null)
@@ -62,10 +68,22 @@ function update() {
     series: [
       {
         type: 'pie',
+        // 玫瑰图：半径按数值占比展开，扇形更饱满
+        roseType: props.rose ? 'radius' : false,
         radius: props.radius,
         center: ['50%', '50%'],
         avoidLabelOverlap: true,
-        label: { show: false },
+        // 数值标签：扇形上直接显示数值，替代图例读数
+        label: props.showValueLabel
+          ? {
+            show: true,
+            position: 'inside',
+            color: '#FFFFFF',
+            fontSize: 11,
+            fontWeight: 600,
+            formatter: (p) => `${p.name}\n${p.value}`,
+          }
+          : { show: false },
         labelLine: { show: false },
         itemStyle: { borderColor: '#FFFFFF', borderWidth: 2 },
         emphasis: { scale: true, scaleSize: 6 },
@@ -97,7 +115,7 @@ function onResize() {
 }
 
 onMounted(init)
-watch(() => [props.data, props.unit, props.centerLabel], update, { deep: true })
+watch(() => [props.data, props.unit, props.centerLabel, props.rose, props.showValueLabel], update, { deep: true })
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize)
   ro?.disconnect()
@@ -119,6 +137,8 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
 }
+/* 隐藏图例时主图独占整宽 */
+.donut-chart.is-full { flex: 1 1 auto; width: 100%; }
 .donut-legend {
   flex: 1;
   min-width: 0;

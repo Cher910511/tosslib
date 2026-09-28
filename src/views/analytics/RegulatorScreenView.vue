@@ -76,7 +76,7 @@
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">最新数据动态</h3>
               </div>
-              <div class="rs-panel-body">
+              <div class="rs-panel-body rs-feed-body">
                 <ScreenScrollList :items="liveFeed" :duration="24" />
               </div>
             </section>
@@ -99,8 +99,10 @@
                 </div>
                 <div class="rs-hero-total">
                   <span class="rs-hero-label">可信开源资产总数</span>
-                  <span class="rs-hero-num"><CountUp :end="heroTotal.value" /></span>
-                  <span class="rs-hero-unit">{{ heroTotal.unit }}</span>
+                  <span class="rs-hero-value">
+                    <CountUp class="rs-hero-num" :end="heroTotal.value" />
+                    <em class="rs-hero-unit">{{ heroTotal.unit }}</em>
+                  </span>
                   <span class="rs-hero-hint">{{ heroTotal.hint }}</span>
                 </div>
               </div>
@@ -111,7 +113,6 @@
                     <CountUp class="rs-hero-cell-num" :end="c.value" />
                     <em v-if="c.unit" class="rs-hero-cell-unit">{{ c.unit }}</em>
                   </span>
-                  <span class="rs-hero-cell-hint">{{ c.hint }}</span>
                 </div>
               </div>
             </section>
@@ -142,7 +143,14 @@
             <section class="rs-panel rs-flex--3">
               <h3 class="rs-panel-title">漏洞风险等级分布</h3>
               <div class="rs-panel-body rs-donut-center">
-                <ScreenDonutChart :data="vulnLevelDistribution" unit="" :radius="['52%', '72%']" />
+                <ScreenDonutChart
+                  :data="vulnLevelDistribution"
+                  unit=""
+                  :radius="['16%', '78%']"
+                  rose
+                  hide-legend
+                  show-value-label
+                />
               </div>
             </section>
 
@@ -570,15 +578,20 @@ onBeforeUnmount(() => {
 }
 .rs-panel:hover::after { opacity: 1; }
 
+/* 面板标题到内容的统一下间距：两种结构（裸标题 / .rs-panel-hd 包裹）共用同一变量 */
+.rs-panel {
+  --panel-hd-gap: 6px;
+}
 .rs-panel-hd {
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
   gap: 9px;
+  margin-bottom: var(--panel-hd-gap);
 }
 .rs-panel-title {
   position: relative;
-  margin: 0 0 8px;
+  margin: 0 0 var(--panel-hd-gap);
   padding-left: 13px;
   font-size: clamp(11.5px, 0.7vw, 13.5px);
   font-weight: 600;
@@ -699,8 +712,18 @@ onBeforeUnmount(() => {
   letter-spacing: 3px;
   color: var(--text-sub);
 }
+/* 数字 + 单位「项」同行基线对齐 */
+.rs-hero-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
 .rs-hero-num {
-  font-family: 'DIN Alternate', 'Bahnschrift', ui-monospace, monospace;
+  /* 数值沿用大屏科技字 Orbitron（index.html 已加载）。
+     注意：本类现在挂在 CountUp 根元素上，必须自行带上 Orbitron，
+     否则会被组件内置的 .count-up 字体栈覆盖成系统等宽字 */
+  font-family: 'Orbitron', 'DIN Alternate', 'Bahnschrift', ui-monospace, monospace;
   font-size: clamp(34px, 3.4vw, 62px);
   font-weight: 700;
   line-height: 1.05;
@@ -709,7 +732,8 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 .rs-hero-unit {
-  font-size: clamp(12px, 0.9vw, 15px);
+  font-style: normal;
+  font-size: clamp(13px, 1vw, 17px);
   color: var(--gold);
 }
 .rs-hero-hint {
@@ -763,13 +787,6 @@ onBeforeUnmount(() => {
   text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
 }
 .rs-hero-cell-unit { font-style: normal; font-size: 10px; color: var(--text-sub); }
-.rs-hero-cell-hint {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* ===== 左栏：用户行为 KPI ===== */
 .rs-kpi-grid {
@@ -783,7 +800,9 @@ onBeforeUnmount(() => {
 .rs-kpi {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* 关键：卡片高度不足时用 space-between，溢出只会往底部推，
+     避免 center 导致顶部「指标标题」被整体裁掉（小屏下标题消失的根因） */
+  justify-content: space-between;
   gap: 2px;
   padding: 5px 10px;
   background: rgba(6, 34, 70, 0.55);
@@ -792,11 +811,20 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 .rs-kpi-label {
+  flex-shrink: 0;
   font-size: 10.5px;
+  line-height: 1.3;
   color: var(--text-sub);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 数值 + 单位：同行基线对齐 */
+.rs-kpi-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
 }
 .rs-kpi-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
@@ -805,6 +833,17 @@ onBeforeUnmount(() => {
   color: var(--brand-bright);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+.rs-kpi-unit {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+/* 最新数据动态：内容缩进，与面板标题错开（标题有 13px 左侧色条占位） */
+.rs-feed-body {
+  padding-left: 13px;
 }
 
 /* ===== 左栏：用户活跃 Top5 ===== */
@@ -967,6 +1006,83 @@ onBeforeUnmount(() => {
 .rs-col--right .rs-panel:nth-child(2) { animation-delay: 0.14s; }
 .rs-col--right .rs-panel:nth-child(3) { animation-delay: 0.21s; }
 .rs-col--right .rs-panel:nth-child(4) { animation-delay: 0.28s; }
+
+/* ==================================================================
+   小屏适配（三档：紧凑 → 收紧 → 纵向堆叠）
+   ================================================================== */
+
+/* --- 一档：高度不足（如 1366×768）时压缩纵向占用 --- */
+@media (max-height: 820px) {
+  .rs-viewport { --gap: 8px; }
+  .rs-screen { padding: 8px 12px 3px; }
+  .rs-top { height: clamp(44px, 6vh, 58px); padding-bottom: 6px; }
+  .rs-panel { padding: 7px 10px 8px; }
+  /* KPI 由 2 列 × 3 行改为 3 列 × 2 行：每格更高，标题与数值都不再被压扁 */
+  .rs-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  .rs-kpi { padding: 4px 7px; }
+  .rs-kpi-label { font-size: 9.5px; }
+  .rs-hero-cell { padding: 6px 7px; }
+  .rs-hero-grid { gap: 6px; }
+  .rs-footer { height: 18px; }
+}
+
+/* --- 二档：宽度不足（笔记本 / 小尺寸屏）时收紧横向密度 --- */
+@media (max-width: 1440px) {
+  .rs-viewport { --gap: 9px; }
+  .rs-screen { padding: 10px 12px 4px; }
+  /* 两侧刻度装饰让位给标题与状态 */
+  .rs-top-side { display: none; }
+  .rs-panel { padding: 8px 10px 9px; }
+  .rs-panel-title { padding-left: 10px; letter-spacing: 0.4px; }
+  .rs-title-deco { width: 22px; height: 8px; }
+  .rs-status { font-size: 11px; padding: 3px 9px; }
+  .rs-user-rank-row {
+    grid-template-columns: 15px minmax(0, 1.1fr) minmax(0, 0.9fr) 40px;
+    gap: 5px;
+    padding: 0 6px;
+  }
+  .rs-hero-cell-num { font-size: clamp(14px, 1.1vw, 18px); }
+}
+
+/* --- 三档：窄屏或极矮屏：三栏降级为纵向单栏，允许滚动，避免内容被裁切 --- */
+@media (max-width: 1024px), (max-height: 640px) {
+  .rs-viewport { height: auto; min-height: 100vh; overflow: visible; }
+  .rs-screen { height: auto; min-height: 100vh; padding: 10px 10px 6px; }
+  .rs-main {
+    /* 单栏堆叠 */
+    grid-template-columns: minmax(0, 1fr);
+    /* 每栏各自成行，按内容高度排布 */
+    grid-auto-rows: auto;
+  }
+  .rs-col { gap: var(--gap); }
+  /* 解除栏内纵向配比，改为按内容高度 + 最小高度 */
+  .rs-flex--2,
+  .rs-flex--3,
+  .rs-col--center .rs-hero { flex: none; }
+  .rs-panel { min-height: 200px; }
+  .rs-col--center .rs-hero { min-height: 340px; }
+  .rs-hero-stage { min-height: 240px; }
+  .rs-orb { width: min(30vh, 62%); }
+  .rs-footer { height: 26px; }
+}
+
+/* --- 四档：移动端窄幅：进一步压缩字号与留白，KPI 改单列以外的最小可用布局 --- */
+@media (max-width: 640px) {
+  .rs-viewport { --gap: 7px; }
+  .rs-top { height: auto; flex-wrap: wrap; }
+  .rs-top-right { gap: 8px; }
+  .rs-status { display: none; }
+  .rs-brand-title { font-size: 16px; letter-spacing: 2px; }
+  .rs-clock { font-size: 11px; }
+  .rs-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(52px, auto); }
+  .rs-kpi-label { font-size: 10px; white-space: normal; }
+  .rs-hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rs-panel { min-height: 180px; }
+  .rs-user-rank-value { font-size: 10px; }
+}
 
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
