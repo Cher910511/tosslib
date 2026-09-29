@@ -105,15 +105,6 @@
                 </div>
               </div>
             </section>
-
-            <section class="rs-panel rs-flex--2">
-              <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">最新数据动态</h3>
-              </div>
-              <div class="rs-panel-body rs-feed-body">
-                <ScreenScrollList :items="liveFeed" :duration="24" />
-              </div>
-            </section>
           </div>
 
           <!-- 中栏：资产总览主视觉 + 趋势 -->
@@ -247,6 +238,15 @@
               </div>
             </section>
 
+            <!-- 漏洞风险等级分布：堆叠条（V2 由环形图改为堆叠图，并自右栏移入中栏）
+                 面板高度贴合内容（不参与 flex 分配），避免条带下方留出大片空白 -->
+            <section class="rs-panel rs-panel--hug">
+              <h3 class="rs-panel-title">漏洞风险等级分布</h3>
+              <div class="rs-panel-body">
+                <ScreenStackedBar :data="vulnLevelDistribution" />
+              </div>
+            </section>
+
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">开源风险情报趋势</h3>
@@ -267,20 +267,6 @@
                   <span class="rs-risk-label">{{ r.label }}</span>
                   <CountUp class="rs-risk-num" :end="r.value" />
                 </div>
-              </div>
-            </section>
-
-            <section class="rs-panel rs-flex--3">
-              <h3 class="rs-panel-title">漏洞风险等级分布</h3>
-              <div class="rs-panel-body rs-donut-center">
-                <ScreenDonutChart
-                  :data="vulnLevelDistribution"
-                  unit=""
-                  :radius="['16%', '78%']"
-                  rose
-                  hide-legend
-                  show-value-label
-                />
               </div>
             </section>
 
@@ -317,12 +303,17 @@
 
 <script setup>
 /**
- * 可信开源代码库数据大屏 · 政务科技风三栏布局
+ * 可信开源代码库数据大屏 V2 · 政务科技风三栏布局
  *
- * 布局参考经典政务大屏「左-中-右」三栏：
- *   左栏 = 用户行为（行为总览 KPI / 用户活跃 Top5 / 最新数据动态）
- *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 开源风险情报趋势
- *   右栏 = 风险行为（安全风险总览 / 漏洞等级分布 / 漏洞动态 / 恶意代码检测动态）
+ * 基于 V1（RegulatorScreenView.vue）复制而来，差异如下：
+ *   1. 去掉左栏的「最新数据动态」模块；
+ *   2. 「漏洞风险等级分布」由环形图改为堆叠图，并从中栏之外移入中栏、
+ *      置于「资产总览」下方。
+ *
+ * 布局（左-中-右三栏）：
+ *   左栏 = 用户行为（行为总览 KPI / 开源资产使用 / 用户活跃 Top5）
+ *   中栏 = 资产总览主视觉（同心环能量球 + 四角指标卡）+ 漏洞风险等级分布（堆叠图）+ 开源风险情报趋势
+ *   右栏 = 风险行为（安全风险总览 / 漏洞动态 / 恶意代码检测动态）
  *
  * 视觉：深空蓝底 + #005BCB 品牌青蓝 + 面板四角括号 + 中央能量球；
  *       克制发光与装饰密度，保证政务场景的高级感。
@@ -330,8 +321,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
-import ScreenDonutChart from '../../components/screen/ScreenDonutChart.vue'
-import ScreenScrollList from '../../components/screen/ScreenScrollList.vue'
+import ScreenStackedBar from '../../components/screen/ScreenStackedBar.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
 import {
   platformMeta,
@@ -344,7 +334,6 @@ import {
   userOverview,
   usageStats,
   topUsers,
-  liveFeed,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
@@ -1382,11 +1371,6 @@ onBeforeUnmount(() => {
   color: var(--text-sub);
 }
 
-/* 最新数据动态：内容缩进，与面板标题错开（标题有 13px 左侧色条占位） */
-.rs-feed-body {
-  padding-left: 13px;
-}
-
 /* ===== 左栏：用户活跃 Top5 ===== */
 .rs-user-rank {
   flex: 1;
@@ -1450,6 +1434,20 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 
+/* 左栏 KPI 型面板（用户行为总览 / 开源资产使用）：标题与指标间距收紧。
+   这两块是「标题 + 2×3 指标网格」结构，默认间距（6px margin + 行高留白，
+   实测字形间距 11px）在指标密集时显得偏松，收窄到与紧凑面板一致。 */
+.rs-col--left .rs-panel:has(.rs-kpi-grid) {
+  --panel-hd-gap: 1px;
+}
+
+/* ===== 中栏：漏洞风险等级分布（面板高度贴合内容） =====
+   堆叠条按通栏宽度铺满；面板不参与 flex 高度分配，按内容自然高度，
+   否则条带下方会留出大片空白。 */
+.rs-panel--hug {
+  flex: 0 0 auto;
+}
+
 /* ===== 右栏：安全风险总览 ===== */
 .rs-risk-list {
   flex: 1;
@@ -1504,26 +1502,6 @@ onBeforeUnmount(() => {
 .rs-risk-row.is-warn::before { background: var(--warn); box-shadow: 0 0 10px rgba(251, 191, 110, 0.9); }
 .rs-risk-row.is-warn .rs-risk-num { color: #FFC876; text-shadow: 0 0 16px rgba(251, 191, 110, 0.7); }
 
-/* ===== 右栏：漏洞等级分布（环形居中，图例置底横排） ===== */
-.rs-donut-center :deep(.donut) {
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-.rs-donut-center :deep(.donut-chart) {
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-}
-.rs-donut-center :deep(.donut-legend) {
-  flex: none;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 14px;
-}
-.rs-donut-center :deep(.donut-legend-item) { flex: none; }
-
 /* ===== 底部备案 ===== */
 .rs-footer {
   position: relative;
@@ -1543,10 +1521,11 @@ onBeforeUnmount(() => {
 .rs-col--left .rs-panel:nth-child(3) { animation-delay: 0.19s; }
 .rs-col--center .rs-panel:nth-child(1) { animation-delay: 0.09s; }
 .rs-col--center .rs-panel:nth-child(2) { animation-delay: 0.16s; }
+.rs-col--center .rs-panel:nth-child(3) { animation-delay: 0.23s; }
+/* 右栏仅 3 个面板（漏洞等级分布已移入中栏），故只留 3 条延迟 */
 .rs-col--right .rs-panel:nth-child(1) { animation-delay: 0.07s; }
 .rs-col--right .rs-panel:nth-child(2) { animation-delay: 0.14s; }
 .rs-col--right .rs-panel:nth-child(3) { animation-delay: 0.21s; }
-.rs-col--right .rs-panel:nth-child(4) { animation-delay: 0.28s; }
 
 /* ==================================================================
    小屏适配（三档：紧凑 → 收紧 → 纵向堆叠）

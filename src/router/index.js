@@ -5,6 +5,7 @@ import HomeView from '../views/HomeView.vue'
 import WorkbenchView from '../views/WorkbenchView.vue'
 import DataScreenView from '../views/analytics/DataScreenView.vue'
 import RegulatorScreenView from '../views/analytics/RegulatorScreenView.vue'
+import RegulatorScreenViewV2 from '../views/analytics/RegulatorScreenViewV2.vue'
 import MaintenanceView from '../views/MaintenanceView.vue'
 import ReportTablesView from '../views/analytics/report/ReportTablesView.vue'
 import SoftwareHomeView from '../views/software/SoftwareHomeView.vue'
@@ -347,6 +348,15 @@ const routes = [
     name: 'regulator-screen',
     component: RegulatorScreenView,
     meta: { title: '态势综合分析' },
+  },
+  /* 态势综合分析 V2：在 V1 基础上调整模块结构——
+     去掉「最新数据动态」，把「漏洞风险等级分布」改为堆叠图并移到资产总览下方。
+     V1 保留不动，两者并存互不影响。 */
+  {
+    path: '/screen/regulator-v2',
+    name: 'regulator-screen-v2',
+    component: RegulatorScreenViewV2,
+    meta: { title: '态势综合分析 V2' },
   },
   /* 系统维护升级页：流水线发版期间对外展示，独立于后台布局（无侧边栏/顶栏），
      不依赖登录态与任何接口，静态页面 */
