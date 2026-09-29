@@ -1330,10 +1330,13 @@ onBeforeUnmount(() => {
 .rs-kpi {
   display: flex;
   flex-direction: column;
-  /* 关键：卡片高度不足时用 space-between，溢出只会往底部推，
-     避免 center 导致顶部「指标标题」被整体裁掉（小屏下标题消失的根因） */
-  justify-content: space-between;
-  gap: 2px;
+  /* 标签与数值的垂直关系，三次调整后的结论：
+       space-between → 二者被顶到卡片两端，中间拉开 21px，过散；
+       safe center + gap 2px → 紧贴，过挤；
+       现取「居中聚拢 + 适中间隙」，多余空间由 gap 与上下留白共同分摊。
+     保留 safe：内容溢出的极端小屏下退化为顶对齐，避免此前标题被裁掉的问题。 */
+  justify-content: safe center;
+  gap: 8px;
   padding: 5px 10px;
   background: rgba(6, 34, 70, 0.55);
   border: 1px solid var(--hairline-soft);
