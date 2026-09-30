@@ -271,6 +271,8 @@ export const regulatorMetrics = [
 
 // ==================== ⑫ 访问行为与用户（真实数据）====================
 export const userOverview = [
+  { key: 'regUser', label: '注册用户数量', value: 273 },
+  { key: 'regOrg', label: '注册组织数量', value: 162 },
   { key: 'pv', label: '近 7 天 PV', value: 3662 },
   { key: 'uv', label: '近 7 天 UV', value: 38 },
   { key: 'avgPv', label: '人均 PV', value: 96.4, decimals: 1 },
@@ -303,16 +305,16 @@ export const topPages = [
 
 /** 用户活跃排行 Top10（真实数据） */
 export const topUsers = [
-  { name: '一所超管1', org: 'admin / AtomGit / ceshi1 等 8 个', login: 39, pv: 5816, last: '2026-09-22 16:11' },
-  { name: '中国铁道科学研究院集团有限公司电子计算技术研究所', org: '中国铁道科学研究院集团有限公司电子计算技术研究所', login: 7, pv: 1158, last: '2026-09-21 17:35' },
-  { name: '刘晨澜', org: '中科院软件所 / 进出口银行', login: 8, pv: 614, last: '2026-09-22 15:17' },
-  { name: '杨健', org: '工行', login: 1, pv: 582, last: '2026-09-22 16:09' },
-  { name: 'kayrer', org: 'AtomGit', login: 14, pv: 561, last: '2026-09-11 10:26' },
-  { name: '殷铭', org: '电信', login: 3, pv: 440, last: '2026-09-22 10:24' },
-  { name: '闫保奇', org: '电信', login: 3, pv: 384, last: '2026-09-22 10:14' },
-  { name: '中国民航信息集团有限公司', org: '中国民航信息集团有限公司 / 华为', login: 13, pv: 379, last: '2026-09-13 08:42' },
-  { name: '中国建设银行股份有限公司', org: '中国建设银行股份有限公司', login: 6, pv: 279, last: '2026-09-22 16:06' },
-  { name: '国泰海通证券股份有限公司', org: '国泰海通证券股份有限公司', login: 2, pv: 274, last: '2026-09-22 14:50' },
+  { name: '一所超管1', org: 'admin / AtomGit / ceshi1 / Palpitate / Redamancy / 一所 / 可信代码开发组 / 国家工业信息安全发展研究中心', login: 44, pv: 5987, last: '2026-09-30 09:56' },
+  { name: '中国铁道科学研究院集团有限公司电子计算技术研究所', org: '中国铁道科学研究院集团有限公司电子计算技术研究所', login: 10, pv: 1206, last: '2026-09-29 20:14' },
+  { name: '刘晨澜', org: '中科院软件所 / 进出口银行', login: 10, pv: 654, last: '2026-09-28 16:34' },
+  { name: 'kayrer', org: 'AtomGit / 中国科学院软件研究所', login: 16, pv: 634, last: '2026-09-29 15:43' },
+  { name: '杨健', org: '工行', login: 2, pv: 618, last: '2026-09-29 10:53' },
+  { name: '殷铭', org: '电信', login: 4, pv: 566, last: '2026-09-28 16:07' },
+  { name: '中国民航信息集团有限公司', org: '中国民航信息集团有限公司 / 华为', login: 14, pv: 410, last: '2026-09-29 14:38' },
+  { name: '闫保奇', org: '电信', login: 4, pv: 390, last: '2026-09-24 15:50' },
+  { name: 'zzcy003_信源测试', org: '信源公司', login: 7, pv: 363, last: '2026-09-29 17:08' },
+  { name: '中国建设银行股份有限公司', org: '中国建设银行股份有限公司', login: 6, pv: 322, last: '2026-09-29 14:01' },
 ]
 
 /** 活跃组织排行 Top10（真实数据） */

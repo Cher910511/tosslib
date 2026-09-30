@@ -66,7 +66,7 @@
         <main class="rs-main">
           <!-- 左栏：用户行为 -->
           <div class="rs-col rs-col--left">
-            <section class="rs-panel rs-flex--2">
+            <section class="rs-panel rs-panel--kpi">
               <h3 class="rs-panel-title">用户行为总览</h3>
               <div class="rs-kpi-grid">
                 <div v-for="u in userOverview" :key="u.key" class="rs-kpi">
@@ -78,7 +78,7 @@
               </div>
             </section>
 
-            <section class="rs-panel rs-flex--2">
+            <section class="rs-panel rs-panel--kpi">
               <h3 class="rs-panel-title">开源资产使用</h3>
               <div class="rs-kpi-grid">
                 <div v-for="u in usageStats" :key="u.key" class="rs-kpi">
@@ -91,28 +91,13 @@
               </div>
             </section>
 
-            <section class="rs-panel rs-flex--3">
-              <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">用户活跃 Top5</h3>
-                <span class="rs-panel-note">按页面浏览量</span>
-              </div>
-              <div class="rs-user-rank">
-                <div v-for="(u, i) in topUsers5" :key="u.name" class="rs-user-rank-row">
-                  <span class="rs-user-rank-no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
-                  <span class="rs-user-rank-name" :title="u.name">{{ u.name }}</span>
-                  <span class="rs-user-rank-bar"><i :style="{ width: u.bar }" /></span>
-                  <span class="rs-user-rank-value">{{ u.pv.toLocaleString() }}</span>
-                </div>
-              </div>
-            </section>
-
             <section class="rs-panel rs-flex--2">
               <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">最新数据动态</h3>
+                <h3 class="rs-panel-title">用户活跃 Top10</h3>
+                <span class="rs-panel-note">按页面浏览量</span>
               </div>
-              <div class="rs-panel-body rs-feed-body">
-                <ScreenScrollList :items="liveFeed" :duration="24" />
-              </div>
+              <!-- 排行榜：固定行高 + 超出容器无缝自动滚动（见 ScreenUserRank） -->
+              <ScreenUserRank :users="topUsers10" />
             </section>
           </div>
 
@@ -287,20 +272,20 @@
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">最新漏洞动态</h3>
-                <span class="rs-panel-note">{{ vulnFeed.length }} 条</span>
+                <span class="rs-panel-note">最新 {{ vulnFeed10.length }} 条</span>
               </div>
               <div class="rs-panel-body">
-                <ScreenTable :columns="vulnColumns" :rows="vulnFeed" :duration="46" />
+                <ScreenTable :columns="vulnColumns" :rows="vulnFeed10" :duration="46" />
               </div>
             </section>
 
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">恶意代码检测动态</h3>
-                <span class="rs-panel-note">{{ malwareFeed.length }} 条</span>
+                <span class="rs-panel-note">最新 {{ malwareFeed10.length }} 条</span>
               </div>
               <div class="rs-panel-body">
-                <ScreenTable :columns="malwareColumns" :rows="malwareFeed" :duration="34" />
+                <ScreenTable :columns="malwareColumns" :rows="malwareFeed10" :duration="34" />
               </div>
             </section>
           </div>
@@ -320,7 +305,7 @@
  * 可信开源代码库数据大屏 · 政务科技风三栏布局
  *
  * 布局参考经典政务大屏「左-中-右」三栏：
- *   左栏 = 用户行为（行为总览 KPI / 用户活跃 Top5 / 最新数据动态）
+ *   左栏 = 用户行为（行为总览 KPI / 开源资产使用 / 用户活跃 Top10）
  *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 开源风险情报趋势
  *   右栏 = 风险行为（安全风险总览 / 漏洞等级分布 / 漏洞动态 / 恶意代码检测动态）
  *
@@ -331,8 +316,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import ScreenDonutChart from '../../components/screen/ScreenDonutChart.vue'
-import ScreenScrollList from '../../components/screen/ScreenScrollList.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
+import ScreenUserRank from '../../components/screen/ScreenUserRank.vue'
 import {
   platformMeta,
   assetCards,
@@ -344,7 +329,6 @@ import {
   userOverview,
   usageStats,
   topUsers,
-  liveFeed,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
@@ -362,12 +346,16 @@ const heroSideCards = computed(() =>
 /** 四角方位：按顺序落到 左上 → 右上 → 左下 → 右下 */
 const CORNER_POS = ['tl', 'tr', 'bl', 'br']
 
-/* ===== 用户活跃 Top5（按 PV 归一化进度条）===== */
-const topUsers5 = computed(() => {
-  const list = topUsers.slice(0, 5)
+/* ===== 用户活跃 Top10（按 PV 归一化进度条）===== */
+const topUsers10 = computed(() => {
+  const list = topUsers.slice(0, 10)
   const max = Math.max(...list.map((u) => u.pv), 1)
   return list.map((u) => ({ ...u, bar: `${Math.max(12, Math.round((u.pv / max) * 100))}%` }))
 })
+
+/* ===== 实时列表：各取最新 10 条滚动 ===== */
+const vulnFeed10 = computed(() => vulnFeed.slice(0, 10))
+const malwareFeed10 = computed(() => malwareFeed.slice(0, 10))
 
 /* ===== 表格列定义 ===== */
 const vulnColumns = [
@@ -805,6 +793,9 @@ onBeforeUnmount(() => {
   gap: var(--gap);
 }
 /* 栏内纵向配比：数值越大分得越高 */
+/* 左栏纵向配比。两个 KPI 面板已改为按内容高度（不参与分配，见 .rs-panel--kpi），
+   故此处配比只作用于「用户活跃 Top10」，它独占左栏剩余空间并靠滚动展示。
+   保留 rs-flex--2/3 供中栏与右栏复用。 */
 .rs-flex--2 { flex: 2; }
 .rs-flex--3 { flex: 3; }
 .rs-col--center .rs-hero { flex: 5; }
@@ -1330,21 +1321,33 @@ onBeforeUnmount(() => {
 }
 
 /* ===== 左栏：用户行为 KPI ===== */
+/* KPI 面板（用户行为总览 / 开源资产使用）：两个面板样式完全统一 ——
+   面板按内容高度（flex: 0 0 auto），不参与拉伸，故两panel的标题、卡片高度、
+   间距完全一致；左栏剩余纵向空间全部由「用户活跃 Top10」吸收。
+   这样矮屏下卡片也永不被压缩，指标标题与数值始终完整可见。 */
+.rs-panel--kpi {
+  flex: 0 0 auto;
+}
 .rs-kpi-grid {
-  flex: 1;
-  min-height: 0;
+  /* 不参与拉伸：行高固定，卡片不被压扁（曾用 minmax(0,1fr)，矮屏下会把
+     卡片压到文字裁切）。改为定高后靠下方面板吸收剩余空间。 */
+  flex: none;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  /* 行高 minmax(46px, auto)：下限保证紧凑美观，上限按内容撑开 ——
+     写死高度会让「标签 + 数值」放不下而被 overflow 裁掉（实测 V2 曾裁 6px）。
+     行数自适应：用户行为总览 8 项（4 行）、开源资产使用 6 项（3 行）。 */
+  grid-auto-rows: minmax(46px, auto);
   gap: 7px;
 }
 .rs-kpi {
   display: flex;
   flex-direction: column;
-  /* 关键：卡片高度不足时用 space-between，溢出只会往底部推，
-     避免 center 导致顶部「指标标题」被整体裁掉（小屏下标题消失的根因） */
-  justify-content: space-between;
-  gap: 2px;
+  /* 与 V2 统一：标签与数值居中聚拢 + 适中间隙。
+     用 safe center 而非普通 center —— 内容万一超出时退化为顶对齐，
+     不会把顶部「指标标题」裁掉（space-between 会把二者顶到卡片两端，过散）。 */
+  justify-content: safe center;
+  gap: 8px;
   padding: 5px 10px;
   background: rgba(6, 34, 70, 0.55);
   border: 1px solid var(--hairline-soft);
@@ -1380,74 +1383,6 @@ onBeforeUnmount(() => {
   font-style: normal;
   font-size: 10px;
   color: var(--text-sub);
-}
-
-/* 最新数据动态：内容缩进，与面板标题错开（标题有 13px 左侧色条占位） */
-.rs-feed-body {
-  padding-left: 13px;
-}
-
-/* ===== 左栏：用户活跃 Top5 ===== */
-.rs-user-rank {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: repeat(5, minmax(0, 1fr));
-  gap: 5px;
-}
-.rs-user-rank-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) 46px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 8px;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 5px;
-  overflow: hidden;
-}
-.rs-user-rank-no {
-  width: 15px;
-  height: 15px;
-  display: grid;
-  place-items: center;
-  font-family: ui-monospace, monospace;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--text-sub);
-  background: rgba(56, 120, 190, 0.24);
-  border-radius: 3px;
-}
-.rs-user-rank-no.is-1 { color: #1A1305; background: linear-gradient(160deg, #FFE08A, #E8B33B); }
-.rs-user-rank-no.is-2 { color: #0E1622; background: linear-gradient(160deg, #E8F1FA, #AFC4D8); }
-.rs-user-rank-no.is-3 { color: #211004; background: linear-gradient(160deg, #F0BE93, #C77E45); }
-.rs-user-rank-name {
-  font-size: 10.5px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rs-user-rank-bar {
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(3, 14, 29, 0.6);
-  overflow: hidden;
-}
-.rs-user-rank-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, rgba(0, 91, 203, 0.6), #38BDF8);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-}
-.rs-user-rank-value {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--brand-bright);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ===== 右栏：安全风险总览 ===== */
@@ -1558,11 +1493,9 @@ onBeforeUnmount(() => {
   .rs-screen { padding: 8px 12px 3px; }
   .rs-top { height: clamp(44px, 6vh, 58px); padding-bottom: 6px; }
   .rs-panel { padding: 7px 10px 8px; }
-  /* KPI 由 2 列 × 3 行改为 3 列 × 2 行：每格更高，标题与数值都不再被压扁 */
-  .rs-kpi-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-  }
+  /* KPI 网格保持 2 列，不再在矮屏改成 3 列：
+     「用户行为总览」有 8 项，3 列会排成 3+3+2，末行只有 2 个而错位；
+     2 列时 8 项正好 4 行 × 2、6 项正好 3 行 × 2，两栏都能整行填满。 */
   .rs-kpi { padding: 4px 7px; }
   .rs-kpi-label { font-size: 9.5px; }
   /* 四角卡片收紧，给中央球体留出更高空间 */
@@ -1585,11 +1518,7 @@ onBeforeUnmount(() => {
   .rs-panel-title { padding-left: 10px; letter-spacing: 0.4px; }
   .rs-title-deco { width: 22px; height: 8px; }
   .rs-status { font-size: 11px; padding: 3px 9px; }
-  .rs-user-rank-row {
-    grid-template-columns: 15px minmax(0, 1.1fr) minmax(0, 0.9fr) 40px;
-    gap: 5px;
-    padding: 0 6px;
-  }
+  /* 排行榜已抽为 ScreenUserRank 组件（样式随组件 scoped），此处不再覆盖 */
   /* 横向空间变窄：卡片与球体同步收一档，避免贴边 */
   .rs-hero-metric {
     min-width: clamp(120px, 11vw, 172px);
@@ -1663,7 +1592,6 @@ onBeforeUnmount(() => {
   .rs-hero-band { flex-wrap: wrap; }
   .rs-hero-band-label { flex: 1 1 auto; }
   .rs-panel { min-height: 180px; }
-  .rs-user-rank-value { font-size: 10px; }
 }
 
 /* 尊重系统「减少动态效果」偏好 */
