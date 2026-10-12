@@ -68,8 +68,19 @@
           <div class="rs-col rs-col--left">
             <section class="rs-panel rs-panel--kpi">
               <h3 class="rs-panel-title">用户行为总览</h3>
+              <!-- 注册用户数 / 注册企业数：领导要求放大展示 -->
+              <div class="rs-kpi-featured">
+                <div v-for="u in userOverviewFeatured" :key="u.key" class="rs-kpi-featured-card">
+                  <span class="rs-kpi-featured-label">{{ u.label }}</span>
+                  <span class="rs-kpi-featured-value">
+                    <CountUp class="rs-kpi-featured-num" :end="u.value" />
+                    <em v-if="u.unit" class="rs-kpi-featured-unit">{{ u.unit }}</em>
+                  </span>
+                </div>
+              </div>
+              <!-- 其余行为指标 -->
               <div class="rs-kpi-grid">
-                <div v-for="u in userOverview" :key="u.key" class="rs-kpi">
+                <div v-for="u in userOverviewRest" :key="u.key" class="rs-kpi">
                   <span class="rs-kpi-label">{{ u.label }}</span>
                   <span class="rs-kpi-value">
                     <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
@@ -79,9 +90,11 @@
             </section>
 
             <section class="rs-panel rs-panel--kpi">
-              <h3 class="rs-panel-title">开源资产使用</h3>
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">平台使用情况</h3>
+              </div>
               <div class="rs-kpi-grid">
-                <div v-for="u in usageStats" :key="u.key" class="rs-kpi">
+                <div v-for="u in platformUsageByUser" :key="u.key" class="rs-kpi">
                   <span class="rs-kpi-label">{{ u.label }}</span>
                   <span class="rs-kpi-value">
                     <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
@@ -232,6 +245,23 @@
               </div>
             </section>
 
+            <!-- 资产流转统计：按领导意见，中栏风险提醒改为资产维度统计 -->
+            <section class="rs-panel rs-panel--hug">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">资产流转统计</h3>
+              </div>
+              <div class="rs-flow-grid">
+                <div v-for="a in assetFlowStats" :key="a.key" class="rs-flow-card">
+                  <span class="rs-flow-label">{{ a.label }}</span>
+                  <span class="rs-flow-value">
+                    <CountUp class="rs-flow-num" :end="a.value" />
+                    <em v-if="a.unit" class="rs-flow-unit">{{ a.unit }}</em>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <!-- 开源风险情报趋势：按领导意见，保留风险趋势折线图，不用资产增长趋势 -->
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">开源风险情报趋势</h3>
@@ -252,20 +282,6 @@
                   <span class="rs-risk-label">{{ r.label }}</span>
                   <CountUp class="rs-risk-num" :end="r.value" />
                 </div>
-              </div>
-            </section>
-
-            <section class="rs-panel rs-flex--3">
-              <h3 class="rs-panel-title">漏洞风险等级分布</h3>
-              <div class="rs-panel-body rs-donut-center">
-                <ScreenDonutChart
-                  :data="vulnLevelDistribution"
-                  unit=""
-                  :radius="['16%', '78%']"
-                  rose
-                  hide-legend
-                  show-value-label
-                />
               </div>
             </section>
 
@@ -305,8 +321,8 @@
  * 可信开源代码库数据大屏 · 政务科技风三栏布局
  *
  * 布局参考经典政务大屏「左-中-右」三栏：
- *   左栏 = 用户行为（行为总览 KPI / 开源资产使用 / 用户活跃 Top10）
- *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 开源风险情报趋势
+ *   左栏 = 用户行为（行为总览 KPI，注册用户/注册企业放大 + 平台使用情况[用户维度] + 用户活跃 Top10）
+ *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 资产维度统计（新增/上下线 + 增长折线）
  *   右栏 = 风险行为（安全风险总览 / 漏洞等级分布 / 漏洞动态 / 恶意代码检测动态）
  *
  * 视觉：深空蓝底 + #005BCB 品牌青蓝 + 面板四角括号 + 中央能量球；
@@ -315,22 +331,30 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
-import ScreenDonutChart from '../../components/screen/ScreenDonutChart.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
 import ScreenUserRank from '../../components/screen/ScreenUserRank.vue'
 import {
   platformMeta,
   assetCards,
   riskOverview,
-  vulnLevelDistribution,
   vulnFeed,
   malwareFeed,
   riskTrendIndexed,
   userOverview,
-  usageStats,
+  platformUsageByUser,
+  USER_OVERVIEW_FEATURED_KEYS,
+  assetFlowStats,
   topUsers,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
+
+/* ===== 用户行为总览：放大项与其余项拆分 ===== */
+/** 放大展示：注册用户数 / 注册企业数（领导要求） */
+const userOverviewFeatured = computed(() =>
+  userOverview.filter((u) => USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
+/** 其余行为指标（避免与放大项重复展示） */
+const userOverviewRest = computed(() =>
+  userOverview.filter((u) => !USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
 
 /* ===== 资产总览：中心总数 + 左右指标列 + 底部指标带 ===== */
 const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
@@ -1144,6 +1168,48 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 .rs-hero-band-value em { font-style: normal; font-size: 10px; color: var(--text-sub); margin-left: 2px; }
+
+/* ===== 中栏：资产流转统计（资产维度，替代原风险提醒）===== */
+/* 面板按内容高度，不参与拉伸 —— 否则卡片下方留白 */
+.rs-panel--hug {
+  flex: 0 0 auto;
+}
+.rs-flow-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.rs-flow-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 7px;
+  min-height: 58px;
+  padding: 6px 10px;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rs-flow-label {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-flow-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
+.rs-flow-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(16px, 1.25vw, 24px);
+  font-weight: 700;
+  color: #7DDCFF;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
+}
+.rs-flow-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
 .rs-orb {
   position: relative;
   /* 不能用百分比宽度（曾因 auto 列循环依赖塌陷为 0×0）。
@@ -1328,6 +1394,57 @@ onBeforeUnmount(() => {
 .rs-panel--kpi {
   flex: 0 0 auto;
 }
+
+/* 放大展示卡（注册用户数 / 注册企业数）：领导要求突出，占两列、数值更大 */
+.rs-kpi-featured {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.rs-kpi-featured-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 6px;
+  padding: 8px 12px;
+  /* 比普通指标卡更亮的底 + 品牌色描边，形成视觉主次 */
+  background: linear-gradient(150deg, rgba(9, 46, 92, 0.85), rgba(5, 26, 54, 0.7));
+  border: 1px solid rgba(0, 145, 255, 0.4);
+  border-radius: 6px;
+  box-shadow: inset 0 0 18px rgba(0, 91, 203, 0.22);
+  overflow: hidden;
+}
+.rs-kpi-featured-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-kpi-featured-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+}
+/* 放大：字号明显大于普通指标卡的 clamp(14px, 1.05vw, 20px) */
+.rs-kpi-featured-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(26px, 2.1vw, 40px);
+  font-weight: 700;
+  color: #7DDCFF;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+}
+.rs-kpi-featured-unit {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-sub);
+}
 .rs-kpi-grid {
   /* 不参与拉伸：行高固定，卡片不被压扁（曾用 minmax(0,1fr)，矮屏下会把
      卡片压到文字裁切）。改为定高后靠下方面板吸收剩余空间。 */
@@ -1438,26 +1555,6 @@ onBeforeUnmount(() => {
 .rs-risk-row.is-warn { border-color: rgba(251, 191, 110, 0.5); }
 .rs-risk-row.is-warn::before { background: var(--warn); box-shadow: 0 0 10px rgba(251, 191, 110, 0.9); }
 .rs-risk-row.is-warn .rs-risk-num { color: #FFC876; text-shadow: 0 0 16px rgba(251, 191, 110, 0.7); }
-
-/* ===== 右栏：漏洞等级分布（环形居中，图例置底横排） ===== */
-.rs-donut-center :deep(.donut) {
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-.rs-donut-center :deep(.donut-chart) {
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-}
-.rs-donut-center :deep(.donut-legend) {
-  flex: none;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 14px;
-}
-.rs-donut-center :deep(.donut-legend-item) { flex: none; }
 
 /* ===== 底部备案 ===== */
 .rs-footer {

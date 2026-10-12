@@ -68,8 +68,19 @@
           <div class="rs-col rs-col--left">
             <section class="rs-panel rs-panel--kpi">
               <h3 class="rs-panel-title">用户行为总览</h3>
+              <!-- 注册用户数 / 注册企业数：领导要求放大展示 -->
+              <div class="rs-kpi-featured">
+                <div v-for="u in userOverviewFeatured" :key="u.key" class="rs-kpi-featured-card">
+                  <span class="rs-kpi-featured-label">{{ u.label }}</span>
+                  <span class="rs-kpi-featured-value">
+                    <CountUp class="rs-kpi-featured-num" :end="u.value" />
+                    <em v-if="u.unit" class="rs-kpi-featured-unit">{{ u.unit }}</em>
+                  </span>
+                </div>
+              </div>
+              <!-- 其余行为指标 -->
               <div class="rs-kpi-grid">
-                <div v-for="u in userOverview" :key="u.key" class="rs-kpi">
+                <div v-for="u in userOverviewRest" :key="u.key" class="rs-kpi">
                   <span class="rs-kpi-label">{{ u.label }}</span>
                   <span class="rs-kpi-value">
                     <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
@@ -79,9 +90,11 @@
             </section>
 
             <section class="rs-panel rs-panel--kpi">
-              <h3 class="rs-panel-title">开源资产使用</h3>
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">平台使用情况</h3>
+              </div>
               <div class="rs-kpi-grid">
-                <div v-for="u in usageStats" :key="u.key" class="rs-kpi">
+                <div v-for="u in platformUsageByUser" :key="u.key" class="rs-kpi">
                   <span class="rs-kpi-label">{{ u.label }}</span>
                   <span class="rs-kpi-value">
                     <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
@@ -232,15 +245,24 @@
               </div>
             </section>
 
-            <!-- 漏洞风险等级分布：堆叠条（V2 由环形图改为堆叠图，并自右栏移入中栏）
-                 面板高度贴合内容（不参与 flex 分配），避免条带下方留出大片空白 -->
+            <!-- 资产流转统计：按领导意见，中栏风险提醒改为资产维度统计 -->
             <section class="rs-panel rs-panel--hug">
-              <h3 class="rs-panel-title">漏洞风险等级分布</h3>
-              <div class="rs-panel-body">
-                <ScreenStackedBar :data="vulnLevelDistribution" />
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">资产流转统计</h3>
+                <span class="rs-panel-note">新增 / 上下线</span>
+              </div>
+              <div class="rs-flow-grid">
+                <div v-for="a in assetFlowStats" :key="a.key" class="rs-flow-card">
+                  <span class="rs-flow-label">{{ a.label }}</span>
+                  <span class="rs-flow-value">
+                    <CountUp class="rs-flow-num" :end="a.value" />
+                    <em v-if="a.unit" class="rs-flow-unit">{{ a.unit }}</em>
+                  </span>
+                </div>
               </div>
             </section>
 
+            <!-- 开源风险情报趋势：按领导意见，保留风险趋势折线图，不用资产增长趋势 -->
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">开源风险情报趋势</h3>
@@ -299,15 +321,15 @@
 /**
  * 可信开源代码库数据大屏 V2 · 政务科技风三栏布局
  *
- * 基于 V1（RegulatorScreenView.vue）复制而来，差异如下：
- *   1. 去掉左栏的「最新数据动态」模块；
- *   2. 「漏洞风险等级分布」由环形图改为堆叠图，并从中栏之外移入中栏、
- *      置于「资产总览」下方。
- *
  * 布局（左-中-右三栏）：
- *   左栏 = 用户行为（行为总览 KPI / 开源资产使用 / 用户活跃 Top5）
- *   中栏 = 资产总览主视觉（同心环能量球 + 四角指标卡）+ 漏洞风险等级分布（堆叠图）+ 开源风险情报趋势
+ *   左栏 = 用户行为（行为总览 KPI，注册用户/注册企业放大 + 平台使用情况[用户维度] + 用户活跃 Top10）
+ *   中栏 = 资产总览主视觉（同心环能量球 + 四角指标卡）+ 资产流转统计（新增/上下线）
+ *          + 开源风险情报趋势
  *   右栏 = 风险行为（安全风险总览 / 漏洞动态 / 恶意代码检测动态）
+ *
+ * 注意：历史上本版与 V1 的区别是「去掉最新数据动态 + 中栏加漏洞风险等级分布堆叠条」，
+ * 这两处差异均已按要求回退，**当前本版与 V1（RegulatorScreenView.vue）结构完全一致**。
+ * 若不再需要两个版本，可删除本文件与 /screen/regulator-v2 路由。
  *
  * 视觉：深空蓝底 + #005BCB 品牌青蓝 + 面板四角括号 + 中央能量球；
  *       克制发光与装饰密度，保证政务场景的高级感。
@@ -315,22 +337,30 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
-import ScreenStackedBar from '../../components/screen/ScreenStackedBar.vue'
 import ScreenUserRank from '../../components/screen/ScreenUserRank.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
 import {
   platformMeta,
   assetCards,
   riskOverview,
-  vulnLevelDistribution,
   vulnFeed,
   malwareFeed,
   riskTrendIndexed,
   userOverview,
-  usageStats,
+  platformUsageByUser,
+  USER_OVERVIEW_FEATURED_KEYS,
+  assetFlowStats,
   topUsers,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
+
+/* ===== 用户行为总览：放大项与其余项拆分 ===== */
+/** 放大展示：注册用户数 / 注册企业数（领导要求） */
+const userOverviewFeatured = computed(() =>
+  userOverview.filter((u) => USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
+/** 其余行为指标（避免与放大项重复展示） */
+const userOverviewRest = computed(() =>
+  userOverview.filter((u) => !USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
 
 /* ===== 资产总览：中心总数 + 左右指标列 + 底部指标带 ===== */
 const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
@@ -1141,6 +1171,48 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 .rs-hero-band-value em { font-style: normal; font-size: 10px; color: var(--text-sub); margin-left: 2px; }
+
+/* ===== 中栏：资产流转统计（资产维度，替代原风险提醒）===== */
+/* 面板按内容高度，不参与拉伸 —— 否则卡片下方留白 */
+.rs-panel--hug {
+  flex: 0 0 auto;
+}
+.rs-flow-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.rs-flow-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 7px;
+  min-height: 58px;
+  padding: 6px 10px;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rs-flow-label {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-flow-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
+.rs-flow-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(16px, 1.25vw, 24px);
+  font-weight: 700;
+  color: #7DDCFF;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
+}
+.rs-flow-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
 .rs-orb {
   position: relative;
   /* 不能用百分比宽度（曾因 auto 列循环依赖塌陷为 0×0）。
@@ -1318,12 +1390,63 @@ onBeforeUnmount(() => {
 }
 
 /* ===== 左栏：用户行为 KPI ===== */
-/* KPI 面板（用户行为总览 / 开源资产使用）：两个面板样式完全统一 ——
+/* KPI 面板（用户行为总览 / 平台使用情况）：两个面板样式完全统一 ——
    面板按内容高度（flex: 0 0 auto），不参与拉伸，故两panel的标题、卡片高度、
    间距完全一致；剩余纵向空间由下方「用户活跃 Top10」吸收。
    这样矮屏下卡片也永不被压缩，指标标题与数值始终完整可见。 */
 .rs-panel--kpi {
   flex: 0 0 auto;
+}
+
+/* 放大展示卡（注册用户数 / 注册企业数）：领导要求突出，占两列、数值更大 */
+.rs-kpi-featured {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.rs-kpi-featured-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 6px;
+  padding: 8px 12px;
+  /* 比普通指标卡更亮的底 + 品牌色描边，形成视觉主次 */
+  background: linear-gradient(150deg, rgba(9, 46, 92, 0.85), rgba(5, 26, 54, 0.7));
+  border: 1px solid rgba(0, 145, 255, 0.4);
+  border-radius: 6px;
+  box-shadow: inset 0 0 18px rgba(0, 91, 203, 0.22);
+  overflow: hidden;
+}
+.rs-kpi-featured-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-kpi-featured-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+}
+/* 放大：字号明显大于普通指标卡的 clamp(14px, 1.05vw, 20px) */
+.rs-kpi-featured-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(26px, 2.1vw, 40px);
+  font-weight: 700;
+  color: #7DDCFF;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+}
+.rs-kpi-featured-unit {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-sub);
 }
 .rs-kpi-grid {
   /* 不参与拉伸：行高固定，卡片不被压扁（曾用 minmax(0,1fr)，矮屏下会把
@@ -1333,7 +1456,7 @@ onBeforeUnmount(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   /* 行高 minmax(46px, auto)：下限保证紧凑美观，上限按内容撑开 ——
      写死高度会让「标签 + 数值」放不下而被 overflow 裁掉（实测本版曾裁 6px）。
-     行数自适应：用户行为总览 8 项（4 行）、开源资产使用 6 项（3 行）。 */
+     行数自适应：用户行为总览 6 项（3 行）、平台使用情况 4 项（2 行）。 */
   grid-auto-rows: minmax(46px, auto);
   gap: 7px;
 }
@@ -1384,7 +1507,7 @@ onBeforeUnmount(() => {
   color: var(--text-sub);
 }
 
-/* 左栏两个 KPI 面板（用户行为总览 / 开源资产使用）：共用同一间距变量，
+/* 左栏两个 KPI 面板（用户行为总览 / 平台使用情况）：共用同一间距变量，
    两者标题与指标的垂直距离完全一致（V2 沿用此前收紧过的 1px）。 */
 .rs-col--left .rs-panel:has(.rs-kpi-grid) {
   --panel-hd-gap: 1px;
@@ -1394,9 +1517,8 @@ onBeforeUnmount(() => {
    排行榜已抽为 ScreenUserRank 组件（固定行高 + 超出容器无缝自动滚动），
    样式随组件 scoped 作用域，此处不再重复定义。 */
 
-/* ===== 中栏：漏洞风险等级分布（面板高度贴合内容） =====
-   堆叠条按通栏宽度铺满；面板不参与 flex 高度分配，按内容自然高度，
-   否则条带下方会留出大片空白。 */
+/* ===== 中栏：资产流转统计（资产维度，替代原风险提醒）===== */
+/* 面板按内容高度，不参与拉伸 —— 否则卡片下方留白 */
 .rs-panel--hug {
   flex: 0 0 auto;
 }

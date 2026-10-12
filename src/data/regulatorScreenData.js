@@ -22,8 +22,13 @@ import {
 } from './mockData.js'
 
 // ==================== 顶部状态与时钟 ====================
+/**
+ * 大屏标题与系统统一（领导要求）。
+ * 系统自身名称取自 AdminShell.vue 品牌区与 InviteRegisterView.vue 登录页标题，
+ * 两处均为「可信开源代码库」，大屏不再另加「数据大屏」后缀。
+ */
 export const platformMeta = {
-  title: '可信开源代码库数据大屏',
+  title: '可信开源代码库',
 }
 
 // ==================== 资产总览（6 张卡）====================
@@ -271,8 +276,8 @@ export const regulatorMetrics = [
 
 // ==================== ⑫ 访问行为与用户（真实数据）====================
 export const userOverview = [
-  { key: 'regUser', label: '注册用户数量', value: 273 },
-  { key: 'regOrg', label: '注册组织数量', value: 162 },
+  { key: 'regUser', label: '注册用户数量', value: 273, unit: '人' },
+  { key: 'regOrg', label: '注册组织数量', value: 162, unit: '家' },
   { key: 'pv', label: '近 7 天 PV', value: 3662 },
   { key: 'uv', label: '近 7 天 UV', value: 38 },
   { key: 'avgPv', label: '人均 PV', value: 96.4, decimals: 1 },
@@ -382,7 +387,50 @@ export const liveFeed = [
   '完成 SBOM 自动化分析任务 8,412 项',
 ]
 
+// ==================== ⑭ 用户维度平台使用情况（大屏左栏第二块）====================
+/**
+ * 口径：全部按「用户数（人）」统计 —— 领导要求从用户角度看在平台的使用情况，
+ * 回答「有多少用户做了这件事」，与 usageStats（次数口径）刻意区分开：
+ *   usageStats      → 近 7 天下载 26 **次**、OpenAPI 调用 3051 **次**（次数）
+ *   platformUsageByUser → 下载代码 18 **人**、调用接口 11 **人**（人数）
+ *
+ * 数据来源说明（重要）：
+ * 平台真实看板（cntoss.cn /admin/board）「下载与接口」板块只提供**次数**口径，
+ * 未提供**用户数**口径；「业务与系统」板块的需求反馈为**条数**口径。
+ * 故本块除 regUser / regOrg（注册用户 / 注册企业，平台真实值）外，
+ * 其余为演示数据，待平台补齐用户数口径后替换（已逐项标注）。
+ */
+export const platformUsageByUser = [
+  // 平台暂无「用户数」口径，本块为演示数据，待补齐后替换
+  { key: 'downloadUser', label: '下载代码用户', value: 18, unit: '人' },
+  { key: 'apiUser', label: '调用接口用户', value: 11, unit: '人' },
+  { key: 'feedbackUser', label: '治理需求反馈用户', value: 9, unit: '人' },
+  { key: 'aiUser', label: 'AI 助手使用用户', value: 12, unit: '人' },
+]
+
+/**
+ * 「用户行为总览」中需要放大展示的两项（领导要求：注册用户数 / 注册企业数放大）。
+ * 取自 userOverview 的同名字段，保证与总览口径一致、不另造数。
+ */
+export const USER_OVERVIEW_FEATURED_KEYS = ['regUser', 'regOrg']
+
+// ==================== ⑮ 资产维度统计（大屏中栏，替换原「监管风险提醒」）====================
+/**
+ * 口径：从资产流转角度统计，替代原先的监管风险提醒内容。
+ * newToday 取自资产总览卡的既有文案「较昨日新增 1,842 项」；
+ * 其余平台暂无真实口径，为演示数据（已标注）。
+ */
+export const assetFlowStats = [
+  { key: 'newToday', label: '较昨日新增', value: 1842, unit: '项', source: 'derived' },
+  { key: 'onlineMonth', label: '本月上线资产', value: 3268, unit: '项', source: 'demo' },
+  { key: 'offlineMonth', label: '本月下线资产', value: 517, unit: '项', source: 'demo' },
+  { key: 'netGrowth', label: '本月净增资产', value: 2751, unit: '项', source: 'demo' },
+]
+
+// 注：曾有一组「资产增长趋势」演示数据（assetGrowthTrend），因中栏折线图
+// 已按领导意见改回「开源风险情报趋势」，该数据无消费方，已移除。
+
 // ==================== 底部备案 ====================
 export const footerInfo = {
-  copyright: `© ${new Date().getFullYear()} 可信开源代码库数据大屏`,
+  copyright: `© ${new Date().getFullYear()} 可信开源代码库`,
 }
