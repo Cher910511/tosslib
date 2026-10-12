@@ -26,14 +26,42 @@ let ro = null
 const AXIS_TEXT = '#9DC0E4'
 const SPLIT = 'rgba(0, 145, 255, 0.18)'
 
+/**
+ * 纵轴上限取「整齐档位」：1 / 1.5 / 2 / 2.5 / 3 / 4 / 5 / 6 / 8 / 10 × 10^n。
+ * 旧实现写死按 5 万取整，在万级数据（如 2.5 万）下会浪费近一半高度。
+ */
+function niceMax(v) {
+  if (!v || v <= 0) return null
+  const mag = Math.pow(10, Math.floor(Math.log10(v)))
+  const norm = v / mag
+  const steps = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+  return mag * (steps.find((s) => norm <= s) ?? 10)
+}
+
+/** 单条纵轴配置；右侧轴不画分割线，避免与左轴网格线重叠 */
+function axisCfg(max, showSplit) {
+  return {
+    type: 'value',
+    max,
+    splitLine: showSplit ? { lineStyle: { color: SPLIT } } : { show: false },
+    axisLabel: {
+      color: AXIS_TEXT,
+      fontSize: 11,
+      formatter: (v) => (v >= 10000 ? `${v / 10000}万` : v),
+    },
+    axisLine: { show: false },
+  }
+}
+
 function update() {
   if (!chart) return
-  const vals = props.series.flatMap((s) => s.data || [])
-  const dataMax = vals.length ? Math.max(...vals) : 0
-  // 纵轴取整到「万」的整数倍，刻度更干净
-  const axisMax = props.max != null
-    ? props.max
-    : Math.ceil(dataMax / 50000) * 50000
+  // 按 series.axis 拆分左右两组：量级差异大的曲线（万级 vs 千级）走双纵轴，
+  // 否则小量级曲线会被压成贴底直线。无人标记 axis:'right' 时行为与旧版一致（单轴）。
+  const hasRight = props.series.some((s) => s.axis === 'right')
+  const leftVals = props.series.filter((s) => s.axis !== 'right').flatMap((s) => s.data || [])
+  const rightVals = props.series.filter((s) => s.axis === 'right').flatMap((s) => s.data || [])
+  const leftMax = props.max != null ? props.max : niceMax(Math.max(...leftVals, 0))
+  const rightMax = niceMax(Math.max(...rightVals, 0))
 
   chart.setOption({
     backgroundColor: 'transparent',
@@ -47,7 +75,7 @@ function update() {
       extraCssText: 'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55); border-radius: 6px;',
       axisPointer: { type: 'line', lineStyle: { color: 'rgba(0, 91, 203, 0.35)', type: 'dashed' } },
       formatter: (ps) => {
-        const head = `<div style="font-weight:600;margin-bottom:4px">${ps[0].axisValue} 年</div>`
+        const head = `<div style="font-weight:600;margin-bottom:4px">${ps[0].axisValue}</div>`
         const rows = ps
           .map((p) => `<div style="display:flex;gap:8px;justify-content:space-between">
             <span>${p.marker}${p.seriesName}</span><b>${Number(p.value).toLocaleString()}</b></div>`)
@@ -73,20 +101,14 @@ function update() {
       axisLine: { lineStyle: { color: 'rgba(0, 91, 203, 0.2)' } },
       axisTick: { show: false },
     },
-    yAxis: {
-      type: 'value',
-      max: axisMax,
-      splitLine: { lineStyle: { color: SPLIT } },
-      axisLabel: {
-        color: AXIS_TEXT,
-        fontSize: 11,
-        formatter: (v) => (v >= 10000 ? `${v / 10000}万` : v),
-      },
-      axisLine: { show: false },
-    },
+    yAxis: hasRight
+      ? [axisCfg(leftMax, true), axisCfg(rightMax, false)]
+      : axisCfg(leftMax, true),
     series: props.series.map((s) => ({
       name: s.name,
       type: 'line',
+      // 双轴模式下右侧系列挂到第 2 条纵轴
+      yAxisIndex: hasRight && s.axis === 'right' ? 1 : 0,
       smooth: true,
       symbol: 'circle',
       symbolSize: 5,

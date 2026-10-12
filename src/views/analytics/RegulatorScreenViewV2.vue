@@ -262,14 +262,14 @@
               </div>
             </section>
 
-            <!-- 开源风险情报趋势：按领导意见，保留风险趋势折线图，不用资产增长趋势 -->
+            <!-- 资产趋势：源码数 / 制品数（万级，左轴）+ 漏洞感知 / 版本更新（千级，右轴） -->
             <section class="rs-panel rs-flex--3">
               <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">开源风险情报趋势</h3>
-                <span class="rs-panel-note">近十年</span>
+                <h3 class="rs-panel-title">资产趋势</h3>
+                <span class="rs-panel-note">近 12 月</span>
               </div>
               <div class="rs-panel-body">
-                <ScreenLineChart :categories="riskTrendIndexed.years" :series="riskTrendIndexed.series" />
+                <ScreenLineChart :categories="assetTrend.months" :series="assetTrend.series" />
               </div>
             </section>
           </div>
@@ -324,7 +324,7 @@
  * 布局（左-中-右三栏）：
  *   左栏 = 用户行为（行为总览 KPI，注册用户/注册企业放大 + 平台使用情况[用户维度] + 用户活跃 Top10）
  *   中栏 = 资产总览主视觉（同心环能量球 + 四角指标卡）+ 资产流转统计（新增/上下线）
- *          + 开源风险情报趋势
+ *          + 资产趋势（源码数/制品数/漏洞感知/版本更新 四曲线，近 12 月）
  *   右栏 = 风险行为（安全风险总览 / 漏洞动态 / 恶意代码检测动态）
  *
  * 注意：历史上本版与 V1 的区别是「去掉最新数据动态 + 中栏加漏洞风险等级分布堆叠条」，
@@ -345,10 +345,11 @@ import {
   riskOverview,
   vulnFeed,
   malwareFeed,
-  riskTrendIndexed,
+  assetTrend,
   userOverview,
   platformUsageByUser,
   USER_OVERVIEW_FEATURED_KEYS,
+  USER_OVERVIEW_GRID_KEYS,
   assetFlowStats,
   topUsers,
   footerInfo,
@@ -358,9 +359,9 @@ import {
 /** 放大展示：注册用户数 / 注册企业数（领导要求） */
 const userOverviewFeatured = computed(() =>
   userOverview.filter((u) => USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
-/** 其余行为指标（避免与放大项重复展示） */
+/** 其余行为指标（按 USER_OVERVIEW_GRID_KEYS 的顺序与范围，当前 4 项 = 2 行 × 2） */
 const userOverviewRest = computed(() =>
-  userOverview.filter((u) => !USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
+  USER_OVERVIEW_GRID_KEYS.map((k) => userOverview.find((u) => u.key === k)).filter(Boolean))
 
 /* ===== 资产总览：中心总数 + 左右指标列 + 底部指标带 ===== */
 const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
@@ -1410,8 +1411,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: safe center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 12px 14px;
   /* 比普通指标卡更亮的底 + 品牌色描边，形成视觉主次 */
   background: linear-gradient(150deg, rgba(9, 46, 92, 0.85), rgba(5, 26, 54, 0.7));
   border: 1px solid rgba(0, 145, 255, 0.4);
@@ -1421,7 +1422,7 @@ onBeforeUnmount(() => {
 }
 .rs-kpi-featured-label {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-sub);
   white-space: nowrap;
   overflow: hidden;
@@ -1436,16 +1437,16 @@ onBeforeUnmount(() => {
 /* 放大：字号明显大于普通指标卡的 clamp(14px, 1.05vw, 20px) */
 .rs-kpi-featured-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(26px, 2.1vw, 40px);
+  font-size: clamp(32px, 2.7vw, 50px);
   font-weight: 700;
   color: #7DDCFF;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.75);
 }
 .rs-kpi-featured-unit {
   flex-shrink: 0;
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-sub);
 }
 .rs-kpi-grid {

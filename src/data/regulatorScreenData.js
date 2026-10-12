@@ -19,6 +19,7 @@ import {
   techStackCategories,
   latestCVEList,
   malwareSoftwareList,
+  vulnAddedTrend,
 } from './mockData.js'
 
 // ==================== 顶部状态与时钟 ====================
@@ -414,6 +415,16 @@ export const platformUsageByUser = [
  */
 export const USER_OVERVIEW_FEATURED_KEYS = ['regUser', 'regOrg']
 
+/**
+ * 「用户行为总览」指标网格的显示项与顺序。
+ * 注意行序以「整块面板」计：第 1 行是两张放大卡（注册用户/注册企业），
+ * 第 2 行才是本数组的前两项 —— 故把「活跃组织」放在首位，
+ * 使其落在第二行第一个（领导要求）。
+ * userOverview 中的人均 PV / 活跃用户为平台真实值，此处保留不展示，
+ * 如需恢复只需把 key 加回本数组，无需改动模板。
+ */
+export const USER_OVERVIEW_GRID_KEYS = ['activeOrg', 'pv', 'uv', 'aiChat']
+
 // ==================== ⑮ 资产维度统计（大屏中栏，替换原「监管风险提醒」）====================
 /**
  * 口径：从资产流转角度统计，替代原先的监管风险提醒内容。
@@ -427,8 +438,47 @@ export const assetFlowStats = [
   { key: 'netGrowth', label: '本月净增资产', value: 2751, unit: '项', source: 'demo' },
 ]
 
-// 注：曾有一组「资产增长趋势」演示数据（assetGrowthTrend），因中栏折线图
-// 已按领导意见改回「开源风险情报趋势」，该数据无消费方，已移除。
+// ==================== ⑯ 资产趋势（大屏中栏折线图 · 四条曲线）====================
+/**
+ * 口径与来源（逐条标注）：
+ *   - 漏洞感知：取自 mockData.vulnAddedTrend（平台既有「漏洞新增趋势 · 近 12 月」真实序列）
+ *   - 源码数：末月锚定 platformOverview.repoCount = 24,897（平台真实总量），历史点为演示数据
+ *   - 制品数：末月锚定 platformOverview.componentCount = 25,000（平台真实总量），历史点为演示数据
+ *   - 版本更新：平台暂无此口径，整条为演示数据
+ * 横轴窗口与 vulnAddedTrend 对齐（2025-08 ~ 2026-07）。
+ *
+ * 纵轴量级差异（重要）：源码数/制品数为万级，漏洞感知/版本更新为千级。
+ * 若同轴绘制，后两条会被压成贴底直线，故标记 axis: 'right' 走右侧副轴。
+ */
+export const assetTrend = {
+  months: vulnAddedTrend.map((d) => d.label),
+  series: [
+    {
+      name: '源码数',
+      color: '#38BDF8',
+      axis: 'left',
+      data: [21200, 21650, 22100, 22550, 22950, 23350, 23700, 24000, 24280, 24520, 24720, 24897],
+    },
+    {
+      name: '制品数',
+      color: '#22D3EE',
+      axis: 'left',
+      data: [22300, 22700, 23050, 23400, 23750, 24100, 24400, 24650, 24820, 24940, 24980, 25000],
+    },
+    {
+      name: '漏洞感知',
+      color: '#F59E0B',
+      axis: 'right',
+      data: vulnAddedTrend.map((d) => d.value),
+    },
+    {
+      name: '版本更新',
+      color: '#A78BFA',
+      axis: 'right',
+      data: [620, 740, 680, 890, 820, 960, 910, 1080, 1020, 1180, 1120, 1260],
+    },
+  ],
+}
 
 // ==================== 底部备案 ====================
 export const footerInfo = {
