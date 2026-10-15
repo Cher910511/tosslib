@@ -92,25 +92,68 @@
             <section class="rs-panel rs-panel--kpi">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">平台使用情况</h3>
+                <span class="rs-panel-note">月报统计量 · 点击看组织下钻</span>
               </div>
-              <div class="rs-kpi-grid">
-                <div v-for="u in platformUsageByUser" :key="u.key" class="rs-kpi">
-                  <span class="rs-kpi-label">{{ u.label }}</span>
-                  <span class="rs-kpi-value">
-                    <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
-                    <em v-if="u.unit" class="rs-kpi-unit">{{ u.unit }}</em>
+              <!-- 月报统计量 7 项：每项含数值 + 较上日/周/月比对与趋势箭头。
+                   点击卡片下钻，弹窗展示该指标的组织级/用户级脱敏统计。 -->
+              <div class="rs-mstat-grid">
+                <button
+                  v-for="m in monthlyReportStats"
+                  :key="m.key"
+                  type="button"
+                  class="rs-mstat"
+                  :title="`点击查看「${m.label}」的组织下钻数据`"
+                  @click="openMetricDrill(m)"
+                >
+                  <span class="rs-mstat-label">{{ m.label }}</span>
+                  <span class="rs-mstat-value">
+                    <CountUp class="rs-mstat-num" :end="m.value" :decimals="m.decimals || 0" />
+                    <em v-if="m.unit" class="rs-mstat-unit">{{ m.unit }}</em>
                   </span>
-                </div>
+                  <span class="rs-mstat-compare">
+                    <span
+                      v-for="c in compareItems(m)"
+                      :key="c.key"
+                      class="rs-mstat-cmp"
+                      :class="`is-${c.dir}`"
+                      :title="`较上${c.label}：${c.text}`"
+                    >
+                      <em class="rs-mstat-cmp-label">{{ c.label }}</em>
+                      <i class="rs-mstat-arrow" :class="`is-${c.dir}`" aria-hidden="true" />
+                      <b class="rs-mstat-cmp-num">{{ c.text }}</b>
+                    </span>
+                  </span>
+                </button>
               </div>
             </section>
 
             <section class="rs-panel rs-flex--2">
               <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">用户活跃 Top10</h3>
-                <span class="rs-panel-note">按页面浏览量</span>
+                <h3 class="rs-panel-title">组织活跃度 Top10</h3>
+                <span class="rs-panel-note">点击组织看用户明细</span>
               </div>
-              <!-- 排行榜：固定行高 + 超出容器无缝自动滚动（见 ScreenUserRank） -->
-              <ScreenUserRank :users="topUsers10" />
+              <!-- 组织活跃度榜单：平台以组织为统计单位（用户必须先加入组织才能使用），
+                   故由「用户活跃」改为「组织活跃度」；名次带往期比对箭头，点击可下钻。 -->
+              <div class="rs-org-rank">
+                <button
+                  v-for="o in orgActivity10"
+                  :key="o.name"
+                  type="button"
+                  class="rs-org-row"
+                  :title="`${o.name}：活跃度 ${o.score.toLocaleString()}，点击查看该组织内用户明细`"
+                  @click="openOrgDrill(o.name)"
+                >
+                  <span class="rs-org-no" :class="`is-${o.rank}`">{{ o.rank }}</span>
+                  <span class="rs-org-name" :title="o.name">{{ o.name }}</span>
+                  <span class="rs-org-bar"><i :style="{ width: o.bar }" /></span>
+                  <span class="rs-org-value">{{ o.score.toLocaleString() }}</span>
+                  <!-- 往期名次比对：↑ 上升 / ↓ 下降 / — 持平 -->
+                  <span class="rs-org-delta" :class="deltaClass(o.delta)" :title="`上期第 ${o.prevRank} 名`">
+                    <i class="rs-org-arrow" :class="deltaClass(o.delta)" aria-hidden="true" />
+                    <b>{{ o.delta === 0 ? '持平' : Math.abs(o.delta) }}</b>
+                  </span>
+                </button>
+              </div>
             </section>
           </div>
 
@@ -257,6 +300,10 @@
                     <CountUp class="rs-flow-num" :end="a.value" />
                     <em v-if="a.unit" class="rs-flow-unit">{{ a.unit }}</em>
                   </span>
+                  <!-- 数值图形化：条长按最大值归一，上线/下线/净增的相对关系一眼可见 -->
+                  <span class="rs-flow-bar" aria-hidden="true">
+                    <i :style="{ width: flowBarWidth(a.value) }" />
+                  </span>
                 </div>
               </div>
             </section>
@@ -313,6 +360,17 @@
         </footer>
       </div>
     </div>
+
+    <!-- 组织下钻弹窗：展示脱敏后的用户级统计（月报统计量与组织活跃度两处复用） -->
+    <OrgDrillDialog
+      :open="drillOpen"
+      :title="drillTitle"
+      :subtitle="drillSubtitle"
+      :users="drillUsers"
+      :show-org="drillShowOrg"
+      :metric-key="drillMetricKey"
+      @close="drillOpen = false"
+    />
   </div>
 </template>
 
@@ -332,7 +390,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
 import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
-import ScreenUserRank from '../../components/screen/ScreenUserRank.vue'
+import OrgDrillDialog from '../../components/screen/OrgDrillDialog.vue'
 import {
   platformMeta,
   assetCards,
@@ -341,11 +399,13 @@ import {
   malwareFeed,
   assetTrend,
   userOverview,
-  platformUsageByUser,
+  monthlyReportStats,
+  orgActivityTop10,
+  orgDrillStats,
+  maskUserName,
   USER_OVERVIEW_FEATURED_KEYS,
   USER_OVERVIEW_GRID_KEYS,
   assetFlowStats,
-  topUsers,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
@@ -371,12 +431,95 @@ const heroSideCards = computed(() =>
 /** 四角方位：按顺序落到 左上 → 右上 → 左下 → 右下 */
 const CORNER_POS = ['tl', 'tr', 'bl', 'br']
 
-/* ===== 用户活跃 Top10（按 PV 归一化进度条）===== */
-const topUsers10 = computed(() => {
-  const list = topUsers.slice(0, 10)
-  const max = Math.max(...list.map((u) => u.pv), 1)
-  return list.map((u) => ({ ...u, bar: `${Math.max(12, Math.round((u.pv / max) * 100))}%` }))
+/* ===== 平台使用情况（月报统计量）：比对项 + 组织下钻 ===== */
+/** 箭头符号：增加 ↑ / 减少 ↓ / 持平 — */
+const ARROW = { up: '↑', down: '↓', flat: '—' }
+
+/**
+ * 把某指标的 compare 展开为三行比对（较上日 / 较上周 / 较上月）。
+ * 需求原话：增加「较上日/周/月，增加/持平/减少 XXX」并配趋势箭头。
+ * 数值带符号（如 +320 / -140），持平显示「持平」。
+ */
+function compareItems(metric) {
+  const c = metric.compare || {}
+  return [
+    { key: 'day', label: '日', dir: c.dayDir || 'flat', val: Number(c.day) || 0 },
+    { key: 'week', label: '周', dir: c.weekDir || 'flat', val: Number(c.week) || 0 },
+    { key: 'month', label: '月', dir: c.monthDir || 'flat', val: Number(c.month) || 0 },
+  ].map((x) => ({
+    ...x,
+    arrow: ARROW[x.dir],
+    text: x.dir === 'flat' ? '持平' : `${x.val > 0 ? '+' : ''}${x.val.toLocaleString()}`,
+  }))
+}
+
+/* ===== 组织下钻弹窗（按指标下钻）===== */
+const drillOpen = ref(false)
+const drillTitle = ref('')
+const drillSubtitle = ref('')
+/** 弹窗行数据：单组织下钻时用该组织用户；按指标下钻时为跨组织的用户集合（带 org 字段） */
+const drillUsers = ref([])
+/** 是否显示「所属组织」列 */
+const drillShowOrg = ref(false)
+/** 聚焦指标列（高亮对应列） */
+const drillMetricKey = ref('')
+
+/**
+ * 点击月报统计量卡片 → 打开组织下钻弹窗。
+ * 因平台真实看板只到组织级，这里按「指标 → 对应的用户级字段」做跨组织汇总展示：
+ *   visits/search/download → pv/download/ai 等用户行为字段
+ * 展示的是**脱敏后**的用户数据（数据层已过 maskUserName），并标出各用户所属组织。
+ */
+function openMetricDrill(metric) {
+  const FIELD = { visits: 'pv', search: 'pv', download: 'download', embed: 'api', inbound: 'ai', batchPull: 'api', singlePull: 'api' }
+  const field = FIELD[metric.key] || 'pv'
+  const rows = []
+  Object.entries(orgDrillStats).forEach(([org, users]) => {
+    users.forEach((u) => rows.push({ ...u, org }))
+  })
+  rows.sort((a, b) => (Number(b[field]) || 0) - (Number(a[field]) || 0))
+  drillTitle.value = `${metric.label} · 组织下钻`
+  drillSubtitle.value = `按「${metric.label}」相关的用户行为降序展示，跨组织汇总；用户姓名已脱敏`
+  drillUsers.value = rows
+  drillShowOrg.value = true
+  drillMetricKey.value = field
+  drillOpen.value = true
+}
+
+/** 点击组织（组织活跃度榜单）→ 打开该组织内的用户级下钻 */
+function openOrgDrill(orgName) {
+  drillTitle.value = `${orgName} · 用户级统计`
+  drillSubtitle.value = '该组织内用户活跃分布，用户姓名已脱敏'
+  drillUsers.value = orgDrillStats[orgName] || []
+  drillShowOrg.value = false
+  drillMetricKey.value = 'pv'
+  drillOpen.value = true
+}
+
+/* ===== 组织活跃度 Top10（按活跃度得分归一化进度条）===== */
+const orgActivity10 = computed(() => {
+  const list = orgActivityTop10.slice(0, 10)
+  const max = Math.max(...list.map((o) => o.score), 1)
+  return list.map((o) => ({
+    ...o,
+    bar: `${Math.max(12, Math.round((o.score / max) * 100))}%`,
+    // 名次变化：正=上升，负=下降，0=持平
+    delta: (o.prevRank || o.rank) - o.rank,
+  }))
 })
+
+/** 名次变化方向 → 样式类（up 上升 / down 下降 / flat 持平） */
+function deltaClass(delta) {
+  if (delta > 0) return 'is-up'
+  if (delta < 0) return 'is-down'
+  return 'is-flat'
+}
+
+/** 流转量条长归一基准（取三项最大值），供数值图形化使用 */
+const flowMax = computed(() => Math.max(1, ...assetFlowStats.map((a) => Number(a.value) || 0)))
+function flowBarWidth(v) {
+  return `${Math.max(8, Math.round(((Number(v) || 0) / flowMax.value) * 100))}%`
+}
 
 /* ===== 实时列表：各取最新 10 条滚动 ===== */
 const vulnFeed10 = computed(() => vulnFeed.slice(0, 10))
@@ -1178,7 +1321,9 @@ onBeforeUnmount(() => {
 .rs-flow-grid {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 3 列：流转统计现有「本月上线 / 本月下线 / 本月净增」3 项
+     （原「较昨日新增」与资产总览提示重复，已移除） */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
 }
 .rs-flow-card {
@@ -1186,31 +1331,58 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: safe center;
   gap: 7px;
-  min-height: 58px;
-  padding: 6px 10px;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
+  /* 投屏可读性：字号与卡片高度同步放大（原 58px/10.5px 在投屏上偏小） */
+  min-height: 68px;
+  padding: 8px 12px;
+  /* 底色加深，与浅色文字拉开对比（投屏环境光会进一步压低对比） */
+  background: rgba(4, 22, 46, 0.82);
+  border: 1px solid rgba(0, 145, 255, 0.34);
   border-radius: 6px;
   overflow: hidden;
 }
 .rs-flow-label {
   flex-shrink: 0;
-  font-size: 10.5px;
-  color: var(--text-sub);
+  /* 10.5px → 12.5px，并提亮前景色（原 #9DC0E4 在投影下偏灰） */
+  font-size: clamp(11.5px, 0.82vw, 14px);
+  font-weight: 500;
+  color: #C8DEF5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rs-flow-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
+.rs-flow-value { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
 .rs-flow-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(16px, 1.25vw, 24px);
+  /* 24px → 30px：中栏主数值应在投屏上「一眼可见」 */
+  font-size: clamp(19px, 1.55vw, 30px);
   font-weight: 700;
-  color: #7DDCFF;
+  color: #A5E7FF;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
 }
-.rs-flow-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
+.rs-flow-unit {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: clamp(10.5px, 0.72vw, 12px);
+  color: #A8C6E6;
+}
+/* 数值图形化：条长表示量级，让「上线 / 下线 / 净增」的相对关系免读数字即可看出 */
+.rs-flow-bar {
+  display: block;
+  height: 5px;
+  margin-top: 2px;
+  border-radius: 3px;
+  background: rgba(3, 14, 29, 0.6);
+  overflow: hidden;
+}
+.rs-flow-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(0, 91, 203, 0.7), #38BDF8);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
 .rs-orb {
   position: relative;
   /* 不能用百分比宽度（曾因 auto 列循环依赖塌陷为 0×0）。
@@ -1383,7 +1555,8 @@ onBeforeUnmount(() => {
   color: var(--gold);
 }
 .rs-hero-hint {
-  font-size: 10.5px;
+  /* 资产总览中心总数下方的提示（如「较昨日新增 1,842 项」）：调大一号便于投屏辨认 */
+  font-size: clamp(11.5px, 0.78vw, 13px);
   color: #6EE7A8;
 }
 
@@ -1503,6 +1676,218 @@ onBeforeUnmount(() => {
   color: var(--text-sub);
 }
 
+/* ===== 左栏：平台使用情况（月报统计量 7 项 + 比对箭头）===== */
+/* 需求要点：① 每项要展示「较上日/周/月」的增/平/减与趋势箭头；
+             ② 点击卡片可下钻看组织/用户级脱敏统计。 */
+.rs-mstat-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+/* 指标卡：本体是 button（可点击下钻），故需重置按钮默认样式 */
+.rs-mstat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 9px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+.rs-mstat:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  background: rgba(10, 46, 92, 0.8);
+}
+.rs-mstat-label {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-mstat-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
+.rs-mstat-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(15px, 1.1vw, 21px);
+  font-weight: 700;
+  color: #7DDCFF;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+}
+.rs-mstat-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
+
+/* 比对行：三格（日/周/月）横排，颜色区分增/减/持平 */
+.rs-mstat-compare {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 9.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rs-mstat-cmp { display: inline-flex; align-items: center; gap: 2px; color: var(--text-dim); }
+.rs-mstat-cmp-label { font-style: normal; opacity: 0.85; }
+.rs-mstat-cmp-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 趋势箭头：用 CSS 三角绘制，避免依赖字体符号（投屏时字体缺失会变豆腐块） */
+.rs-mstat-arrow {
+  width: 0;
+  height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+}
+/* 增加：向上实心三角 + 绿 */
+.rs-mstat-arrow.is-up {
+  border-bottom: 6px solid #34D399;
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.7));
+}
+/* 减少：向下实心三角 + 红 */
+.rs-mstat-arrow.is-down {
+  border-top: 6px solid #FF8A7A;
+  filter: drop-shadow(0 0 4px rgba(255, 107, 107, 0.7));
+}
+/* 持平：短横线 + 灰 */
+.rs-mstat-arrow.is-flat {
+  width: 7px;
+  height: 2px;
+  border: none;
+  background: #8FA8C4;
+  border-radius: 1px;
+}
+.rs-mstat-cmp.is-up .rs-mstat-cmp-num { color: #6EE7A8; }
+.rs-mstat-cmp.is-down .rs-mstat-cmp-num { color: #FF8A7A; }
+.rs-mstat-cmp.is-flat .rs-mstat-cmp-num { color: #8FA8C4; }
+
+/* ===== 左栏：组织活跃度 Top10（组织维度 + 往期名次比对 + 点击下钻）===== */
+/* 需求要点：① 不再展示用户姓名（个人敏感信息）；② 改为组织维度；
+             ③ 点击组织可下钻看脱敏后的用户明细；④ 名次带往期比对。 */
+.rs-org-rank {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* 行高：下限 30px（舒适可读），空间富余时按 1fr 均分撑满。
+     装不下时靠 overflow-y 手动滚动 —— 注意这里**没有、也不要加任何
+     自动滚动动画**（曾用 ScreenUserRank 做过跑马灯式自动滚动，已移除）；
+     手动滚动是允许的，不必为消除滚动条而把行高压到不可读。 */
+  grid-auto-rows: minmax(30px, 1fr);
+  gap: 4px;
+  overflow-y: auto;
+  /* 细滚动条：手动滚动可用，且能提示「下方还有内容」（不隐藏数据） */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 145, 255, 0.45) transparent;
+}
+/* Chrome（投屏环境）走 webkit 伪元素，与上面的 thin 保持一致的细样式 */
+.rs-org-rank::-webkit-scrollbar { width: 4px; }
+.rs-org-rank::-webkit-scrollbar-track { background: transparent; }
+.rs-org-rank::-webkit-scrollbar-thumb {
+  background: rgba(0, 145, 255, 0.45);
+  border-radius: 2px;
+}
+/* 行本体是 button（可点击下钻），需重置按钮默认样式 */
+.rs-org-row {
+  display: grid;
+  /* 名次 | 组织名 | 活跃度条 | 得分 | 名次变化 */
+  grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) 46px 38px;
+  align-items: center;
+  gap: 7px;
+  /* 不设固定高度：由 .rs-org-rank 的 grid-auto-rows 分配，随屏幕压缩变矮 */
+  min-height: 0;
+  padding: 0 8px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+.rs-org-row:hover { border-color: rgba(34, 211, 238, 0.6); background: rgba(10, 46, 92, 0.85); }
+
+.rs-org-no {
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: rgba(56, 120, 190, 0.24);
+  border-radius: 3px;
+}
+.rs-org-no.is-1 { color: #1A1305; background: linear-gradient(160deg, #FFE08A, #E8B33B); }
+.rs-org-no.is-2 { color: #0E1622; background: linear-gradient(160deg, #E8F1FA, #AFC4D8); }
+.rs-org-no.is-3 { color: #211004; background: linear-gradient(160deg, #F0BE93, #C77E45); }
+
+.rs-org-name {
+  font-size: 10.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-org-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(3, 14, 29, 0.6);
+  overflow: hidden;
+}
+.rs-org-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(0, 91, 203, 0.6), #38BDF8);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+.rs-org-value {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-bright);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 名次变化：数字 + 箭头，颜色区分升/降/持平 */
+.rs-org-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rs-org-delta.is-up { color: #6EE7A8; }
+.rs-org-delta.is-down { color: #FF8A7A; }
+.rs-org-delta.is-flat { color: #8FA8C4; }
+/* 箭头用 CSS 三角绘制，避免依赖字体符号（投屏缺字体会变豆腐块） */
+.rs-org-arrow {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+}
+.rs-org-arrow.is-up { border-bottom: 5px solid #6EE7A8; }
+.rs-org-arrow.is-down { border-top: 5px solid #FF8A7A; }
+.rs-org-arrow.is-flat {
+  width: 6px;
+  height: 2px;
+  border: none;
+  background: #8FA8C4;
+  border-radius: 1px;
+}
+
 /* ===== 右栏：安全风险总览 ===== */
 .rs-risk-list {
   flex: 1;
@@ -1542,20 +1927,37 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
 }
-/* 漏洞总数（primary）：淡红 */
-.rs-risk-row.is-primary { border-color: rgba(255, 138, 138, 0.5); }
-.rs-risk-row.is-primary::before { background: #FF8A8A; box-shadow: 0 0 10px rgba(255, 138, 138, 0.85); }
+/* 配色说明（重要）——本模块是「风险数量的分类总览」，按需求使用红→橙→黄三档。
+   关键要求：三行之间色差必须明显（此前两行色值完全一致，投屏下分不出差异）。
+   取值按「色相 + 饱和度 + 明度」三重拉开：
+     漏洞总数   红 #FF4D4F（高饱和、偏冷）
+     高危漏洞数 橙 #FF8A1F（中饱和、居中）
+     恶意代码检出 黄 #FFC53D（低饱和、偏暖亮）
+   注意：本页「最新漏洞动态」「恶意代码检测动态」的等级标签为
+   严重/高危 #FF8A8A、中危 #FBBF6E —— 二者与下述橙色、黄色属同一色系，
+   靠「饱和度更高、明度更低」区分；若后续仍觉混淆，可回调为品牌色系。
+   注：data 里 tone 键（primary/danger/warn）表示「这是关于哪个风险的指标」，
+   不代表配色语义，改色只需改本段。 */
+.rs-risk-row.is-primary { border-color: rgba(255, 77, 79, 0.6); }
+.rs-risk-row.is-primary::before { background: #FF4D4F; box-shadow: 0 0 12px rgba(255, 77, 79, 0.95); }
 .rs-risk-row.is-primary .rs-risk-num {
-  color: #FF8A8A;
-  text-shadow: 0 0 16px rgba(255, 138, 138, 0.7);
+  color: #FF6B6B;
+  text-shadow: 0 0 16px rgba(255, 77, 79, 0.8);
 }
-/* 高危漏洞数（danger）：深红 */
-.rs-risk-row.is-danger { border-color: rgba(183, 28, 28, 0.75); }
-.rs-risk-row.is-danger::before { background: #B71C1C; box-shadow: 0 0 10px rgba(183, 28, 28, 0.9); }
-.rs-risk-row.is-danger .rs-risk-num { color: #D32F2F; text-shadow: 0 0 16px rgba(183, 28, 28, 0.9); }
-.rs-risk-row.is-warn { border-color: rgba(251, 191, 110, 0.5); }
-.rs-risk-row.is-warn::before { background: var(--warn); box-shadow: 0 0 10px rgba(251, 191, 110, 0.9); }
-.rs-risk-row.is-warn .rs-risk-num { color: #FFC876; text-shadow: 0 0 16px rgba(251, 191, 110, 0.7); }
+/* 高危漏洞数：橙（与上行红拉开色相） */
+.rs-risk-row.is-danger { border-color: rgba(255, 138, 31, 0.6); }
+.rs-risk-row.is-danger::before { background: #FF8A1F; box-shadow: 0 0 12px rgba(255, 138, 31, 0.95); }
+.rs-risk-row.is-danger .rs-risk-num {
+  color: #FFA940;
+  text-shadow: 0 0 16px rgba(255, 138, 31, 0.8);
+}
+/* 恶意代码检出：黄（与上两行再拉一档明度） */
+.rs-risk-row.is-warn { border-color: rgba(255, 197, 61, 0.6); }
+.rs-risk-row.is-warn::before { background: #FFC53D; box-shadow: 0 0 12px rgba(255, 197, 61, 0.95); }
+.rs-risk-row.is-warn .rs-risk-num {
+  color: #FFD666;
+  text-shadow: 0 0 16px rgba(255, 197, 61, 0.8);
+}
 
 /* ===== 底部备案 ===== */
 .rs-footer {
@@ -1604,6 +2006,8 @@ onBeforeUnmount(() => {
   }
   .rs-hero-metric-num { font-size: clamp(17px, 1.35vw, 27px); }
   .rs-footer { height: 26px; }
+  /* 注：曾在此处为「消除排行榜滚动条」压缩上方两块 KPI 面板（回收约 80px）。
+     因手动滚动是允许的，该压缩已回退 —— 不必为挤空间而牺牲 KPI 的可读性。 */
 }
 
 /* --- 二档：宽度不足（笔记本 / 小尺寸屏）时收紧横向密度 --- */
@@ -1616,7 +2020,9 @@ onBeforeUnmount(() => {
   .rs-panel-title { padding-left: 10px; letter-spacing: 0.4px; }
   .rs-title-deco { width: 22px; height: 8px; }
   .rs-status { font-size: 11px; padding: 3px 9px; }
-  /* 排行榜已抽为 ScreenUserRank 组件（样式随组件 scoped），此处不再覆盖 */
+  /* 组织活跃度榜单：窄屏收一档字号与列宽 */
+  .rs-org-row { grid-template-columns: 16px minmax(0, 1.15fr) minmax(0, 0.85fr) 44px 34px; gap: 5px; padding: 0 6px; }
+  .rs-org-name { font-size: 10px; }
   /* 横向空间变窄：卡片与球体同步收一档，避免贴边 */
   .rs-hero-metric {
     min-width: clamp(120px, 11vw, 172px);

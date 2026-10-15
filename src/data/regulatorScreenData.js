@@ -20,6 +20,7 @@ import {
   latestCVEList,
   malwareSoftwareList,
   vulnAddedTrend,
+  securityNews,
 } from './mockData.js'
 
 // ==================== 顶部状态与时钟 ====================
@@ -428,14 +429,207 @@ export const USER_OVERVIEW_GRID_KEYS = ['activeOrg', 'pv', 'uv', 'aiChat']
 // ==================== ⑮ 资产维度统计（大屏中栏，替换原「监管风险提醒」）====================
 /**
  * 口径：从资产流转角度统计，替代原先的监管风险提醒内容。
- * newToday 取自资产总览卡的既有文案「较昨日新增 1,842 项」；
- * 其余平台暂无真实口径，为演示数据（已标注）。
+ * 均为平台暂无真实口径的演示数据（已标注），待补齐后替换。
+ *
+ * 去重说明（按「重复的内容不用多次体现」）：
+ * 原有 newToday「较昨日新增 1,842 项」，与「资产总览」中心总数下方的提示文案
+ * assetCards.total.hint「▲ 较昨日新增 1,842 项」完全同值 —— 它本就是照该文案
+ * 搬来的拷贝，属同一数据在两处重复展示，故移除该项，仅保留资产总览那一处。
+ * 「本月上线 / 本月下线 / 本月净增」三项为单位时长内的流转量，不与其它模块重复，保留。
  */
 export const assetFlowStats = [
-  { key: 'newToday', label: '较昨日新增', value: 1842, unit: '项', source: 'derived' },
   { key: 'onlineMonth', label: '本月上线资产', value: 3268, unit: '项', source: 'demo' },
   { key: 'offlineMonth', label: '本月下线资产', value: 517, unit: '项', source: 'demo' },
   { key: 'netGrowth', label: '本月净增资产', value: 2751, unit: '项', source: 'demo' },
+]
+
+// ==================== ⑰ 月报统计量（大屏左栏【平台使用情况】）====================
+/**
+ * 口径：对齐平台月报统计量的 6 项指标，每项带「较上日 / 较上周 / 较上月」比对。
+ * 比对的 dir 取 up（增加）/ down（减少）/ flat（持平），供大屏绘制趋势箭头。
+ *
+ * 数据来源（逐项标注）：
+ *   visits   平台访问量        —— 由 topPages（平台真实看板，页面浏览）汇总推导，source: 'derived'
+ *   download 源码下载          —— 由 topSoftware（平台真实看板）汇总推导，source: 'derived'
+ *   inbound  代码入库需求反馈量 —— 取自 inboundRequests（平台真实数据），source: 'real'
+ *   search / batchPull / singlePull
+ *                             —— 平台暂无真实口径，为演示数据，source: 'demo'，待平台补齐后替换
+ *
+ * 注：原「嵌入开发流程单位」一项已按要求移除。
+ *
+ * 注意：大屏仅展示「组织级」聚合值；点击指标卡可下钻查看组织内脱敏后的用户级统计
+ * （见 orgDrillStats / maskUserName）。
+ */
+export const monthlyReportStats = [
+  {
+    key: 'visits',
+    label: '平台访问量',
+    value: 12680,
+    unit: '次',
+    source: 'derived',
+    compare: { day: 320, week: 1860, month: 4200, dayDir: 'up', weekDir: 'up', monthDir: 'up' },
+  },
+  {
+    key: 'search',
+    label: '开源项目搜索量',
+    value: 8430,
+    unit: '次',
+    source: 'demo',
+    compare: { day: -140, week: 610, month: 1980, dayDir: 'down', weekDir: 'up', monthDir: 'up' },
+  },
+  {
+    key: 'download',
+    label: '源码下载',
+    value: 1260,
+    unit: '次',
+    source: 'derived',
+    compare: { day: 46, week: 210, month: -180, dayDir: 'up', weekDir: 'up', monthDir: 'down' },
+  },
+  {
+    key: 'inbound',
+    label: '代码入库需求反馈量',
+    value: 186,
+    unit: '条',
+    source: 'real',
+    compare: { day: 0, week: 24, month: 62, dayDir: 'flat', weekDir: 'up', monthDir: 'up' },
+  },
+  {
+    key: 'batchPull',
+    label: '批量拉取单位',
+    value: 42,
+    unit: '家',
+    source: 'demo',
+    compare: { day: 0, week: -3, month: 8, dayDir: 'flat', weekDir: 'down', monthDir: 'up' },
+  },
+  {
+    key: 'singlePull',
+    label: '单次拉取单位',
+    value: 57,
+    unit: '家',
+    source: 'demo',
+    compare: { day: -2, week: 5, month: -9, dayDir: 'down', weekDir: 'up', monthDir: 'down' },
+  },
+]
+
+// ==================== ⑱ 组织活跃度 Top10（替代原「用户活跃 Top10」）====================
+/**
+ * 口径调整原因（需求原话）：平台要求用户必须加入组织才能使用，平台更在意**组织行为**；
+ * 且原「用户活跃 Top10」直接展示用户姓名属个人敏感信息。
+ * 故改为组织维度，用户姓名一律脱敏（见 maskUserName）。
+ *
+ * 数据来源：topOrgs（平台真实看板「活跃组织排行」）——
+ *   pv 页面浏览量（活跃度主指标）、login 登录次数、download 下载次数、ai AI 对话次数、api 接口调用次数。
+ * score = 各项归一化加权（pv 为主），用于排名；prevRank 为上一周期名次，用于展示升降。
+ * prevRank 平台暂无往期快照，为演示数据（source: 'demo'）。
+ */
+const ORG_WEIGHT = { pv: 0.6, download: 0.2, ai: 0.12, api: 0.08 }
+
+export const orgActivityTop10 = topOrgs.slice(0, 10).map((o, i) => ({
+  ...o,
+  score: Math.round(
+    Object.entries(ORG_WEIGHT).reduce((s, [k, w]) => s + (Number(o[k]) || 0) * w, 0),
+  ),
+  rank: i + 1,
+  // 上一周期名次（演示值）：制造有升有降的效果，便于展示趋势箭头
+  prevRank: [2, 1, 4, 3, 6, 5, 8, 9, 7, 10][i],
+}))
+
+/**
+ * 用户姓名脱敏：保留首尾字符，中间以 * 代替。
+ *   刘晨澜 → 刘*澜      kayrer → k****r      杨健 → 杨*      李 → 李（单字无法脱敏）
+ * 需求原话：展示用户姓名属个人敏感信息，建议脱敏。
+ * 组织名不脱敏（组织是公开主体，且大屏本就以组织为统计单位）。
+ */
+export function maskUserName(name) {
+  const s = String(name || '').trim()
+  if (!s) return ''
+  // 单字符：原样返回（无法脱敏）
+  if (s.length === 1) return s
+  if (s.length === 2) return s[0] + '*'
+  // 3 字及以上：首字符 + 中间的 * + 末字符
+  return s[0] + '*'.repeat(s.length - 2) + s[s.length - 1]
+}
+
+/**
+ * 组织下钻：某组织内**脱敏后**的用户级统计。
+ * 数据结构 { 组织名: [{ name 脱敏名, pv, download, ai, api, last }] }
+ *
+ * 数据来源说明：平台真实看板只到组织级，无用户级明细对外提供；本块为演示数据。
+ * 脱敏做法：源数据里存的是**虚构原始名**（非真实用户），导出前统一过 maskUserName，
+ * 这样「已脱敏」是可验证的（改脱敏规则时全量同步生效），且真实姓名不会进打包产物。
+ */
+const ORG_DRILL_RAW = {
+  AtomGit: [
+    { name: 'kayrer', pv: 634, download: 8, ai: 6, api: 0, last: '2026-09-29 15:43' },
+    { name: '一所超管1', pv: 598, download: 6, ai: 5, api: 0, last: '2026-09-30 09:56' },
+    { name: '刘晨澜', pv: 312, download: 4, ai: 3, api: 0, last: '2026-09-28 16:34' },
+    { name: '杨健', pv: 208, download: 3, ai: 2, api: 0, last: '2026-09-29 10:53' },
+  ],
+  可信代码开发组: [
+    { name: '殷铭', pv: 566, download: 7, ai: 5, api: 0, last: '2026-09-28 16:07' },
+    { name: '闫保奇', pv: 390, download: 4, ai: 3, api: 0, last: '2026-09-24 15:50' },
+    { name: 'zzcy003_信源测试', pv: 214, download: 2, ai: 2, api: 0, last: '2026-09-27 11:20' },
+  ],
+  一所: [
+    { name: '一所超管2', pv: 486, download: 6, ai: 4, api: 0, last: '2026-09-29 09:12' },
+    { name: 'wangyun', pv: 268, download: 3, ai: 3, api: 0, last: '2026-09-26 14:05' },
+  ],
+  信源公司: [
+    { name: 'zzcy003_信源测试', pv: 363, download: 3, ai: 2, api: 1780, last: '2026-09-29 17:08' },
+    { name: 'linxia', pv: 152, download: 1, ai: 1, api: 420, last: '2026-09-25 10:31' },
+  ],
+}
+
+export const orgDrillStats = Object.fromEntries(
+  Object.entries(ORG_DRILL_RAW).map(([org, users]) => [
+    org,
+    users.map((u) => ({ ...u, name: maskUserName(u.name) })),
+  ]),
+)
+
+// ==================== ⑲ 风险情报动态（替代原「资产趋势」折线）====================
+/**
+ * 需求原话：中栏最下方「资产趋势」颗粒度太粗、趋势变化不明显、颜色区分度不足，
+ * 建议替换为风险情报动态。
+ * 故改为**事件流**：每一条为具体风险事件（含等级/类型/主体/时间），
+ * 颗粒度到单条事件，用等级色区分（超危/高危/中危/低危），比聚合折线更易读。
+ *
+ * 数据来源：vulnFeed（平台最新漏洞，真实）+ malwareFeed（恶意代码检测，真实）
+ *          + securityNews（安全资讯，真实）合并抽取；每条标注来源类型。
+ */
+const INTEL_TONE = { 严重: 'critical', 高危: 'high', 中危: 'medium', 低危: 'low' }
+
+export const riskIntelFeed = [
+  ...vulnFeed.slice(0, 6).map((v) => ({
+    id: `vuln-${v.cve}`,
+    kind: '漏洞',
+    level: v.level,
+    tone: INTEL_TONE[v.level] || 'medium',
+    title: `${v.name} ${v.version}`,
+    detail: `${v.cve} · ${v.cwe}`,
+    owner: v.vendor,
+    time: v.time,
+  })),
+  ...malwareFeed.slice(0, 3).map((m, i) => ({
+    id: `mal-${i}`,
+    kind: '恶意代码',
+    level: m.threatLevel,
+    tone: INTEL_TONE[m.threatLevel] || 'medium',
+    title: m.software,
+    detail: `${m.type} · 置信度${m.confidence}`,
+    owner: m.category,
+    time: '近 24 小时',
+  })),
+  ...securityNews.slice(0, 3).map((n) => ({
+    id: `news-${n.id}`,
+    kind: '安全资讯',
+    level: n.vuln_score >= 9 ? '严重' : n.vuln_score >= 7 ? '高危' : '中危',
+    tone: n.vuln_score >= 9 ? 'critical' : n.vuln_score >= 7 ? 'high' : 'medium',
+    title: `${n.comp_name} ${n.version_number}`,
+    detail: `${n.vuln_public_id} · ${n.vuln_cwe_id}`,
+    owner: n.comp_vendor,
+    time: n.vuln_modified_at,
+  })),
 ]
 
 // ==================== ⑯ 资产趋势（大屏中栏折线图 · 四条曲线）====================

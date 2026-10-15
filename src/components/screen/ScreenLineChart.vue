@@ -39,17 +39,22 @@ function niceMax(v) {
 }
 
 /** 单条纵轴配置；右侧轴不画分割线，避免与左轴网格线重叠 */
-function axisCfg(max, showSplit) {
+function axisCfg(max, showSplit, color) {
   return {
     type: 'value',
     max,
     splitLine: showSplit ? { lineStyle: { color: SPLIT } } : { show: false },
     axisLabel: {
-      color: AXIS_TEXT,
+      // 轴刻度取该轴首个系列的颜色，让「哪条线挂哪个轴」一眼可辨
+      color: color || AXIS_TEXT,
       fontSize: 11,
+      fontWeight: 'bold',
       formatter: (v) => (v >= 10000 ? `${v / 10000}万` : v),
     },
-    axisLine: { show: false },
+    // 轴基线染色，与刻度同色，强化左右轴的视觉归属
+    axisLine: showSplit
+      ? { show: true, lineStyle: { color: color || 'rgba(0, 145, 255, 0.2)' } }
+      : { show: true, lineStyle: { color: color || SPLIT } },
   }
 }
 
@@ -58,10 +63,23 @@ function update() {
   // 按 series.axis 拆分左右两组：量级差异大的曲线（万级 vs 千级）走双纵轴，
   // 否则小量级曲线会被压成贴底直线。无人标记 axis:'right' 时行为与旧版一致（单轴）。
   const hasRight = props.series.some((s) => s.axis === 'right')
-  const leftVals = props.series.filter((s) => s.axis !== 'right').flatMap((s) => s.data || [])
-  const rightVals = props.series.filter((s) => s.axis === 'right').flatMap((s) => s.data || [])
+  const leftSeries = props.series.filter((s) => s.axis !== 'right')
+  const rightSeries = props.series.filter((s) => s.axis === 'right')
+  const leftVals = leftSeries.flatMap((s) => s.data || [])
+  const rightVals = rightSeries.flatMap((s) => s.data || [])
   const leftMax = props.max != null ? props.max : niceMax(Math.max(...leftVals, 0))
   const rightMax = niceMax(Math.max(...rightVals, 0))
+  /**
+   * 复合图方案（需求：现在看不出哪两条线用左侧单位、哪两条用右侧单位）：
+   *   左轴 = 折线（源码数 / 制品数，万级）
+   *   右轴 = 柱状（漏洞感知 / 版本更新，千级）
+   * 两条纵轴的刻度与基线各取该轴系列色 → 左右归属一眼可辨；
+   * 图例文案补「（左轴）/（右轴）」后缀，避免用户靠猜。
+   * 仅在双轴模式（存在 axis:'right'）下启用柱状，单轴用法行为不变。
+   */
+  const rightIsBar = hasRight
+  const leftColor = leftSeries[0]?.color
+  const rightColor = rightSeries[0]?.color
 
   chart.setOption({
     backgroundColor: 'transparent',
@@ -91,40 +109,63 @@ function update() {
       itemGap: 12,
       icon: 'roundRect',
       textStyle: { color: AXIS_TEXT, fontSize: 11 },
+      // 双轴时在图例名后标注所属轴，配合轴刻度着色，一眼看出哪条挂哪个轴
+      formatter: hasRight
+        ? (name) => {
+            const s = props.series.find((x) => x.name === name)
+            return s && s.axis === 'right' ? `${name}（右轴）` : `${name}（左轴）`
+          }
+        : undefined,
     },
     grid: { left: 8, right: 8, top: 28, bottom: 4, containLabel: true },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
+      // 右侧为柱状，需要留出柱宽间隙（折线用 false 更贴合）
+      boundaryGap: rightIsBar,
       data: props.categories,
       axisLabel: { color: AXIS_TEXT, fontSize: 11 },
       axisLine: { lineStyle: { color: 'rgba(0, 91, 203, 0.2)' } },
       axisTick: { show: false },
     },
     yAxis: hasRight
-      ? [axisCfg(leftMax, true), axisCfg(rightMax, false)]
+      ? [axisCfg(leftMax, true, leftColor), axisCfg(rightMax, false, rightColor)]
       : axisCfg(leftMax, true),
-    series: props.series.map((s) => ({
-      name: s.name,
-      type: 'line',
-      // 双轴模式下右侧系列挂到第 2 条纵轴
-      yAxisIndex: hasRight && s.axis === 'right' ? 1 : 0,
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 5,
-      showSymbol: false,
-      data: s.data,
-      lineStyle: { width: 2, color: s.color },
-      itemStyle: { color: s.color },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: `${s.color}33` },
-          { offset: 1, color: `${s.color}00` },
-        ]),
-      },
-      emphasis: { focus: 'series', scale: 1.4 },
-      animationDuration: 1100,
-    })),
+    series: props.series.map((s) => {
+      const isRight = hasRight && s.axis === 'right'
+      // 复合图：右轴系列用柱状，与左轴折线在「图形类型」上直接区分开
+      if (isRight) {
+        return {
+          name: s.name,
+          type: 'bar',
+          yAxisIndex: 1,
+          data: s.data,
+          barMaxWidth: 14,
+          itemStyle: { color: s.color, borderRadius: [2, 2, 0, 0] },
+          emphasis: { focus: 'series' },
+          animationDuration: 1100,
+        }
+      }
+      return {
+        name: s.name,
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        data: s.data,
+        lineStyle: { width: 2, color: s.color },
+        itemStyle: { color: s.color },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: `${s.color}33` },
+            { offset: 1, color: `${s.color}00` },
+          ]),
+        },
+        emphasis: { focus: 'series', scale: 1.4 },
+        animationDuration: 1100,
+      }
+    }),
   }, true)
 }
 

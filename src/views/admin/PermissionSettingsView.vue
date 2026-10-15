@@ -28,13 +28,31 @@
     <!-- 成员角色 / 功能权限矩阵 -->
     <section class="perm-card">
       <header class="perm-card-hd perm-hd-bar">
-        <!-- 原「成员列表 / 功能权限矩阵」Tab 已改为标题（矩阵 Tab 已移除，恢复时改回按钮组即可） -->
-        <h3 class="perm-title perm-title--bar">成员列表</h3>
+        <div class="perm-tabs" role="tablist">
+          <button
+            v-for="t in TABS"
+            :key="t.id"
+            type="button"
+            class="perm-tab"
+            :class="{ 'is-active': activeTab === t.id }"
+            @click="activeTab = t.id"
+          >{{ t.label }}</button>
+        </div>
 
         <div class="perm-bar-actions">
-          <input v-model.trim="keyword" type="text" class="perm-input" placeholder="搜索成员姓名 / 组织" />
-          <button type="button" class="perm-btn" @click="exportMembers">导出成员列表</button>
-          <button type="button" class="perm-btn perm-btn--primary" @click="openCreateDialog">新建账号</button>
+          <!-- 成员列表：搜索 + 导出 + 新建账号 -->
+          <template v-if="activeTab === 'members'">
+            <input v-model.trim="keyword" type="text" class="perm-input" placeholder="搜索成员姓名 / 组织" />
+            <button type="button" class="perm-btn" @click="exportMembers">导出成员列表</button>
+            <button type="button" class="perm-btn perm-btn--primary" @click="openCreateDialog">新建账号</button>
+          </template>
+          <!-- 功能权限矩阵：更新日志 + 恢复默认 -->
+          <template v-else-if="activeTab === 'matrix'">
+            <button type="button" class="perm-btn" @click="toggleLogPanel">
+              更新日志{{ permissionLogs.length ? `（${permissionLogs.length}）` : '' }}
+            </button>
+            <button type="button" class="perm-btn" @click="resetMatrix">恢复默认</button>
+          </template>
         </div>
       </header>
 
@@ -166,7 +184,67 @@
         </footer>
       </div>
 
-      <!-- 功能权限矩阵区块已从页面移除（数据层与脚本逻辑保留，便于后续恢复） -->
+      <!-- 功能权限矩阵：列分两组（组织级 / 平台级），单元格两态 √ / 空 -->
+      <div v-else-if="activeTab === 'matrix'" class="perm-matrix-wrap">
+        <p class="perm-matrix-tip">
+          勾选表示该角色可访问对应功能；平台管理员列恒为全部权限，不可修改。
+        </p>
+        <div class="perm-table-wrap">
+          <table class="perm-table perm-table--matrix">
+            <thead>
+              <tr>
+                <th class="perm-col-menu">功能菜单</th>
+                <th
+                  v-for="r in MATRIX_ROLES"
+                  :key="r.id"
+                  class="perm-col-role"
+                  :class="{ 'is-group-start': r.id === 'audit-expert' }"
+                  :title="r.desc"
+                >
+                  <!-- 两行：主标题=角色名，副标题=覆盖岗位 -->
+                  <span class="perm-role-name">{{ r.name }}</span>
+                  <span class="perm-role-group">{{ (r.posts || []).length ? r.posts.join('、') : '—' }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="menu in MENU_PERMISSIONS" :key="menu.id">
+                <td class="perm-col-menu">
+                  <span class="perm-menu-name">{{ menu.name }}</span>
+                  <span class="perm-menu-desc">{{ menu.desc }}</span>
+                </td>
+                <td
+                  v-for="r in MATRIX_ROLES"
+                  :key="r.id"
+                  class="perm-col-role"
+                  :class="{ 'is-group-start': r.id === 'audit-expert' }"
+                >
+                  <!-- 平台管理员：恒为全部权限，不可改 -->
+                  <input
+                    v-if="isCellLocked(menu.id, r.id)"
+                    type="checkbox"
+                    class="perm-check"
+                    checked
+                    disabled
+                    :title="`${r.name}恒为全部权限，不可修改`"
+                    :aria-label="`${r.name} · ${menu.name}：可访问（锁定）`"
+                  />
+                  <!-- 其余单元格：勾选框 -->
+                  <input
+                    v-else
+                    type="checkbox"
+                    class="perm-check"
+                    :checked="cellState(menu.id, r.id) === 'yes'"
+                    :title="`${r.name} · ${menu.name}：${cellState(menu.id, r.id) === 'yes' ? '已授予访问权限' : '未授予访问权限'}`"
+                    :aria-label="`${r.name} · ${menu.name}：${cellState(menu.id, r.id) === 'yes' ? '可访问' : '不可访问'}`"
+                    @change="toggleCell(menu.id, r.id, $event.target.checked)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- 新建账号弹窗：基本信息 + 权限分配（平台角色与组织归属至少填一项） -->
@@ -524,7 +602,7 @@ const CURRENT_OPERATOR = getCurrentUsername()
 
 const TABS = [
   { id: 'members', label: '成员列表' },
-  // 「功能权限矩阵」Tab 已从页面移除（数据层与逻辑保留在 permissionData.js / 本文件脚本中，便于后续恢复）
+  { id: 'matrix', label: '功能权限矩阵' },
 ]
 const activeTab = ref('members')
 const tip = ref('')
@@ -1179,13 +1257,7 @@ function doCreateAccount() {
   gap: 12px;
   flex-wrap: wrap;
 }
-/* 工具条左侧标题（原 Tab 按钮组位置） */
-.perm-title--bar {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-}
-/* 原 Tab 按钮组样式：矩阵 Tab 已移除，保留以便恢复 */
+/* Tab 按钮组（成员列表 / 功能权限矩阵） */
 .perm-tabs { display: flex; gap: 6px; }
 .perm-tab {
   padding: 7px 16px;
