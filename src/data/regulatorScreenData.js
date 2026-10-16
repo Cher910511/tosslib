@@ -419,28 +419,74 @@ export const USER_OVERVIEW_FEATURED_KEYS = ['regUser', 'regOrg']
 /**
  * 「用户行为总览」指标网格的显示项与顺序。
  * 注意行序以「整块面板」计：第 1 行是两张放大卡（注册用户/注册企业），
- * 第 2 行才是本数组的前两项 —— 故把「活跃组织」放在首位，
- * 使其落在第二行第一个（领导要求）。
- * userOverview 中的人均 PV / 活跃用户为平台真实值，此处保留不展示，
+ * 第 2 行才是本数组的前两项 —— 现首两位是「活跃用户 / 活跃组织」，
+ * 二者落在第二行；其后依次为「近 7 天 UV / 近 7 天 PV」。
+ * 「AI 对话次数」随本次调整移出网格（数据仍保留在 userOverview，可随时加回）。
+ * userOverview 中的人均 PV 为平台真实值，此处保留不展示，
  * 如需恢复只需把 key 加回本数组，无需改动模板。
  */
-export const USER_OVERVIEW_GRID_KEYS = ['activeOrg', 'pv', 'uv', 'aiChat']
+export const USER_OVERVIEW_GRID_KEYS = ['activeUser', 'activeOrg', 'uv', 'pv']
 
 // ==================== ⑮ 资产维度统计（大屏中栏，替换原「监管风险提醒」）====================
 /**
- * 口径：从资产流转角度统计，替代原先的监管风险提醒内容。
- * 均为平台暂无真实口径的演示数据（已标注），待补齐后替换。
+ * 口径：资产维度统计，替代原先的监管风险提醒内容。面板标题为「资产统计」。
  *
- * 去重说明（按「重复的内容不用多次体现」）：
- * 原有 newToday「较昨日新增 1,842 项」，与「资产总览」中心总数下方的提示文案
- * assetCards.total.hint「▲ 较昨日新增 1,842 项」完全同值 —— 它本就是照该文案
- * 搬来的拷贝，属同一数据在两处重复展示，故移除该项，仅保留资产总览那一处。
- * 「本月上线 / 本月下线 / 本月净增」三项为单位时长内的流转量，不与其它模块重复，保留。
+ * 布局：8 项，2 行 × 4 列。
+ *   第 1 行 = 资产规模（软件源码数 / 组织制品数 / 开源许可证数量 / 覆盖语言生态数）
+ *   第 2 行 = 本期流转与覆盖（本月上线 / 本月下线 / 本月净增 / SBOM 覆盖率）
+ *   两行顺序可按需对调 —— 数组顺序即展示顺序，改本数组前 4 / 后 4 项即可。
+ *
+ * 去重说明（「重复的内容不用多次体现」）：
+ *   1. 原有 newToday「较昨日新增 1,842 项」，与「资产总览」中心总数下方的提示文案
+ *      assetCards.total.hint「▲ 较昨日新增 1,842 项」完全同值 —— 属同一数据在两处重复，
+ *      故移除该项，仅保留资产总览那一处。
+ *   2. 本表各项原显示在「资产总览」面板（四角卡 + 底部 SBOM 指标带），
+ *      现按要求移入本表 —— 已从资产总览面板移除，不在同屏出现两次。
+ *
+ * 关于条形：每张卡下方的进度条已按要求全部去掉（原先条长按 barMax 归一来表示量级）。
+ * 原因之一是各项量纲并不可比（「项」与「种」、百分比与绝对值混在同一张表里），
+ * 强行给条会在不同量纲间建立错误的视觉比较。
  */
 export const assetFlowStats = [
+  {
+    key: 'source',
+    label: '软件源码数',
+    value: platformOverview.repoCount,
+    unit: '',
+    source: 'real',
+  },
+  {
+    key: 'artifact',
+    label: '组织制品数',
+    value: platformOverview.componentCount,
+    unit: '',
+    source: 'real',
+  },
+  {
+    key: 'license',
+    label: '开源许可证数量',
+    value: platformOverview.licenseCount,
+    unit: '种',
+    source: 'real',
+  },
+  {
+    key: 'lang',
+    label: '覆盖语言生态数',
+    value: platformOverview.languageEcosystems,
+    unit: '种',
+    source: 'real',
+  },
   { key: 'onlineMonth', label: '本月上线资产', value: 3268, unit: '项', source: 'demo' },
   { key: 'offlineMonth', label: '本月下线资产', value: 517, unit: '项', source: 'demo' },
   { key: 'netGrowth', label: '本月净增资产', value: 2751, unit: '项', source: 'demo' },
+  {
+    key: 'sbom',
+    label: 'SBOM 覆盖率',
+    value: securityGovernance.sbomCoverage,
+    unit: '%',
+    decimals: 1,
+    source: 'real',
+  },
 ]
 
 // ==================== ⑰ 月报统计量（大屏左栏【平台使用情况】）====================

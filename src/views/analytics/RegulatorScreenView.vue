@@ -221,22 +221,24 @@
                   </g>
                 </svg>
 
-                <!-- 四角指标卡：左上 / 右上 / 左下 / 右下 -->
-                <div
-                  v-for="(c, i) in heroSideCards"
-                  :key="c.key"
-                  class="rs-hero-metric"
-                  :class="[`is-${c.tone || 'primary'}`, `is-corner-${CORNER_POS[i % 4]}`]"
-                  :title="c.hint || c.label"
-                >
-                  <!-- 装饰层：四角括号 + 扫描光（::before / ::after 已用于色条与角部柔光） -->
-                  <span class="rs-hero-metric-frame" aria-hidden="true" />
-                  <span class="rs-hero-metric-scan" aria-hidden="true" />
-                  <span class="rs-hero-metric-label">{{ c.label }}</span>
-                  <span class="rs-hero-metric-value">
-                    <CountUp class="rs-hero-metric-num" :end="c.value" :decimals="c.decimals || 0" />
-                    <em v-if="c.unit" class="rs-hero-metric-unit">{{ c.unit }}</em>
-                  </span>
+                <!-- 四周科技装饰：四角括号 + 上下光束 + 左右光带 + 浮动粒子。
+                     起因：四角指标卡移入「资产统计」后，本面板四周空了出来，
+                     原先由卡片占据的视觉重量需要用轻量装饰补回。
+                     全部 pointer-events: none，不干扰中央球体与面板交互。 -->
+                <div class="rs-hero-deco" aria-hidden="true">
+                  <!-- 四角科技括号（带角部辉光） -->
+                  <span class="rs-hero-corner rs-hero-corner--tl" />
+                  <span class="rs-hero-corner rs-hero-corner--tr" />
+                  <span class="rs-hero-corner rs-hero-corner--bl" />
+                  <span class="rs-hero-corner rs-hero-corner--br" />
+                  <!-- 上下横向光束：中间亮、两端淡出 -->
+                  <span class="rs-hero-beam rs-hero-beam--top" />
+                  <span class="rs-hero-beam rs-hero-beam--bottom" />
+                  <!-- 左右竖向光带 -->
+                  <span class="rs-hero-vlight rs-hero-vlight--left" />
+                  <span class="rs-hero-vlight rs-hero-vlight--right" />
+                  <!-- 浮动粒子：缓慢上浮 + 明暗呼吸 -->
+                  <span v-for="p in 20" :key="`hd${p}`" class="rs-hero-dot" :style="heroDotStyle(p)" />
                 </div>
 
                 <!-- 中心：能量球 + 地台 -->
@@ -275,34 +277,25 @@
                 </div>
               </div>
 
-              <!-- 底部指标带：SBOM 覆盖率（进度条形式，把余量用起来） -->
-              <div class="rs-hero-band">
-                <span class="rs-hero-band-label">{{ heroBand.label }}</span>
-                <span class="rs-hero-band-bar">
-                  <i :style="{ width: `${heroBand.value}%` }" />
-                </span>
-                <span class="rs-hero-band-value">
-                  <CountUp :end="heroBand.value" :decimals="heroBand.decimals || 1" />
-                  <em>{{ heroBand.unit }}</em>
-                </span>
-              </div>
+              <!-- 底部 SBOM 覆盖率指标带已按要求移入下方「资产流转统计」
+                   （排在「本月净增资产」之后），本面板不再展示。 -->
             </section>
 
-            <!-- 资产流转统计：按领导意见，中栏风险提醒改为资产维度统计 -->
+            <!-- 资产统计（原名「资产流转统计」）：按领导意见，中栏风险提醒改为资产维度统计。
+                 现 8 项 / 2 行 × 4 列：第 1 行 = 资产规模（源码数/制品数/许可证/语言生态），
+                 第 2 行 = 本期流转与覆盖（上线/下线/净增/SBOM 覆盖率）。
+                 行序由数据层 assetFlowStats 的数组顺序决定，对调两行只需改数组。
+                 每张卡下方的进度条已按要求去掉（各项量纲不可比，强行给条会误导）。 -->
             <section class="rs-panel rs-panel--hug">
               <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">资产流转统计</h3>
+                <h3 class="rs-panel-title">资产统计</h3>
               </div>
               <div class="rs-flow-grid">
                 <div v-for="a in assetFlowStats" :key="a.key" class="rs-flow-card">
                   <span class="rs-flow-label">{{ a.label }}</span>
                   <span class="rs-flow-value">
-                    <CountUp class="rs-flow-num" :end="a.value" />
+                    <CountUp class="rs-flow-num" :end="a.value" :decimals="a.decimals || 0" />
                     <em v-if="a.unit" class="rs-flow-unit">{{ a.unit }}</em>
-                  </span>
-                  <!-- 数值图形化：条长按最大值归一，上线/下线/净增的相对关系一眼可见 -->
-                  <span class="rs-flow-bar" aria-hidden="true">
-                    <i :style="{ width: flowBarWidth(a.value) }" />
                   </span>
                 </div>
               </div>
@@ -417,19 +410,11 @@ const userOverviewFeatured = computed(() =>
 const userOverviewRest = computed(() =>
   USER_OVERVIEW_GRID_KEYS.map((k) => userOverview.find((u) => u.key === k)).filter(Boolean))
 
-/* ===== 资产总览：中心总数 + 左右指标列 + 底部指标带 ===== */
+/* ===== 资产总览：中心总数（主视觉）=====
+   四角指标卡与底部 SBOM 指标带已按要求移入中栏「资产流转统计」表格，
+   故不再需要 heroSideCards / heroBand / CORNER_POS —— 已随之删除，避免死代码。
+   注意：不要用 regulatorMetrics —— 那是平台暂无口径的**演示数据**，属造数。 */
 const heroTotal = assetCards.find((c) => c.key === 'total') || { value: 0, unit: '', hint: '' }
-/** 底部指标带：SBOM 覆盖率（百分比，用进度条形式呈现） */
-const heroBand = assetCards.find((c) => c.key === 'sbom') || { label: 'SBOM 覆盖率', value: 0, unit: '%', decimals: 1 }
-/**
- * 左右指标列：仅使用「资产总览」的真实字段（去掉总数与底部带）。
- * 注意：不要用 regulatorMetrics —— 那是平台暂无口径的**演示数据**，
- * 拿它填充主视觉属于造数，需等平台补齐真实口径后再纳入。
- */
-const heroSideCards = computed(() =>
-  assetCards.filter((c) => c.key !== 'total' && c.key !== 'sbom'))
-/** 四角方位：按顺序落到 左上 → 右上 → 左下 → 右下 */
-const CORNER_POS = ['tl', 'tr', 'bl', 'br']
 
 /* ===== 平台使用情况（月报统计量）：比对项 + 组织下钻 ===== */
 /** 箭头符号：增加 ↑ / 减少 ↓ / 持平 — */
@@ -515,11 +500,8 @@ function deltaClass(delta) {
   return 'is-flat'
 }
 
-/** 流转量条长归一基准（取三项最大值），供数值图形化使用 */
-const flowMax = computed(() => Math.max(1, ...assetFlowStats.map((a) => Number(a.value) || 0)))
-function flowBarWidth(v) {
-  return `${Math.max(8, Math.round(((Number(v) || 0) / flowMax.value) * 100))}%`
-}
+/* 注：原先这里有一个 flowBarWidth()（按 barMax 归一算条形宽度）。
+   资产统计卡下方的进度条已按要求去掉，该函数随之删除，避免死代码。 */
 
 /* ===== 实时列表：各取最新 10 条滚动 ===== */
 const vulnFeed10 = computed(() => vulnFeed.slice(0, 10))
@@ -561,6 +543,27 @@ function particleStyle(i) {
     top: `${(rnd2 * 100).toFixed(2)}%`,
     animationDelay: `${(rnd * 9).toFixed(2)}s`,
     animationDuration: `${9 + (i % 5) * 2}s`,
+  }
+}
+
+/**
+ * 「资产总览」面板内浮动粒子的位置与动画参数。
+ * 与全屏 particleStyle 用同一套确定性伪随机（同序号每次结果一致），
+ * 但把粒子收在面板四周：靠近中部的粒子会让中央球体显得杂乱，故按环形分布。
+ */
+function heroDotStyle(i) {
+  const rnd = ((i * 7919 + 104729) % 233280) / 233280
+  const rnd2 = ((i * 6151 + 31337) % 233280) / 233280
+  // 左右两侧各占约 1/3，避免压在中间球体上
+  const left = rnd < 0.5 ? rnd * 62 : 38 + rnd * 62
+  return {
+    left: `${left.toFixed(2)}%`,
+    top: `${(8 + rnd2 * 84).toFixed(2)}%`,
+    animationDelay: `${(rnd * 7).toFixed(2)}s`,
+    animationDuration: `${7 + (i % 4) * 2.5}s`,
+    // 粒子大小 1~2.5px 之间微差，避免整齐划一显得机械
+    width: `${(1 + rnd2 * 1.5).toFixed(2)}px`,
+    height: `${(1 + rnd2 * 1.5).toFixed(2)}px`,
   }
 }
 
@@ -966,7 +969,13 @@ onBeforeUnmount(() => {
    保留 rs-flex--2/3 供中栏与右栏复用。 */
 .rs-flex--2 { flex: 2; }
 .rs-flex--3 { flex: 3; }
-.rs-col--center .rs-hero { flex: 5; }
+/* 中栏纵向配比：合计 7.5，资产总览占 4（约 400px）、资产趋势占 3.5（约 350px）。
+   调矮资产总览的原因：四角卡移入「资产统计」后，主视觉只剩中央球体，
+   原先 5 份高度显得偏空，且下方「资产趋势」的折线图更需要纵向空间。
+   注意必须用 .rs-col--center 限定：.rs-flex--3 同时被右栏两个面板复用，
+   直接改它会把右栏的漏洞/恶意代码列表一起改掉。 */
+.rs-col--center .rs-hero { flex: 4; }
+.rs-col--center .rs-flex--3 { flex: 3.5; }
 
 /* ===== 面板：玻璃面 + 辉光勾边 + 四角科技括号 ===== */
 .rs-panel {
@@ -1093,129 +1102,141 @@ onBeforeUnmount(() => {
   opacity: 0.9;
 }
 
-/* ---- 四角指标卡：左上 / 右上 / 左下 / 右下 ---- */
-.rs-hero-metric {
+/* ---- 四周科技装饰：四角括号 / 上下光束 / 左右光带 / 浮动粒子 ----
+   用途：四角指标卡移入「资产统计」后本面板四周空出，用轻量装饰补回视觉重量。
+   层级：DOM 顺序在背景 SVG 之后、中央球体之前 → 天然压在背景上、衬在球体下，
+   故不设 z-index。整体 pointer-events: none，不影响面板交互。
+   透明度整体克制（0.4~0.9），避免与中央球体争夺注意力。 */
+.rs-hero-deco {
   position: absolute;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(2px, 0.4vh, 5px);
-  /* 放大：卡片更宽更高，承载大号数值 */
-  min-width: clamp(132px, 11vw, 210px);
-  min-height: clamp(62px, 8.4vh, 104px);
-  padding: clamp(7px, 0.9vh, 13px) clamp(10px, 0.85vw, 17px);
-  background: linear-gradient(150deg, rgba(6, 34, 70, 0.8), rgba(4, 20, 44, 0.55));
-  border: 1px solid var(--hairline-soft);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.25s;
+  inset: 0;
+  pointer-events: none;
 }
-/* 四角定位 */
-.rs-hero-metric.is-corner-tl { top: 0; left: 0; }
-.rs-hero-metric.is-corner-tr { top: 0; right: 0; }
-.rs-hero-metric.is-corner-bl { bottom: 0; left: 0; }
-.rs-hero-metric.is-corner-br { bottom: 0; right: 0; }
-/* 左侧色条：按 tone 着色（加粗 + 辉光，让每张卡有明确色相） */
-.rs-hero-metric::before {
+
+/* 四角科技括号：只保留朝内的两条边，形成「框角」效果 */
+.rs-hero-corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(56, 189, 248, 0.5);
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
+}
+
+.rs-hero-corner--tl {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 3px;
+}
+
+.rs-hero-corner--tr {
+  top: 10px;
+  right: 10px;
+  border-left: none;
+  border-bottom: none;
+  border-top-right-radius: 3px;
+}
+
+.rs-hero-corner--bl {
+  bottom: 10px;
+  left: 10px;
+  border-right: none;
+  border-top: none;
+  border-bottom-left-radius: 3px;
+}
+
+.rs-hero-corner--br {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 3px;
+}
+
+/* 上下横向光束：中间亮、两端淡出；::after 再补一层极淡辉光，
+   避免只是一根细线显得单薄 */
+.rs-hero-beam {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(125, 220, 255, 0.5) 50%, transparent);
+}
+
+.rs-hero-beam::after {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 26px;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.12), transparent);
+}
+
+.rs-hero-beam--top {
+  top: 14px;
+}
+
+.rs-hero-beam--bottom {
+  bottom: 14px;
+}
+
+/* 下光束的辉光向下淡出，方向与上光束相反 */
+.rs-hero-beam--bottom::after {
+  top: auto;
   bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--metric-tone, var(--cyan)), transparent 88%);
-  box-shadow: 0 0 10px var(--metric-tone, var(--cyan));
+  background: linear-gradient(0deg, rgba(56, 189, 248, 0.12), transparent);
 }
-/* 右上角柔光点缀 */
-.rs-hero-metric::after {
-  content: '';
+
+/* 左右竖向光带：进一步框住中央区域，同时不遮挡球体 */
+.rs-hero-vlight {
   position: absolute;
-  right: -12px;
-  top: -12px;
-  width: 30px;
-  height: 30px;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.4) 50%, transparent);
+}
+
+.rs-hero-vlight--left {
+  left: 16px;
+}
+
+.rs-hero-vlight--right {
+  right: 16px;
+}
+
+/* 浮动粒子：缓慢上浮 + 明暗呼吸；大小与位置由 heroDotStyle 逐颗给出 */
+.rs-hero-dot {
+  position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, rgba(56, 189, 248, 0.26), transparent 70%);
+  background: rgba(125, 220, 255, 0.9);
+  box-shadow: 0 0 7px rgba(56, 189, 248, 0.7);
+  animation-name: rs-hero-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
-/* ---- 装饰层 1：四角科技括号（外层子元素，避免与色条/柔光争用伪元素） ---- */
-.rs-hero-metric-frame {
-  position: absolute;
-  inset: 4px;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--metric-tone, var(--cyan)), var(--metric-tone, var(--cyan))) left top / 13px 2px no-repeat,
-    linear-gradient(var(--metric-tone, var(--cyan)), var(--metric-tone, var(--cyan))) left top / 2px 13px no-repeat,
-    linear-gradient(var(--metric-tone, var(--cyan)), var(--metric-tone, var(--cyan))) right bottom / 13px 2px no-repeat,
-    linear-gradient(var(--metric-tone, var(--cyan)), var(--metric-tone, var(--cyan))) right bottom / 2px 13px no-repeat;
-  opacity: 0.65;
-  transition: opacity 0.25s;
-}
-/* ---- 装饰层 2：顶部光条 + 自上而下的扫描光 ---- */
-.rs-hero-metric-scan {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--metric-tone, var(--cyan)), rgba(56, 189, 248, 0.15) 70%, transparent);
-  pointer-events: none;
-}
-.rs-hero-metric-scan::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 46px;
-  background: linear-gradient(180deg, rgba(125, 220, 255, 0.14), transparent);
-  animation: rs-metric-scan 4.5s ease-in-out infinite;
-}
-@keyframes rs-metric-scan {
-  0% { transform: translateY(-52px); opacity: 0; }
-  18% { opacity: 1; }
-  82% { opacity: 1; }
-  100% { transform: translateY(112px); opacity: 0; }
+@keyframes rs-hero-float {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
 }
 
-.rs-hero-metric:hover {
-  border-color: var(--metric-tone, var(--cyan));
-  background: linear-gradient(150deg, rgba(10, 46, 92, 0.9), rgba(4, 20, 44, 0.65));
-  box-shadow: 0 0 22px -6px var(--metric-tone, var(--cyan)), 0 6px 18px rgba(0, 4, 12, 0.45);
-  transform: translateY(-2px);
-}
-.rs-hero-metric:hover .rs-hero-metric-frame { opacity: 1; }
-.rs-hero-metric-label {
-  font-size: clamp(10px, 0.68vw, 13px);
-  line-height: 1.35;
-  color: var(--text-sub);
-  /* 标题最多两行，超出省略 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.rs-hero-metric-value { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
-.rs-hero-metric-num {
-  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
-  /* 放大：指标数值比上一版更大 */
-  font-size: clamp(19px, 1.5vw, 32px);
-  font-weight: 700;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 16px rgba(56, 189, 248, 0.55);
-}
-.rs-hero-metric-unit { font-style: normal; font-size: clamp(10px, 0.62vw, 12px); color: var(--text-sub); }
-
-/* tone 配色：仅改色条 + 数值色，保持整体克制 */
-.rs-hero-metric.is-primary { --metric-tone: var(--brand-bright); }
-.rs-hero-metric.is-danger  { --metric-tone: var(--danger); }
-.rs-hero-metric.is-warn    { --metric-tone: var(--warn); }
-.rs-hero-metric.is-ok      { --metric-tone: #34D399; }
-.rs-hero-metric.is-danger .rs-hero-metric-num { color: #FF8A7A; text-shadow: 0 0 14px rgba(255, 107, 107, 0.6); }
-.rs-hero-metric.is-warn .rs-hero-metric-num { color: #FFC876; text-shadow: 0 0 14px rgba(251, 191, 110, 0.6); }
-.rs-hero-metric.is-ok .rs-hero-metric-num { color: #6EE7A8; text-shadow: 0 0 14px rgba(52, 211, 153, 0.6); }
+/* ---- 四角指标卡的样式已随卡片移入「资产流转统计」而删除 ----
+   原先这里有 .rs-hero-metric / -frame / -scan / -label / -num / -unit 及
+   tone 配色、扫描光动画等约 120 行；四角卡移除后这些选择器已无任何模板引用，
+   保留会成为死代码，故一并删除（历史实现可查 git 记录）。 */
 
 /* ---- 中央：能量球 + 地台 ---- */
 .rs-hero-center {
@@ -1269,49 +1290,7 @@ onBeforeUnmount(() => {
   100% { transform: scale(1.16); opacity: 0; }
 }
 
-/* ---- 底部指标带：SBOM 覆盖率 ---- */
-.rs-hero-band {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  padding: 7px 12px;
-  background: linear-gradient(90deg, rgba(6, 34, 70, 0.72), rgba(4, 20, 44, 0.45));
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-}
-.rs-hero-band-label {
-  flex-shrink: 0;
-  font-size: clamp(10px, 0.66vw, 12px);
-  color: var(--text-sub);
-  white-space: nowrap;
-}
-.rs-hero-band-bar {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(3, 14, 29, 0.6);
-  overflow: hidden;
-}
-.rs-hero-band-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, rgba(0, 91, 203, 0.6), var(--cyan));
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
-}
-.rs-hero-band-value {
-  flex-shrink: 0;
-  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(12px, 0.85vw, 16px);
-  font-weight: 700;
-  color: var(--brand-bright);
-  font-variant-numeric: tabular-nums;
-}
-.rs-hero-band-value em { font-style: normal; font-size: 10px; color: var(--text-sub); margin-left: 2px; }
+/* ---- 底部 SBOM 指标带的样式已随该指标移入「资产流转统计」而删除 ---- */
 
 /* ===== 中栏：资产流转统计（资产维度，替代原风险提醒）===== */
 /* 面板按内容高度，不参与拉伸 —— 否则卡片下方留白 */
@@ -1321,19 +1300,21 @@ onBeforeUnmount(() => {
 .rs-flow-grid {
   flex: none;
   display: grid;
-  /* 3 列：流转统计现有「本月上线 / 本月下线 / 本月净增」3 项
-     （原「较昨日新增」与资产总览提示重复，已移除） */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 4 列 × 2 行 = 8 项：
+     第 1 行 本月上线 / 本月下线 / 本月净增 / SBOM 覆盖率
+     第 2 行 软件源码数 / 组织制品数 / 开源许可证数量 / 覆盖语言生态数
+     （四角指标与 SBOM 由「资产总览」面板移入，故本表由 3 项扩到 8 项） */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
 }
 .rs-flow-card {
   display: flex;
   flex-direction: column;
   justify-content: safe center;
-  gap: 7px;
-  /* 投屏可读性：字号与卡片高度同步放大（原 58px/10.5px 在投屏上偏小） */
-  min-height: 68px;
-  padding: 8px 12px;
+  gap: 5px;
+  /* 列数 3 → 4 后每张卡窄了约 25%，故内边距与最小高度同步收紧 */
+  min-height: 62px;
+  padding: 7px 10px;
   /* 底色加深，与浅色文字拉开对比（投屏环境光会进一步压低对比） */
   background: rgba(4, 22, 46, 0.82);
   border: 1px solid rgba(0, 145, 255, 0.34);
@@ -1342,8 +1323,8 @@ onBeforeUnmount(() => {
 }
 .rs-flow-label {
   flex-shrink: 0;
-  /* 10.5px → 12.5px，并提亮前景色（原 #9DC0E4 在投影下偏灰） */
-  font-size: clamp(11.5px, 0.82vw, 14px);
+  /* 4 列后卡宽收窄，字号随之下调（原 11.5~14px 在窄卡内会挤压数值行） */
+  font-size: clamp(10.5px, 0.7vw, 12.5px);
   font-weight: 500;
   color: #C8DEF5;
   white-space: nowrap;
@@ -1353,35 +1334,25 @@ onBeforeUnmount(() => {
 .rs-flow-value { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
 .rs-flow-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  /* 24px → 30px：中栏主数值应在投屏上「一眼可见」 */
-  font-size: clamp(19px, 1.55vw, 30px);
+  /* 4 列后卡宽收窄，主数值从 30px 档收到 23px 档（配 letter-spacing 微收），
+     避免「24,897」这类 5 位数在窄卡里溢出被裁 */
+  font-size: clamp(15px, 1.15vw, 23px);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #A5E7FF;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+  white-space: nowrap;
 }
 .rs-flow-unit {
   flex-shrink: 0;
   font-style: normal;
-  font-size: clamp(10.5px, 0.72vw, 12px);
+  font-size: clamp(9.5px, 0.62vw, 11.5px);
   color: #A8C6E6;
 }
-/* 数值图形化：条长表示量级，让「上线 / 下线 / 净增」的相对关系免读数字即可看出 */
-.rs-flow-bar {
-  display: block;
-  height: 5px;
-  margin-top: 2px;
-  border-radius: 3px;
-  background: rgba(3, 14, 29, 0.6);
-  overflow: hidden;
-}
-.rs-flow-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, rgba(0, 91, 203, 0.7), #38BDF8);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-}
+/* 注：原先此处有 .rs-flow-bar / .rs-flow-bar i / .rs-flow-bar--empty 三组样式，
+   用于卡片下方的进度条。进度条已按要求全部去掉，样式随之删除。
+   附带原因：本表各项量纲不可比（「项」/「种」/百分比混排），给条会误导。 */
 
 .rs-orb {
   position: relative;
@@ -1998,13 +1969,7 @@ onBeforeUnmount(() => {
      2 列时 8 项正好 4 行 × 2、6 项正好 3 行 × 2，两栏都能整行填满。 */
   .rs-kpi { padding: 4px 7px; }
   .rs-kpi-label { font-size: 9.5px; }
-  /* 四角卡片收紧，给中央球体留出更高空间 */
-  .rs-hero-metric {
-    min-width: clamp(116px, 10vw, 178px);
-    min-height: clamp(54px, 7.6vh, 88px);
-    padding: 6px 10px 7px;
-  }
-  .rs-hero-metric-num { font-size: clamp(17px, 1.35vw, 27px); }
+  /* 注：原先此处收紧「四角指标卡」——该卡已移入资产流转统计，规则随之删除 */
   .rs-footer { height: 26px; }
   /* 注：曾在此处为「消除排行榜滚动条」压缩上方两块 KPI 面板（回收约 80px）。
      因手动滚动是允许的，该压缩已回退 —— 不必为挤空间而牺牲 KPI 的可读性。 */
@@ -2023,12 +1988,7 @@ onBeforeUnmount(() => {
   /* 组织活跃度榜单：窄屏收一档字号与列宽 */
   .rs-org-row { grid-template-columns: 16px minmax(0, 1.15fr) minmax(0, 0.85fr) 44px 34px; gap: 5px; padding: 0 6px; }
   .rs-org-name { font-size: 10px; }
-  /* 横向空间变窄：卡片与球体同步收一档，避免贴边 */
-  .rs-hero-metric {
-    min-width: clamp(120px, 11vw, 172px);
-    min-height: clamp(56px, 7.8vh, 92px);
-  }
-  .rs-hero-metric-num { font-size: clamp(17px, 1.35vw, 26px); }
+  /* 注：原先此处收紧「四角指标卡」——该卡已移入资产流转统计，规则随之删除 */
   /* 球体尺寸由容器查询单位自适应，此处不再覆盖 width（覆盖会与 cq 的 height 冲突） */
 }
 
@@ -2069,11 +2029,12 @@ onBeforeUnmount(() => {
     /* 跨满整行 */
     grid-column: 1 / -1;
   }
-  /* 卡片脱离四角绝对定位，回到常规流参与 2×2 网格 */
-  .rs-hero-metric {
-    position: static;
-    min-width: 0;
-    min-height: 0;
+  /* 注：原先此处让「四角指标卡」脱离绝对定位回到常规流 —— 该卡已移入
+     资产流转统计，规则随之删除 */
+  /* 资产流转统计：窄屏/极矮屏下 4 列太挤（每列约 1/4 宽，
+     「开源许可证数量」这类 7 字标签 + 数值会被裁），降为 2 列 × 4 行 */
+  .rs-flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   /* 球体尺寸由容器查询单位自适应（cqh 跟随 stage 高度），无需在此覆盖 */
   .rs-footer { height: 26px; }
@@ -2089,23 +2050,19 @@ onBeforeUnmount(() => {
   .rs-clock { font-size: 11px; }
   .rs-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(52px, auto); }
   .rs-kpi-label { font-size: 10px; white-space: normal; }
-  /* 极窄屏：卡片保持 2 列（继承三档的常规流），仅再压一档字号 */
-  .rs-hero-metric { padding: 7px 9px 8px; }
-  .rs-hero-metric-label { font-size: 10px; }
-  .rs-hero-metric-num { font-size: 18px; }
-  .rs-hero-band { flex-wrap: wrap; }
-  .rs-hero-band-label { flex: 1 1 auto; }
+  /* 注：原先此处再压一档「四角指标卡」字号与 SBOM 指标带换行 —— 二者已移入
+     资产流转统计，规则随之删除（该表在窄屏由 4 列降为 2 列，见流转统计样式） */
   .rs-panel { min-height: 180px; }
 }
 
-/* 尊重系统「减少动态效果」偏好 */
+/* 尊重系统「减少动态效果」偏好。
+   注：原先列表中的 .rs-hero-metric-scan::after（四角卡扫描光）已随卡片移除而删除。 */
 @media (prefers-reduced-motion: reduce) {
   .rs-panel,
   .rs-bg-blob,
   .rs-bg-particle,
   .rs-bg-scan,
   .rs-bg-tech,
-  .rs-hero-metric-scan::after,
   .rs-orb-ring,
   .rs-orb-core,
   .rs-orb-orbit,
