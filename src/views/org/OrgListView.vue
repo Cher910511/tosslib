@@ -4,8 +4,12 @@
       <div class="org-list-hd-row">
         <div>
           <h1 class="org-list-title">组织管理</h1>
-          <p class="org-list-subtitle">管理平台中所有组织的配置、成员、权限与版本火车</p>
+          <p class="org-list-subtitle">管理您所属组织的配置、成员、权限与版本火车</p>
         </div>
+        <!-- 新建组织：建完**创建者自己就是该组织的管理员**（见 doCreateOrg），
+             故任何角色都可用 —— 组织管理是「我的组织」，在这里建组织等于为自己开一个组织。
+             若要建一个「自己不属于」的组织（指定别人当管理员），
+             走「平台权限设置 → 组织列表」的新建组织。 -->
         <button type="button" class="org-create-btn" @click="openCreate">新建组织</button>
       </div>
       <div class="org-list-search">
@@ -48,6 +52,19 @@
           </div>
         </div>
         <div class="org-card-arrow" aria-hidden="true">→</div>
+        <!-- 删除组织：平台管理员可删任意；组织管理员仅可删自己任管理员的组织。
+             内置组织（静态种子）一律不显示按钮。
+             @click.stop 必需 —— 卡片整块有 @click 跳详情，不阻止冒泡会先跳走。 -->
+        <button
+          v-if="canDeleteOrg(org.id)"
+          type="button"
+          class="org-card-del"
+          title="删除组织"
+          aria-label="删除组织"
+          @click.stop="openDelete(org)"
+        >
+          删除
+        </button>
       </div>
 
       <div v-if="filteredOrgs.length === 0" class="org-empty">
@@ -58,7 +75,13 @@
             <circle cx="88" cy="40" r="4" fill="#fee2e2" stroke="#fecaca"/>
           </svg>
         </div>
-        <p class="org-empty-text">未找到匹配的组织</p>
+        <!-- 区分两种空：搜索无结果 / 本就不属于任何组织（后者是权限过滤的结果，需说明原因） -->
+        <p class="org-empty-text">
+          {{ searchQuery.trim() ? '未找到匹配的组织' : '您尚未加入任何组织' }}
+        </p>
+        <p v-if="!searchQuery.trim()" class="org-empty-sub">
+          您可以点右上角「新建组织」为自己创建一个组织；加入他人组织需由该组织管理员邀请
+        </p>
       </div>
     </div>
 
@@ -81,11 +104,6 @@
                 <label class="org-field-label">所属行业</label>
                 <SearchSelect v-model="createForm.industry" class="org-field-input" :options="INDUSTRY_OPTIONS" />
               </div>
-              <div class="org-field">
-                <label class="org-field-label">组织管理员</label>
-                <SearchSelect v-model="createForm.adminUserId" class="org-field-input" :options="adminCandidates" value-key="id" label-key="name" all-label="暂不指定" />
-                <p class="org-field-hint">指定的账号将成为本组织的管理员（拥有组织最高权限）</p>
-              </div>
               <div class="org-field org-field--full">
                 <label class="org-field-label">组织简介</label>
                 <textarea v-model.trim="createForm.description" class="org-field-textarea" rows="3" placeholder="选填，简要说明组织情况"></textarea>
@@ -99,6 +117,13 @@
                 <input v-model.trim="createForm.contactPhone" type="tel" class="org-field-input" placeholder="选填" />
               </div>
 
+              <!-- 无需指定组织管理员：创建者本人即为该组织管理员（见 doCreateOrg）。
+                   若要创建「自己不属于」的组织并指定他人当管理员，
+                   请走「平台权限设置 → 组织列表」的新建组织。 -->
+              <p class="org-field-hint org-field-hint--full">
+                创建后<strong>您将成为该组织的管理员</strong>。若需创建由他人管理的组织，请前往「平台权限设置 → 组织列表」。
+              </p>
+
               <p v-if="createMsg" class="org-create-msg" :class="{ 'is-error': createMsgError }">{{ createMsg }}</p>
             </div>
 
@@ -110,26 +135,100 @@
         </div>
       </Transition>
     </Teleport>
+    <!-- 删除组织二次确认（仅平台管理员可触发） -->
+    <Teleport to="body">
+      <Transition name="org-fade">
+        <div v-if="deleteTarget" class="org-overlay" @click.self="closeDelete">
+          <div class="org-dialog org-dialog--sm">
+            <header class="org-dialog-hd">
+              <h3 class="org-dialog-title">删除组织</h3>
+              <button type="button" class="org-dialog-close" @click="closeDelete">&times;</button>
+            </header>
+
+            <div class="org-dialog-body">
+              <p class="org-del-warn">
+                确定要删除组织「<b>{{ deleteTarget.name }}</b>」吗？
+              </p>
+              <ul class="org-del-list">
+                <li>该组织的成员关系将一并清除，相关人员会失去此组织的权限</li>
+                <li>此操作不可恢复，请先确认组织内已无需要保留的成员与版本火车</li>
+              </ul>
+              <p v-if="deleteMsg" class="org-create-msg is-error">{{ deleteMsg }}</p>
+            </div>
+
+            <footer class="org-dialog-ft">
+              <button type="button" class="org-btn" @click="closeDelete">取消</button>
+              <button type="button" class="org-btn org-btn--danger" @click="doDeleteOrg">确认删除</button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { getOrgAdminCount, getOrgMemberships, addOrgMember } from '../../data/orgMembershipData.js'
-import { getOrgs, createOrg, INDUSTRY_OPTIONS } from '../../data/orgStore.js'
-import { getAllAccounts } from '../../data/accountData.js'
-import { getCurrentUsername } from '../../data/orgData.js'
+import { useRoute, useRouter } from 'vue-router'
+// 删除组织的权限判定 + 级联清理已收敛到 dissolveOrg，本页不再直接动成员关系
+import { getOrgAdminCount, getOrgMemberships, getMemberships, getMembership, addOrgMember, dissolveOrg } from '../../data/orgMembershipData.js'
+import { getOrgs, createOrg, deleteOrgRaw, INDUSTRY_OPTIONS } from '../../data/orgStore.js'
+import { USERS, ORGS } from '../../data/orgData.js'
+import { hasRole } from '../../data/permissionData.js'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 
-/** 当前操作人标识（用户名）：留痕统一记用户名 */
-const CURRENT_OPERATOR = getCurrentUsername()
-
+const route = useRoute()
 const router = useRouter()
 const searchQuery = ref('')
 
-/** 全部组织：内置 + 平台管理员新建（见 orgStore） */
-const orgs = ref(getOrgs())
+/**
+ * 当前用户：与侧边栏一致，走 route.query.user 演示切换（默认 USERS[0] = 平台管理员）。
+ * 注意**不能**用 orgData 的 getCurrentUser() —— 那个读的是写死的 CURRENT_USER_ID，
+ * 演示切到 ?user=user-mem-1 时本页仍会当成平台管理员，
+ * 导致过滤失效、删除按钮越权显示。
+ */
+const currentUser = computed(() => USERS.find((u) => u.id === route.query.user) || USERS[0])
+const currentUserId = computed(() => currentUser.value?.id)
+/** 当前操作人标识（用户名）：留痕统一记用户名 */
+const currentOperator = computed(() => currentUser.value?.username || currentUser.value?.name || '系统')
+
+/**
+ * 是否为跨组织的平台角色。
+ * 判定依据是**平台角色**（permissionData 的角色绑定），不是 user.role ——
+ * 两者是独立两套：例如 user-mem-4 的 role='member'，但平台角色含 platform-admin。
+ * 平台管理员需要跨组织管理（新建组织、指定管理员），故可见全量组织；
+ * 其余角色只能看到自己所属的组织。
+ */
+const isPlatformAdmin = computed(() => hasRole(currentUserId.value, 'platform-admin'))
+
+/**
+ * 组织数据版本号（响应式）。
+ * getOrgs / getMemberships 都直接读 localStorage，属**非响应式**数据源 ——
+ * 增删组织或成员后必须递增本计数器，下面依赖它们的 computed 才会重新求值。
+ */
+const orgVersion = ref(0)
+
+/** 当前用户所属的组织 id 集合（决定非平台角色能看到哪些组织） */
+const myOrgIds = computed(() => {
+  void orgVersion.value // 显式依赖：成员变更后触发重算
+  return getMemberships()
+    .filter((m) => m.userId === currentUserId.value)
+    .map((m) => m.orgId)
+})
+
+/**
+ * 可见组织：**只包含当前用户所属的组织**（内置 + 平台新建，见 orgStore）。
+ *
+ * 本页定位是「我的组织列表」，不做任何角色的全量豁免 ——
+ * 平台管理员不属于任何组织时，这里就是空的（查看全部组织请去
+ * 「平台权限设置 → 组织列表」）。
+ * 这既符合「组织管理 = 看所在组织」的定位，也避免本页变成全平台组织名录，
+ * 让任何成员都能看到别家组织的成员与配置。
+ */
+const orgs = computed(() => {
+  void orgVersion.value
+  return getOrgs().filter((o) => myOrgIds.value.includes(o.id))
+})
 
 /**
  * 管理员/成员人数从 (用户, 组织) 的组织身份统计（见 orgMembershipData），
@@ -149,21 +248,20 @@ const filteredOrgs = computed(() => {
   return orgs.value.filter((o) => o.name.toLowerCase().includes(q) || (o.industry || '').toLowerCase().includes(q))
 })
 
-/* ===== 新建组织 ===== */
+/* ===== 新建组织 =====
+   本页（「我的组织」）建组织 = 为自己开一个组织，故创建者本人直接成为该组织管理员，
+   无需、也不应再选「组织管理员」—— 若在这里把管理员指定给别人，
+   创建者自己就不属于该组织，那这个组织马上就会从本页列表里消失。
+   需要「创建者不属于该组织、由他人管理」的场景，走平台权限设置的「组织列表」。 */
 const createOpen = ref(false)
 const createMsg = ref('')
 const createMsgError = ref(false)
 const createForm = ref({
-  name: '', industry: '金融', description: '', contactEmail: '', contactPhone: '', adminUserId: '',
+  name: '', industry: '金融', description: '', contactEmail: '', contactPhone: '',
 })
 
-/** 可选作组织管理员的账号（平台全部账号） */
-const adminCandidates = computed(() => getAllAccounts().map((u) => ({
-  id: u.id, name: u.name, source: u.accountSource,
-})))
-
 function openCreate() {
-  createForm.value = { name: '', industry: '金融', description: '', contactEmail: '', contactPhone: '', adminUserId: '' }
+  createForm.value = { name: '', industry: '金融', description: '', contactEmail: '', contactPhone: '' }
   createMsg.value = ''
   createMsgError.value = false
   createOpen.value = true
@@ -175,32 +273,97 @@ function closeCreate() {
 
 function doCreateOrg() {
   const f = createForm.value
+  if (!f.name) {
+    createMsgError.value = true
+    createMsg.value = '请填写组织名称'
+    return
+  }
   const res = createOrg({
     name: f.name, industry: f.industry, description: f.description,
     contactEmail: f.contactEmail, contactPhone: f.contactPhone,
-    operator: CURRENT_OPERATOR,
+    operator: currentOperator.value,
   })
   if (!res.ok) {
     createMsgError.value = true
     createMsg.value = res.reason
     return
   }
-  // 指定组织管理员：落库组织身份（admin）
-  let adminNote = '（未指定管理员，可稍后在组织成员中设置）'
-  if (f.adminUserId) {
-    const acc = adminCandidates.value.find((u) => u.id === f.adminUserId)
-    addOrgMember(f.adminUserId, res.org.id, 'admin', CURRENT_OPERATOR)
-    adminNote = `，组织管理员：${acc?.name || f.adminUserId}`
+  // 创建者本人成为该组织的管理员：新建组织必须有一名管理员，
+  // 而本页是「我的组织」，创建者就是唯一确定的管理员人选。
+  const addRes = addOrgMember(currentUserId.value, res.org.id, 'admin', currentOperator.value)
+  if (!addRes.ok) {
+    /**
+     * 组织已建但管理员没落库 → 回滚这次创建。
+     * 否则会留下「没有任何管理员」的组织（违反「新建组织必须有一名管理员」），
+     * 且不检查返回值时会提示创建成功 —— 属静默失败，实测复现过。
+     * 用 deleteOrgRaw 而非 dissolveOrg：这是刚发起创建者的补偿操作，
+     * 不应再被权限口径二次拦截（否则回滚会失败、静默留残）。
+     */
+    deleteOrgRaw(res.org.id)
+    createMsgError.value = true
+    createMsg.value = `创建失败：${addRes.reason || '组织管理员未能加入'}（已回滚，未创建组织）`
+    return
   }
-  orgs.value = getOrgs()
+  orgVersion.value += 1
   createMsgError.value = false
-  createMsg.value = `组织「${res.org.name}」已创建${adminNote}`
+  createMsg.value = `组织「${res.org.name}」已创建，您是组织管理员`
   createForm.value = { name: '', industry: '金融', description: '', contactEmail: '', contactPhone: '', adminUserId: '' }
   setTimeout(() => { createOpen.value = false }, 1200)
 }
 
 function goOrgDetail(orgId) {
   router.push({ name: 'org-detail', params: { orgId } })
+}
+
+/* ===== 删除组织 =====
+   权限：平台管理员可删任意；组织管理员可删**自己在该组织中为管理员**的组织。
+   级联清理（成员关系）由数据层 dissolveOrg 内部完成 ——
+   orgMembershipData 已 import orgStore，编排逻辑必须放在 orgMembershipData 一侧，
+   否则 orgStore 反向引用会形成循环依赖。 */
+const deleteTarget = ref(null)
+const deleteMsg = ref('')
+const deleteMsgError = ref(false)
+
+/** 该组织是否为内置组织（内置不可删，与数据层校验一致，用于隐藏按钮） */
+function isBuiltinOrg(orgId) {
+  return ORGS.some((o) => o.id === orgId)
+}
+
+/**
+ * 当前用户能否删除该组织（决定按钮是否显示）。
+ * 平台管理员：任意组织；组织管理员：仅自己任管理员的组织。
+ * 内置组织一律不可删。
+ */
+function canDeleteOrg(orgId) {
+  if (isBuiltinOrg(orgId)) return false
+  if (isPlatformAdmin.value) return true
+  return getMembership(currentUserId.value, orgId)?.orgRole === 'admin'
+}
+
+/** 打开删除确认（阻止卡片跳转由模板里的 @click.stop 负责） */
+function openDelete(org) {
+  deleteTarget.value = org
+  deleteMsg.value = ''
+  deleteMsgError.value = false
+}
+
+function closeDelete() {
+  deleteTarget.value = null
+  deleteMsg.value = ''
+}
+
+/** 确认删除：权限判定 + 级联清理 + 删除组织，均由数据层 dissolveOrg 完成 */
+function doDeleteOrg() {
+  const org = deleteTarget.value
+  if (!org) return
+  const res = dissolveOrg(org.id, currentUserId.value)
+  if (!res.ok) {
+    deleteMsgError.value = true
+    deleteMsg.value = res.reason || '删除失败'
+    return
+  }
+  orgVersion.value += 1
+  closeDelete()
 }
 
 /** 取组织名称首字符作为头像文字 */
@@ -393,6 +556,35 @@ function avatarBg(name) {
   transition: color 0.2s, transform 0.2s;
 }
 
+/* 卡片上的删除按钮：默认低调，悬停才显红，避免与「进入详情」争夺注意力 */
+.org-card-del {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #9ca3af;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+}
+/* 悬停卡片或按钮本身时显现（键盘聚焦也要能看见，故含 :focus-visible） */
+.org-card:hover .org-card-del,
+.org-card-del:focus-visible {
+  opacity: 1;
+}
+.org-card-del:hover,
+.org-card-del:focus-visible {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+  outline: none;
+}
+
 .org-card:hover .org-card-arrow {
   color: var(--admin-primary, #da203e);
   transform: translateX(4px);
@@ -413,6 +605,14 @@ function avatarBg(name) {
   margin: 0;
   font-size: 14px;
   color: #9ca3af;
+}
+/* 空态补充说明：解释「为何看不到组织」（权限过滤的结果，不是故障） */
+.org-empty-sub {
+  max-width: 420px;
+  margin: 8px auto 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #c0c6cf;
 }
 
 /* ===== 头部：标题 + 新建组织入口 ===== */
@@ -531,6 +731,9 @@ function avatarBg(name) {
 }
 .org-field-textarea:focus { border-color: var(--admin-primary, #da203e); }
 .org-field-hint { margin: 0; font-size: 12px; color: #9ca3af; }
+/* 跨两列的说明文字（如「创建后您将成为该组织的管理员」） */
+.org-field-hint--full { grid-column: 1 / -1; line-height: 1.6; }
+.org-field-hint--full strong { color: #374151; }
 
 .org-create-msg {
   grid-column: 1 / -1;
@@ -575,6 +778,29 @@ function avatarBg(name) {
   border-color: var(--admin-primary, #da203e);
 }
 .org-btn--primary:hover { background: #c11b36; border-color: #c11b36; }
+/* 危险操作按钮（删除组织确认） */
+.org-btn--danger {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+.org-btn--danger:hover { background: #b91c1c; border-color: #b91c1c; }
+/* 删除确认弹窗收窄：内容比建组织表单少得多 */
+.org-dialog--sm { max-width: 440px; }
+.org-del-warn {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+}
+.org-del-warn b { color: #dc2626; }
+.org-del-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #6b7280;
+}
 
 /* 弹窗淡入淡出 */
 .org-fade-enter-active,

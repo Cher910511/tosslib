@@ -62,12 +62,15 @@
           </div>
         </header>
 
-        <!-- ===== 主体：左（用户行为）· 中（资产总览）· 右（风险行为） ===== -->
+        <!-- ===== 主体：上 2/3（用户数 + 日变化数据 | 资产数 | 安全风险总览 + 资产趋势）+ 下 1/3（组织活跃度 / 漏洞动态 / 恶意代码动态） ===== -->
         <main class="rs-main">
-          <!-- 左栏：用户行为 -->
+          <!-- 上区-左栏：用户数（注册用户 / 注册企业放大 + 活跃度指标）+ 日变化数据 -->
           <div class="rs-col rs-col--left">
-            <section class="rs-panel rs-panel--kpi">
-              <h3 class="rs-panel-title">用户行为总览</h3>
+            <section class="rs-panel rs-panel--fill">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">用户数</h3>
+                <span class="rs-panel-note">注册用户 / 注册企业放大展示</span>
+              </div>
               <!-- 注册用户数 / 注册企业数：领导要求放大展示 -->
               <div class="rs-kpi-featured">
                 <div v-for="u in userOverviewFeatured" :key="u.key" class="rs-kpi-featured-card">
@@ -89,12 +92,13 @@
               </div>
             </section>
 
-            <section class="rs-panel rs-panel--kpi">
+            <!-- 日变化数据：月报统计量，含较上日 / 周 / 月比对与组织下钻 -->
+            <section class="rs-panel rs-panel--mstat">
               <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">平台使用情况</h3>
-                <span class="rs-panel-note">月报统计量 · 点击看组织下钻</span>
+                <h3 class="rs-panel-title">日变化数据</h3>
+                <span class="rs-panel-note">较上日 / 周 / 月  点击下钻</span>
               </div>
-              <!-- 月报统计量 7 项：每项含数值 + 较上日/周/月比对与趋势箭头。
+              <!-- 月报统计量 6 项：每项含数值 + 较上日/周/月比对与趋势箭头。
                    点击卡片下钻，弹窗展示该指标的组织级/用户级脱敏统计。 -->
               <div class="rs-mstat-grid">
                 <button
@@ -126,38 +130,9 @@
                 </button>
               </div>
             </section>
-
-            <section class="rs-panel rs-flex--2">
-              <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">组织活跃度 Top10</h3>
-                <span class="rs-panel-note">点击组织看用户明细</span>
-              </div>
-              <!-- 组织活跃度榜单：平台以组织为统计单位（用户必须先加入组织才能使用），
-                   故由「用户活跃」改为「组织活跃度」；名次带往期比对箭头，点击可下钻。 -->
-              <div class="rs-org-rank">
-                <button
-                  v-for="o in orgActivity10"
-                  :key="o.name"
-                  type="button"
-                  class="rs-org-row"
-                  :title="`${o.name}：活跃度 ${o.score.toLocaleString()}，点击查看该组织内用户明细`"
-                  @click="openOrgDrill(o.name)"
-                >
-                  <span class="rs-org-no" :class="`is-${o.rank}`">{{ o.rank }}</span>
-                  <span class="rs-org-name" :title="o.name">{{ o.name }}</span>
-                  <span class="rs-org-bar"><i :style="{ width: o.bar }" /></span>
-                  <span class="rs-org-value">{{ o.score.toLocaleString() }}</span>
-                  <!-- 往期名次比对：↑ 上升 / ↓ 下降 / — 持平 -->
-                  <span class="rs-org-delta" :class="deltaClass(o.delta)" :title="`上期第 ${o.prevRank} 名`">
-                    <i class="rs-org-arrow" :class="deltaClass(o.delta)" aria-hidden="true" />
-                    <b>{{ o.delta === 0 ? '持平' : Math.abs(o.delta) }}</b>
-                  </span>
-                </button>
-              </div>
-            </section>
           </div>
 
-          <!-- 中栏：资产总览主视觉 + 趋势 -->
+          <!-- 中栏：资产总览主视觉 + 资产统计 -->
           <div class="rs-col rs-col--center">
             <section class="rs-panel rs-hero">
               <h3 class="rs-panel-title">资产总览</h3>
@@ -301,8 +276,30 @@
               </div>
             </section>
 
-            <!-- 资产趋势：源码数 / 制品数（万级，左轴）+ 漏洞感知 / 版本更新（千级，右轴） -->
-            <section class="rs-panel rs-flex--3">
+          </div>
+
+          <!-- 上区-右栏：安全风险总览（两项明细表的汇总口径）+ 资产趋势 -->
+          <div class="rs-col rs-col--right">
+            <!-- 安全风险总览：收口下区两张明细表的汇总口径（漏洞总数 / 高危漏洞数 / 恶意代码检出） -->
+            <section class="rs-panel rs-panel--risk">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">安全风险总览</h3>
+                <span class="rs-panel-note">明细见下区两张表</span>
+              </div>
+              <div class="rs-risk-list">
+                <div v-for="r in riskOverview" :key="r.key" class="rs-risk-row" :class="`is-${r.tone}`">
+                  <span class="rs-risk-label">{{ r.label }}</span>
+                  <span class="rs-risk-value">
+                    <CountUp class="rs-risk-num" :end="r.value" />
+                    <em v-if="r.unit" class="rs-risk-unit">{{ r.unit }}</em>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <!-- 资产趋势：源码数 / 制品数（左轴，万级）+ 漏洞感知 / 版本更新（右轴，千级）
+                 与「安全风险总览」同栏：风险看当下积压，资产趋势看近 12 月走向。 -->
+            <section class="rs-panel rs-panel--chart">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">资产趋势</h3>
                 <span class="rs-panel-note">近 12 月</span>
@@ -313,19 +310,38 @@
             </section>
           </div>
 
-          <!-- 右栏：风险行为 -->
-          <div class="rs-col rs-col--right">
-            <section class="rs-panel rs-flex--2">
-              <h3 class="rs-panel-title">安全风险总览</h3>
-              <div class="rs-risk-list">
-                <div v-for="r in riskOverview" :key="r.key" class="rs-risk-row" :class="`is-${r.tone}`">
-                  <span class="rs-risk-label">{{ r.label }}</span>
-                  <CountUp class="rs-risk-num" :end="r.value" />
-                </div>
+          <!-- 下区（1/3 高度）：组织活跃度 Top10 / 最新漏洞动态 / 恶意代码检测动态，三块严格等分 -->
+          <div class="rs-bottom">
+            <section class="rs-panel">
+              <div class="rs-panel-hd">
+                <h3 class="rs-panel-title">组织活跃度 Top10</h3>
+                <span class="rs-panel-note">点击组织看用户明细</span>
+              </div>
+              <!-- 组织活跃度榜单：平台以组织为统计单位（用户必须先加入组织才能使用），
+                   故由「用户活跃」改为「组织活跃度」；名次带往期比对箭头，点击可下钻。 -->
+              <div class="rs-org-rank">
+                <button
+                  v-for="o in orgActivity10"
+                  :key="o.name"
+                  type="button"
+                  class="rs-org-row"
+                  :title="`${o.name}：活跃度 ${o.score.toLocaleString()}，点击查看该组织内用户明细`"
+                  @click="openOrgDrill(o.name)"
+                >
+                  <span class="rs-org-no" :class="`is-${o.rank}`">{{ o.rank }}</span>
+                  <span class="rs-org-name" :title="o.name">{{ o.name }}</span>
+                  <span class="rs-org-bar"><i :style="{ width: o.bar }" /></span>
+                  <span class="rs-org-value">{{ o.score.toLocaleString() }}</span>
+                  <!-- 往期名次比对：↑ 上升 / ↓ 下降 / — 持平 -->
+                  <span class="rs-org-delta" :class="deltaClass(o.delta)" :title="`上期第 ${o.prevRank} 名`">
+                    <i class="rs-org-arrow" :class="deltaClass(o.delta)" aria-hidden="true" />
+                    <b>{{ o.delta === 0 ? '持平' : Math.abs(o.delta) }}</b>
+                  </span>
+                </button>
               </div>
             </section>
 
-            <section class="rs-panel rs-flex--3">
+            <section class="rs-panel">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">最新漏洞动态</h3>
                 <span class="rs-panel-note">最新 {{ vulnFeed10.length }} 条</span>
@@ -335,7 +351,7 @@
               </div>
             </section>
 
-            <section class="rs-panel rs-flex--3">
+            <section class="rs-panel">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">恶意代码检测动态</h3>
                 <span class="rs-panel-note">最新 {{ malwareFeed10.length }} 条</span>
@@ -369,28 +385,33 @@
 
 <script setup>
 /**
- * 可信开源代码库数据大屏 · 政务科技风三栏布局
+ * 可信开源代码库数据大屏 · 政务科技风两段式布局
  *
- * 布局参考经典政务大屏「左-中-右」三栏：
- *   左栏 = 用户行为（行为总览 KPI，注册用户/注册企业放大 + 平台使用情况[用户维度] + 用户活跃 Top10）
- *   中栏 = 资产总览主视觉（同心环能量球 + 分项卡片）+ 资产维度统计（新增/上下线 + 增长折线）
- *   右栏 = 风险行为（安全风险总览 / 漏洞等级分布 / 漏洞动态 / 恶意代码检测动态）
+ * 布局按领导要求改为「上 2/3 + 下 1/3」：
+ *   上区（2/3 高度）三栏 = 日变化数据（月报统计量，较上日/周/月比对，可下钻）
+ *                        + 资产趋势（源码/制品/漏洞感知/版本更新，近 12 月）
+ *                      + 资产数（资产总览主视觉能量球 + 资产统计分项）
+ *                      + 用户数（注册用户/注册企业放大 + 活跃度指标）
+ *                        + 安全风险总览（漏洞总数 / 高危漏洞数 / 恶意代码检出）
+ *   下区（1/3 高度）三列 = 组织活跃度 Top10 / 最新漏洞动态 / 恶意代码检测动态
+ *
+ * 上下两行都是 repeat(3, 1fr) 严格等分，竖直分隔线上下贯通、左右对称。
  *
  * 视觉：深空蓝底 + #005BCB 品牌青蓝 + 面板四角括号 + 中央能量球；
  *       克制发光与装饰密度，保证政务场景的高级感。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import CountUp from '../../components/CountUp.vue'
-import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
+import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import OrgDrillDialog from '../../components/screen/OrgDrillDialog.vue'
 import {
   platformMeta,
   assetCards,
+  assetTrend,
   riskOverview,
   vulnFeed,
   malwareFeed,
-  assetTrend,
   userOverview,
   monthlyReportStats,
   orgActivityTop10,
@@ -944,18 +965,34 @@ onBeforeUnmount(() => {
   letter-spacing: 0.5px;
 }
 
-/* ===== 主体三栏 ===== */
+/* ===== 主体：上区 2/3（用户数 + 日变化数据 · 资产数 · 安全风险总览 + 资产趋势）+ 下区 1/3（组织活跃度 / 漏洞动态 / 恶意代码动态） ===== */
 .rs-main {
   position: relative;
   z-index: 2;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 26fr 48fr 26fr;
-  /* 关键：行高约束在可用空间内，防止面板内容把整页撑出视口 */
-  grid-template-rows: minmax(0, 1fr);
+  /* 上区三栏严格等分（领导要求版面左右对称，不按内容重量配比）：
+     日变化数据 / 资产数 / 用户数 + 安全风险总览 各占三分之一。 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 关键：上区 2 份、下区 1 份，行高约束在可用空间内，防止内容把整页撑出视口 */
+  grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--gap);
   padding-top: var(--gap);
+}
+/* 上区三个栏位各占一列一行；下区三列表跨满整行 */
+.rs-col--left { grid-column: 1; grid-row: 1; }
+.rs-col--center { grid-column: 2; grid-row: 1; }
+.rs-col--right { grid-column: 3; grid-row: 1; }
+.rs-bottom {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 0;
+  display: grid;
+  /* 下区 1/3：组织活跃度 Top10 / 最新漏洞动态 / 恶意代码检测动态，三块严格等宽。
+     与上区三栏同一套 repeat(3, 1fr)，竖直分隔线上下贯通、左右对称。 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
 }
 .rs-col {
   min-height: 0;
@@ -963,19 +1000,18 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--gap);
 }
-/* 栏内纵向配比：数值越大分得越高 */
-/* 左栏纵向配比。两个 KPI 面板已改为按内容高度（不参与分配，见 .rs-panel--kpi），
-   故此处配比只作用于「用户活跃 Top10」，它独占左栏剩余空间并靠滚动展示。
-   保留 rs-flex--2/3 供中栏与右栏复用。 */
-.rs-flex--2 { flex: 2; }
-.rs-flex--3 { flex: 3; }
-/* 中栏纵向配比：合计 7.5，资产总览占 4（约 400px）、资产趋势占 3.5（约 350px）。
-   调矮资产总览的原因：四角卡移入「资产统计」后，主视觉只剩中央球体，
-   原先 5 份高度显得偏空，且下方「资产趋势」的折线图更需要纵向空间。
-   注意必须用 .rs-col--center 限定：.rs-flex--3 同时被右栏两个面板复用，
-   直接改它会把右栏的漏洞/恶意代码列表一起改掉。 */
-.rs-col--center .rs-hero { flex: 4; }
-.rs-col--center .rs-flex--3 { flex: 3.5; }
+/* 栏内纵向配比：
+   左栏「用户数」（放大卡 + KPI 网格）与「日变化数据」= 1 : 1.15 ——
+   日变化改为 2 列 × 3 行后每卡约 85px，足够放下「标签 + 数值 + 三段比对」，
+   比原先单列 6 行所需的 1.35 省下高度，也让出空间给放大卡；
+   中栏「资产总览」吃掉扣掉「资产统计」后的剩余高度（球体按容器查询单位自适应）；
+   右栏「安全风险总览」与「资产趋势」= 1 : 1.2 —— 风险总览回到三行纵排后更吃高度。
+   注意必须用栏位限定，避免影响下区各列的高度。 */
+.rs-col--left .rs-panel--fill { flex: 1; }
+.rs-col--left .rs-panel--mstat { flex: 1.15; }
+.rs-col--center .rs-hero { flex: 1; }
+.rs-col--right .rs-panel--risk { flex: 1; }
+.rs-col--right .rs-panel--chart { flex: 1.2; }
 
 /* ===== 面板：玻璃面 + 辉光勾边 + 四角科技括号 ===== */
 .rs-panel {
@@ -1532,12 +1568,15 @@ onBeforeUnmount(() => {
 }
 
 /* ===== 左栏：用户行为 KPI ===== */
-/* KPI 面板（用户行为总览 / 开源资产使用）：两个面板样式完全统一 ——
-   面板按内容高度（flex: 0 0 auto），不参与拉伸，故两panel的标题、卡片高度、
-   间距完全一致；左栏剩余纵向空间全部由「用户活跃 Top10」吸收。
-   这样矮屏下卡片也永不被压缩，指标标题与数值始终完整可见。 */
-.rs-panel--kpi {
-  flex: 0 0 auto;
+/* 用户数面板（上区左栏上方）：与「日变化数据」按 1 : 1.35 分配栏高 ——
+   「注册用户 / 注册企业」放大卡与下方 KPI 网格按 1:1 分摊本面板剩余空间。 */
+.rs-panel--fill {
+  flex: 1;
+}
+.rs-panel--fill .rs-kpi-featured { flex: 1; }
+.rs-panel--fill .rs-kpi-grid {
+  flex: 1;
+  grid-auto-rows: minmax(46px, 1fr);
 }
 
 /* 放大展示卡（注册用户数 / 注册企业数）：领导要求突出，占两列、数值更大 */
@@ -1575,10 +1614,10 @@ onBeforeUnmount(() => {
   gap: 3px;
   min-width: 0;
 }
-/* 放大：字号明显大于普通指标卡的 clamp(14px, 1.05vw, 20px) */
+/* 放大：左栏现在只承载「用户数」，字号比普通指标卡再大一档 */
 .rs-kpi-featured-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(32px, 2.7vw, 50px);
+  font-size: clamp(38px, 3.2vw, 62px);
   font-weight: 700;
   color: #7DDCFF;
   font-variant-numeric: tabular-nums;
@@ -1634,7 +1673,7 @@ onBeforeUnmount(() => {
 }
 .rs-kpi-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(14px, 1.05vw, 20px);
+  font-size: clamp(18px, 1.5vw, 28px);
   font-weight: 700;
   color: var(--brand-bright);
   font-variant-numeric: tabular-nums;
@@ -1655,6 +1694,25 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+}
+/* 上区左栏「日变化数据」：6 项按「一行两个」排成 2 列 × 3 行。
+   此前是纵向单列 6 行，每张卡被压到约 45px，标签 + 数值之下的
+   「较上日 / 周 / 月」三段比对放不下被裁掉；改成 2 列后每卡高度约翻倍，
+   三段比对完整露出，同时仍保持一行一行的横向比较节奏。 */
+.rs-col--left .rs-mstat-grid {
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 6px;
+}
+.rs-col--left .rs-mstat { justify-content: center; }
+/* 卡片变窄后三段比对不再挤在一行：允许折行，宁可两行也不 ellipsis 掉数值 */
+.rs-col--left .rs-mstat-compare {
+  gap: 6px;
+  row-gap: 2px;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 /* 指标卡：本体是 button（可点击下钻），故需重置按钮默认样式 */
 .rs-mstat {
@@ -1859,77 +1917,6 @@ onBeforeUnmount(() => {
   border-radius: 1px;
 }
 
-/* ===== 右栏：安全风险总览 ===== */
-.rs-risk-list {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-}
-.rs-risk-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 11px 5px 16px;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-}
-.rs-risk-row::before {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 20%;
-  bottom: 20%;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--brand-bright);
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
-}
-.rs-risk-label { font-size: 11.5px; color: var(--text-sub); white-space: nowrap; }
-.rs-risk-num {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(16px, 1.2vw, 23px);
-  font-weight: 700;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
-}
-/* 配色说明（重要）——本模块是「风险数量的分类总览」，按需求使用红→橙→黄三档。
-   关键要求：三行之间色差必须明显（此前两行色值完全一致，投屏下分不出差异）。
-   取值按「色相 + 饱和度 + 明度」三重拉开：
-     漏洞总数   红 #FF4D4F（高饱和、偏冷）
-     高危漏洞数 橙 #FF8A1F（中饱和、居中）
-     恶意代码检出 黄 #FFC53D（低饱和、偏暖亮）
-   注意：本页「最新漏洞动态」「恶意代码检测动态」的等级标签为
-   严重/高危 #FF8A8A、中危 #FBBF6E —— 二者与下述橙色、黄色属同一色系，
-   靠「饱和度更高、明度更低」区分；若后续仍觉混淆，可回调为品牌色系。
-   注：data 里 tone 键（primary/danger/warn）表示「这是关于哪个风险的指标」，
-   不代表配色语义，改色只需改本段。 */
-.rs-risk-row.is-primary { border-color: rgba(255, 77, 79, 0.6); }
-.rs-risk-row.is-primary::before { background: #FF4D4F; box-shadow: 0 0 12px rgba(255, 77, 79, 0.95); }
-.rs-risk-row.is-primary .rs-risk-num {
-  color: #FF6B6B;
-  text-shadow: 0 0 16px rgba(255, 77, 79, 0.8);
-}
-/* 高危漏洞数：橙（与上行红拉开色相） */
-.rs-risk-row.is-danger { border-color: rgba(255, 138, 31, 0.6); }
-.rs-risk-row.is-danger::before { background: #FF8A1F; box-shadow: 0 0 12px rgba(255, 138, 31, 0.95); }
-.rs-risk-row.is-danger .rs-risk-num {
-  color: #FFA940;
-  text-shadow: 0 0 16px rgba(255, 138, 31, 0.8);
-}
-/* 恶意代码检出：黄（与上两行再拉一档明度） */
-.rs-risk-row.is-warn { border-color: rgba(255, 197, 61, 0.6); }
-.rs-risk-row.is-warn::before { background: #FFC53D; box-shadow: 0 0 12px rgba(255, 197, 61, 0.95); }
-.rs-risk-row.is-warn .rs-risk-num {
-  color: #FFD666;
-  text-shadow: 0 0 16px rgba(255, 197, 61, 0.8);
-}
-
 /* ===== 底部备案 ===== */
 .rs-footer {
   position: relative;
@@ -1943,16 +1930,105 @@ onBeforeUnmount(() => {
   color: var(--text-dim);
 }
 
-/* 各面板依次入场 */
+/* 下区「组织活跃度 Top10」：在 1/3 高度内放 10 行，行高压到可读下限，
+   超出时按既有约定允许手动滚动（不为挤空间牺牲可读性）。 */
+.rs-bottom .rs-org-rank { grid-auto-rows: minmax(24px, 1fr); }
+
+/* ===== 上区右栏：安全风险总览（置于资产趋势之上，一行一项、共三行）===== */
+/* 口径 = 最新漏洞动态 + 恶意代码检测动态的汇总：漏洞总数 / 高危漏洞数 / 恶意代码检出。
+   按领导要求回到「一行一个数据、总共三行」：标签在左、数值在右，
+   数值可用整行宽度放大，投屏比三项横排更清楚。 */
+.rs-panel--risk { flex: 1; }
+.rs-risk-list {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* 三项纵向均分：1 列 × 3 行 */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+/* 三行各用一个醒目颜色立起来：橙（漏洞总量）/ 红（高危）/ 紫（恶意代码）。
+   漏洞类不再用青蓝 —— 青蓝在本项目是「中性信息 / 资产」语义，
+   挂在风险行上会被读成「一切正常」，与要传达的告警感相反。
+   颜色统一走 --risk-* 变量，边框、底色、辉光、左侧色条跟随 tone 一起变，
+   避免出现「边框红了但底色还是蓝的」这种半套配色。
+   默认值取橙（而非此前的青蓝）：任何未匹配到 tone 的行也不会退化成蓝色。 */
+.rs-risk-row {
+  --risk-line: rgba(255, 159, 46, 0.75);
+  --risk-fill: rgba(255, 159, 46, 0.2);
+  --risk-glow: rgba(255, 159, 46, 0.26);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 12px 4px 10px;
+  background: linear-gradient(90deg, var(--risk-fill) 0%, rgba(6, 34, 70, 0.55) 55%);
+  border: 1px solid var(--risk-line);
+  border-left: 3px solid var(--risk-line);
+  border-radius: 6px;
+  box-shadow: 0 0 12px var(--risk-glow), inset 0 0 18px var(--risk-glow);
+}
+.rs-risk-row.is-danger {
+  --risk-line: rgba(255, 77, 77, 0.72);
+  --risk-fill: rgba(255, 77, 77, 0.2);
+  --risk-glow: rgba(255, 77, 77, 0.26);
+}
+.rs-risk-row.is-warn {
+  --risk-line: rgba(255, 159, 46, 0.75);
+  --risk-fill: rgba(255, 159, 46, 0.2);
+  --risk-glow: rgba(255, 159, 46, 0.26);
+}
+/* 恶意代码：紫 —— 与漏洞（橙/红）在色相上彻底分开，一眼能分出「这是另一种威胁」 */
+.rs-risk-row.is-malware {
+  --risk-line: rgba(192, 132, 252, 0.72);
+  --risk-fill: rgba(192, 132, 252, 0.2);
+  --risk-glow: rgba(192, 132, 252, 0.26);
+}
+.rs-risk-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-risk-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
+.rs-risk-num {
+  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(20px, 1.6vw, 32px);
+  font-weight: 700;
+  /* 默认中性冷白（不用青蓝）：实际三行都由 tone 覆盖，这里只做兜底 */
+  color: #D7E6F5;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(214, 230, 246, 0.35);
+}
+.rs-risk-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
+/* 三项按语义分色：漏洞总量橙 / 高危红 / 恶意代码紫 */
+.rs-risk-row.is-danger .rs-risk-num {
+  color: #FF8F8F;
+  text-shadow: 0 0 14px rgba(255, 92, 92, 0.5);
+}
+.rs-risk-row.is-warn .rs-risk-num {
+  color: #FFB258;
+  text-shadow: 0 0 14px rgba(255, 159, 46, 0.5);
+}
+.rs-risk-row.is-malware .rs-risk-num {
+  color: #D8B4FE;
+  text-shadow: 0 0 14px rgba(192, 132, 252, 0.5);
+}
+
+/* 各面板依次入场：上区从左到右，下区从左上到右下 */
 .rs-col--left .rs-panel:nth-child(1) { animation-delay: 0.05s; }
-.rs-col--left .rs-panel:nth-child(2) { animation-delay: 0.12s; }
-.rs-col--left .rs-panel:nth-child(3) { animation-delay: 0.19s; }
 .rs-col--center .rs-panel:nth-child(1) { animation-delay: 0.09s; }
 .rs-col--center .rs-panel:nth-child(2) { animation-delay: 0.16s; }
 .rs-col--right .rs-panel:nth-child(1) { animation-delay: 0.07s; }
 .rs-col--right .rs-panel:nth-child(2) { animation-delay: 0.14s; }
-.rs-col--right .rs-panel:nth-child(3) { animation-delay: 0.21s; }
-.rs-col--right .rs-panel:nth-child(4) { animation-delay: 0.28s; }
+.rs-bottom .rs-panel:nth-child(1) { animation-delay: 0.22s; }
+.rs-bottom .rs-panel:nth-child(2) { animation-delay: 0.26s; }
+.rs-bottom .rs-panel:nth-child(3) { animation-delay: 0.30s; }
 
 /* ==================================================================
    小屏适配（三档：紧凑 → 收紧 → 纵向堆叠）
@@ -1964,15 +2040,62 @@ onBeforeUnmount(() => {
   .rs-screen { padding: 8px 12px 3px; }
   .rs-top { height: clamp(44px, 6vh, 58px); padding-bottom: 6px; }
   .rs-panel { padding: 7px 10px 8px; }
-  /* KPI 网格保持 2 列，不再在矮屏改成 3 列：
-     「用户行为总览」有 8 项，3 列会排成 3+3+2，末行只有 2 个而错位；
-     2 列时 8 项正好 4 行 × 2、6 项正好 3 行 × 2，两栏都能整行填满。 */
+  /* KPI 网格的列数：本断点下该网格只有 4 项（活跃用户/活跃组织/UV/PV），
+     改为「1 行 4 列」正好整除、不会出现末行错位，比 2 列 2 行省约 45px；
+     详见下方「上区左栏」的矮屏压缩说明。
+     （历史上该网格曾有 8 项，3 列会排成 3+3+2 而错位，所以当时固定 2 列。） */
   .rs-kpi { padding: 4px 7px; }
   .rs-kpi-label { font-size: 9.5px; }
   /* 注：原先此处收紧「四角指标卡」——该卡已移入资产流转统计，规则随之删除 */
   .rs-footer { height: 26px; }
-  /* 注：曾在此处为「消除排行榜滚动条」压缩上方两块 KPI 面板（回收约 80px）。
-     因手动滚动是允许的，该压缩已回退 —— 不必为挤空间而牺牲 KPI 的可读性。 */
+
+  /* ---- 上区左栏（用户数 / 日变化数据）的矮屏专用压缩 ----
+     1366×768 这类屏上，上区 2/3 约 450px，左栏两块按栏内配比分掉后
+     各只剩 200px 出头。而放大卡的数字是 vw 驱动（矮屏不会跟着缩）、
+     KPI 与日变化卡又都有可读下限，原样排会被面板的 overflow:hidden 裁掉。
+     处理办法：
+       ① 放大卡显式下压字号与内边距（clamp 下限从 38px 降到 26px）；
+       ② 4 项活跃度指标由「2 列 × 2 行」改为「1 行 × 4 列」—— 4 项正好
+          整除 4 列，不会出现末行错位（这一点与此前 8 项时不能改 3 列
+          的情况不同），单此一项就省下约 45px；
+       ③ 日变化卡的比对行改为不折行（字号同步降一档），每行省一行文字高；
+       ④ 兜底：仍差几像素时让「网格」自己纵向滚动（不是整块面板滚，
+          以免四角装饰跟着滚走），宁可滚一点也不要裁掉「较上日/周/月」。 */
+  .rs-kpi-featured { margin-bottom: 5px; gap: 6px; }
+  .rs-kpi-featured-card { padding: 7px 9px; gap: 3px; }
+  .rs-kpi-featured-label { font-size: 11px; }
+  .rs-kpi-featured-num {
+    font-size: clamp(26px, 2.2vw, 42px);
+    text-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+  }
+  .rs-panel--fill .rs-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(38px, 1fr);
+    gap: 5px;
+  }
+  /* 矮屏下卡片被网格拉到 80px 上下，内容却「居中聚拢」→ 标签与数值之间、
+     卡片上下各留一块死白（本次反馈：指标上下边距很大、不协调）。
+     改为 space-evenly：留白按卡片高度均分，标签贴上、数值压中、比对接下，
+     卡片再高也是均匀分布，不再出现「中间一坨、上下两大块空」。
+     mstat 必须带 .rs-col--left 前缀，否则压不过基础样式的 .rs-col--left .rs-mstat。 */
+  .rs-kpi { justify-content: space-evenly; padding: 3px 6px; gap: 3px; }
+  .rs-panel--fill .rs-kpi-featured-card { justify-content: space-evenly; }
+  .rs-kpi-num { font-size: clamp(15px, 1.15vw, 19px); }
+  .rs-col--left .rs-mstat { justify-content: space-evenly; padding: 5px 7px; gap: 2px; }
+  .rs-mstat-label { font-size: 10px; }
+  .rs-mstat-num { font-size: clamp(14px, 1vw, 18px); }
+  .rs-mstat-compare { font-size: 9px; gap: 4px; row-gap: 1px; }
+  /* 日变化 6 项：矮屏下由「2 列 × 3 行」改为「3 列 × 2 行」。
+     2 列时卡片约 190px 宽、每行只有约 61px 高，标签 + 数值 + 三段比对
+     无论如何塞不进一行（实测需要约 71px）；改 3 列后卡片变窄、三段比对
+     各占一行完整露出，但总高从 3 行降到 2 行，反而整体装得下。
+     6 项正好整除 3 列，不会出现末行错位。 */
+  .rs-col--left .rs-mstat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+  }
+  .rs-panel--fill .rs-kpi-grid,
+  .rs-col--left .rs-mstat-grid { overflow-y: auto; }
 }
 
 /* --- 二档：宽度不足（笔记本 / 小尺寸屏）时收紧横向密度 --- */
@@ -1997,16 +2120,24 @@ onBeforeUnmount(() => {
   .rs-viewport { height: auto; min-height: 100vh; overflow: visible; }
   .rs-screen { height: auto; min-height: 100vh; padding: 10px 10px 6px; }
   .rs-main {
-    /* 单栏堆叠 */
+    /* 单栏堆叠：上区三栏 + 下区三列表与风险总览全部按内容高度纵向排列 */
     grid-template-columns: minmax(0, 1fr);
-    /* 每栏各自成行，按内容高度排布 */
     grid-auto-rows: auto;
   }
+  .rs-main > .rs-col,
+  .rs-bottom { grid-column: 1; grid-row: auto; }
+  .rs-bottom { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
   .rs-col { gap: var(--gap); }
-  /* 解除栏内纵向配比，改为按内容高度 + 最小高度 */
-  .rs-flex--2,
-  .rs-flex--3,
+  /* 解除栏内纵向配比与填充，改为按内容高度 + 最小高度 */
+  .rs-col--left .rs-panel,
+  .rs-col--right .rs-panel,
   .rs-col--center .rs-hero { flex: none; }
+  /* 面板不再整栏拉伸时，放大卡 / KPI 网格 / 日变化列表回到按内容高度 */
+  .rs-panel--fill .rs-kpi-featured,
+  .rs-panel--fill .rs-kpi-grid,
+  .rs-col--left .rs-mstat-grid { flex: none; }
+  .rs-panel--fill .rs-kpi-grid,
+  .rs-col--left .rs-mstat-grid { grid-auto-rows: minmax(46px, auto); }
   .rs-panel { min-height: 200px; }
   /* 窄屏下卡片回到常规流与球体共用高度，stage 必须留出「球体 + 两行卡片」的空间。
      注意 container-type: size 含 contain: size —— 内容不会撑高容器，

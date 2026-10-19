@@ -6,7 +6,9 @@
 // 注意：本模块**不**依赖 orgMembershipData，避免循环引用；
 // 把某人设为组织管理员由调用方通过 orgMembershipData.setOrgRole / addOrgMember 完成。
 
-import { ORGS } from './orgData.js'
+import { ORGS, CURRENT_USER_ID } from './orgData.js'
+// permissionData 无任何 import，故此处引用不会形成循环依赖
+import { hasRole } from './permissionData.js'
 
 const ORG_KEY = 'tosslib_created_orgs'
 const SEED_VERSION = 1
@@ -115,7 +117,40 @@ export function createOrg(opts = {}) {
   return { ok: true, org }
 }
 
-/** 删除新建的组织（仅限本模块创建的组织） */
-export function deleteOrg(orgId) {
-  persist(load().filter((o) => o.id !== orgId))
+/**
+ * 删除组织的**底层实现**：不做权限校验，只做数据完整性保护。
+ *
+ * 仅供两类调用方使用：
+ *   1. orgMembershipData.dissolveOrg —— 编排层，负责权限判定 + 级联清理成员关系；
+ *   2. 建组织失败时的回滚（补偿操作，执行者就是刚发起创建的人）。
+ *
+ * 保护：内置组织不可删（ORGS 来自 orgData 静态导出，本就不在 load() 里，
+ * 显式校验是为给出明确原因，而非静默无反应）；只能删本模块创建的组织。
+ *
+ * 注意：本函数**不**清理成员关系 —— orgMembershipData 已 import 本模块，
+ * 反向引用会成环。级联清理由 dissolveOrg 统一编排。
+ */
+export function deleteOrgRaw(orgId) {
+  if (!orgId) return { ok: false, reason: '缺少组织标识' }
+  if (ORGS.some((o) => o.id === orgId)) return { ok: false, reason: '内置组织不可删除' }
+  const list = load()
+  if (!list.some((o) => o.id === orgId)) return { ok: false, reason: '该组织不存在或不可删除' }
+  persist(list.filter((o) => o.id !== orgId))
+  return { ok: true }
+}
+
+/**
+ * 删除组织（平台管理员专属的便捷入口）。
+ *
+ * 权限口径已调整：**组织管理员也能删除自己所属的组织**，见
+ * orgMembershipData.dissolveOrg —— 那是页面实际调用的编排函数。
+ * 本函数保留「平台管理员」这一条口径，用于脚本/回滚等场景。
+ *
+ * @param {string} orgId 目标组织
+ * @param {string} [actorId] 操作人（默认当前用户），用于权限校验
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+export function deleteOrg(orgId, actorId = CURRENT_USER_ID) {
+  if (!hasRole(actorId, 'platform-admin')) return { ok: false, reason: '仅平台管理员可删除组织' }
+  return deleteOrgRaw(orgId)
 }

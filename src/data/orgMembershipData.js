@@ -12,10 +12,10 @@
 //  6. 组织管理员可将自身身份转移给组织内其他普通成员，转移后原管理员降级为普通成员；
 //  7. 组织仅剩一名管理员时，不允许取消其管理员身份/退出/被移除，但允许转移身份。
 
-import { USERS, ORGS, getUserOrgIds } from './orgData.js'
-import { findOrg } from './orgStore.js'
+import { USERS, ORGS, getUserOrgIds, CURRENT_USER_ID } from './orgData.js'
+import { findOrg, deleteOrgRaw } from './orgStore.js'
 import { findExtraUser } from './extraUsers.js'
-import { guardPlatformAdminOrgChange } from './permissionData.js'
+import { hasRole } from './permissionData.js'
 
 const STORAGE_KEY = 'tosslib_org_memberships'
 const SEED_VERSION = 1
@@ -72,23 +72,54 @@ function buildSeed() {
 
 const SEED_MEMBERSHIPS = buildSeed()
 
-function load() {
+/** (用户, 组织) 联合主键 */
+function keyOf(m) {
+  return `${m.userId}@${m.orgId}`
+}
+
+/**
+ * 读取存储：返回 { list, removed }。
+ * removed 是「已删除的种子记录」的联合主键列表 —— 见 persist 的说明。
+ */
+function readRaw() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : null
     if (parsed && Array.isArray(parsed.list)) {
-      if (Number(parsed.__seedVersion) === SEED_VERSION) return parsed.list
-      return [] // 结构升级：丢弃过期数据
+      if (Number(parsed.__seedVersion) === SEED_VERSION) {
+        return { list: parsed.list, removed: Array.isArray(parsed.removed) ? parsed.removed : [] }
+      }
+      return { list: [], removed: [] } // 结构升级：丢弃过期数据
     }
   } catch (e) {
     // 读取失败按无存储处理
   }
-  return []
+  return { list: [], removed: [] }
 }
 
+function load() {
+  return readRaw().list
+}
+
+/**
+ * 写入存储，并**自动推导删除标记**。
+ *
+ * 为什么需要删除标记：种子成员（SEED_MEMBERSHIPS）是凭空生成的基准数据，
+ * 而 getMemberships() 每次都会把种子合并回来。若只从 list 里剔除，
+ * 下次读取时该记录会被种子重新补上 —— 实测确认：移出种子成员、级联清理
+ * 种子成员都因此完全失效（调用返回 ok:true，但记录仍在）。
+ * 故在写入时记录「哪些种子键被删掉了」，读取时据此过滤。
+ *
+ * 推导方式刻意做成自动的：调用方只需照常传「期望的完整列表」，
+ * 无需理解标记机制，既有的 addOrgMember / setOrgRole / removeOrgMember
+ * 等调用点都不用改。重新加回某个种子键时（如再次邀请该成员），
+ * 该键重新出现在 list 中，标记随之自动清除。
+ */
 function persist(list) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ __seedVersion: SEED_VERSION, list }))
+    const present = new Set(list.map(keyOf))
+    const removed = SEED_MEMBERSHIPS.map(keyOf).filter((k) => !present.has(k))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ __seedVersion: SEED_VERSION, list, removed }))
   } catch (e) {
     // 存储不可用时静默失败（仅影响持久化）
   }
@@ -99,13 +130,16 @@ function persist(list) {
  * @returns {Array<{userId: string, orgId: string, orgRole: 'admin'|'member', updatedBy: string, updatedAt: string}>}
  */
 export function getMemberships() {
-  const stored = load()
-  const key = (m) => `${m.userId}@${m.orgId}`
-  const storedMap = new Map(stored.map((m) => [key(m), m]))
-  const merged = SEED_MEMBERSHIPS.map((s) => storedMap.get(key(s)) || s)
+  const { list: stored, removed } = readRaw()
+  const removedSet = new Set(removed)
+  const storedMap = new Map(stored.map((m) => [keyOf(m), m]))
+  // 被删掉的种子记录不再合并回来（否则「移出成员」「级联清理」都会失效）
+  const merged = SEED_MEMBERSHIPS
+    .filter((s) => !removedSet.has(keyOf(s)))
+    .map((s) => storedMap.get(keyOf(s)) || s)
   // 存储中新增的（如通过任免产生的新成员关系）追加
-  const seedKeys = new Set(SEED_MEMBERSHIPS.map(key))
-  stored.forEach((m) => { if (!seedKeys.has(key(m))) merged.push(m) })
+  const seedKeys = new Set(SEED_MEMBERSHIPS.map(keyOf))
+  stored.forEach((m) => { if (!seedKeys.has(keyOf(m))) merged.push(m) })
   return merged.map((m) => ({ updatedBy: '—', updatedAt: '—', ...m }))
 }
 
@@ -183,10 +217,10 @@ export function validateOrgRoleChange({ userId, orgId, nextRole }) {
  * @returns {{ ok: boolean, record?: Object }}
  */
 export function addOrgMember(userId, orgId, orgRole = 'member', operator = '邀请注册') {
-  // 平台管理员账号的组织归属完全锁定。
-  // 建号流程（accountData.createAccount）已调整为「先落组织身份、再写平台角色」，故不会误伤。
-  const guard = guardPlatformAdminOrgChange(userId)
-  if (!guard.ok) return guard
+  // 平台管理员**可以**拥有组织归属（平台角色与组织角色是两套独立体系）：
+  // 项目种子数据本身就有此组合（周雅琴 = 平台管理员 + org-002 成员），
+  // 且「组织管理」页新建组织后创建者要直接成为该组织管理员，必须放开这条。
+  // 注意：平台**角色**的锁定（guardPlatformAdminChange）依然有效，两者不要混为一谈。
   const list = getMemberships()
   const exist = list.find((m) => m.userId === userId && m.orgId === orgId)
   if (exist) return { ok: true, record: exist }
@@ -205,9 +239,7 @@ export function addOrgMember(userId, orgId, orgRole = 'member', operator = '邀�
  * @returns {{ ok: boolean, reason?: string, record?: Object }}
  */
 export function setOrgRole(userId, orgId, nextRole, operator = '组织管理员') {
-  // 平台管理员账号的组织归属完全锁定
-  const guard = guardPlatformAdminOrgChange(userId)
-  if (!guard.ok) return guard
+  // 平台管理员的组织归属同样可改（理由见 addOrgMember）
   const check = validateOrgRoleChange({ userId, orgId, nextRole })
   if (!check.ok) return check
 
@@ -232,9 +264,7 @@ export function setOrgRole(userId, orgId, nextRole, operator = '组织管理员'
  * @returns {{ ok: boolean, reason?: string }}
  */
 export function removeOrgMember(userId, orgId) {
-  // 平台管理员账号的组织归属完全锁定
-  const guard = guardPlatformAdminOrgChange(userId)
-  if (!guard.ok) return guard
+  // 平台管理员的组织归属同样可移出（理由见 addOrgMember）
   const m = getMembership(userId, orgId)
   if (!m) return { ok: false, reason: '该成员不在本组织中' }
   if (m.orgRole === 'admin' && isLastAdmin(userId, orgId)) {
@@ -242,6 +272,120 @@ export function removeOrgMember(userId, orgId) {
   }
   persist(getMemberships().filter((x) => !(x.userId === userId && x.orgId === orgId)))
   return { ok: true }
+}
+
+/**
+ * 批量清理某组织的全部成员关系（供「删除组织」级联调用）。
+ *
+ * 为什么需要：组织的成员关系单独存于本模块，删组织时若不清理，会留下孤儿记录
+ *   （组织已不存在，成员关系仍指向它）—— 实测确认原 deleteOrg 就会留下这种残留。
+ *
+ * 与 removeOrgMember 的区别：
+ *   - removeOrgMember 是「移出某个成员」，受「最后一名管理员不可移除」与
+ *     「平台管理员组织归属锁定」两条守卫约束；
+ *   - 本函数是「组织整体消亡」，成员关系随之失去意义，故不加上述守卫
+ *     —— 否则会因守卫拦截而清不干净。
+ *
+ * @returns {{ ok: boolean, removed: number }} removed 为清理掉的成员关系条数
+ */
+export function removeOrgMemberships(orgId) {
+  if (!orgId) return { ok: false, removed: 0 }
+  const list = getMemberships()
+  const kept = list.filter((m) => m.orgId !== orgId)
+  const removed = list.length - kept.length
+  if (removed > 0) persist(kept)
+  return { ok: true, removed }
+}
+
+/**
+ * 删除组织（编排层）：权限判定 + 级联清理成员关系 + 删除组织。
+ *
+ * 权限口径：
+ *   - 平台管理员：可删任意组织（跨组织管理职责）；
+ *   - 组织管理员：只能删**自己在该组织中为管理员**的组织
+ *     （即「我建的/我管的组织」可自行解散，不必求平台管理员）。
+ *
+ * 为什么放在本模块而不是 orgStore：
+ *   本模块已 import orgStore（单向依赖）。若把编排逻辑写进 orgStore，
+ *   就需要反向 import 本模块，形成循环引用。故此处单向调用 orgStore 的
+ *   deleteOrgRaw（无权限校验的底层实现）。
+ *
+ * 顺序不可颠倒：先删组织、后清成员关系的话，中途失败会留下无归属的成员关系。
+ * 这里先做权限与存在性校验，再删组织，最后清理成员关系。
+ *
+ * @param {string} orgId 目标组织
+ * @param {string} [actorId] 操作人（默认取当前登录用户）
+ * @returns {{ ok: boolean, reason?: string }}
+ */
+export function dissolveOrg(orgId, actorId) {
+  if (!orgId) return { ok: false, reason: '缺少组织标识' }
+  const actor = actorId || CURRENT_USER_ID
+
+  const isPlatformAdmin = hasRole(actor, 'platform-admin')
+  const myRole = getMembership(actor, orgId)?.orgRole
+  const isOrgAdmin = myRole === 'admin'
+  if (!isPlatformAdmin && !isOrgAdmin) {
+    // 提示区分两种情形，便于用户判断该找谁
+    const joined = !!getMembership(actor, orgId)
+    return {
+      ok: false,
+      reason: joined
+        ? '仅组织管理员可删除本组织'
+        : '仅平台管理员或本组织管理员可删除组织',
+    }
+  }
+
+  // 先删组织：deleteOrgRaw 会校验「内置组织不可删」「组织必须存在」，
+  // 若这里先清了成员关系却删不掉组织，成员关系就白清了。
+  const res = deleteOrgRaw(orgId)
+  if (!res.ok) return res
+
+  // 组织已删 → 清理其成员关系，避免留下孤儿数据
+  removeOrgMemberships(orgId)
+  return { ok: true }
+}
+
+/**
+ * 账号被删除时，清理其在**所有组织**中的身份（供 accountData.deleteAccount 级联调用）。
+ *
+ * 为什么需要：成员关系与账号分开存储。账号删除后若不清理，会留下指向
+ *   已不存在账号的成员关系（实测确认：user 字段为 null 的幽灵记录），
+ *   而这条幽灵记录还会参与「最后一名管理员」判定（isLastAdmin 按记录条数算），
+ *   导致该组织被卡死 —— 既移不掉，也改不了管理员。
+ *
+ * 边界（与规则 7 一致）：若该账号是某组织的**唯一**管理员，
+ *   直接清理会让该组织失去管理员，与「组织必须有一名管理员」冲突，
+ *   故拒绝并提示先转移管理员身份，而不是把组织变成无人管理。
+ *
+ * 与 removeOrgMember 的区别：本函数针对**账号整体注销**，
+ *   故一次清理其在全部组织中的身份，且不受「平台管理员组织归属锁定」守卫约束
+ *   —— 账号已不存在，再谈「组织归属不可修改」没有意义。
+ *
+ * @returns {{ ok: boolean, reason?: string, removed?: number, blockedOrgIds?: string[] }}
+ */
+export function removeUserMemberships(userId) {
+  if (!userId) return { ok: false, reason: '缺少账号标识' }
+  const list = getMemberships()
+  const mine = list.filter((m) => m.userId === userId)
+
+  // 唯一管理员检测：该账号是 admin，且所在组织只有他一个 admin
+  const soleAdminOf = mine
+    .filter((m) => m.orgRole === 'admin' && getOrgAdminCount(m.orgId) <= 1)
+    .map((m) => m.orgId)
+  if (soleAdminOf.length) {
+    const names = soleAdminOf.map((id) => findOrg(id)?.name || id).join('、')
+    return {
+      ok: false,
+      reason: `该账号是「${names}」的唯一管理员，请先转移管理员身份再删除账号`,
+      blockedOrgIds: soleAdminOf,
+      removed: 0,
+    }
+  }
+
+  const kept = list.filter((m) => m.userId !== userId)
+  const removed = list.length - kept.length
+  if (removed > 0) persist(kept)
+  return { ok: true, removed }
 }
 
 /**

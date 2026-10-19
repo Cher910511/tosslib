@@ -12,7 +12,7 @@
 
 import { USERS } from './orgData.js'
 import { getRegisteredUsers } from './inviteData.js'
-import { addOrgMember, getMemberships } from './orgMembershipData.js'
+import { addOrgMember, getMemberships, removeUserMemberships } from './orgMembershipData.js'
 import { getMemberRoles, getMemberRolesOf, validateRoleMutex, setMemberRoles, isPlatformRole } from './permissionData.js'
 import { findOrg } from './orgStore.js'
 
@@ -477,8 +477,10 @@ export function createAccount(opts = {}) {
   persist(list)
 
   // 落库组织身份，使其出现在「组织管理 → 组织成员」列表中。
-  // 必须在写平台角色之前：平台管理员账号的组织归属被锁定（guardPlatformAdminOrgChange），
-  // 若先写入 platform-admin 角色，随后的组织归属会被守卫拦截，导致建号残缺。
+  // 必须先落组织身份、再写平台角色：本模块的 createAccount 是「先建账号对象、
+  // 再写组织身份、最后写平台角色」，而平台角色一旦写入，该账号即成为平台管理员。
+  // 组织归属的锁定已放开（见 orgMembershipData.addOrgMember），此处顺序保留是为了
+  // 让组织身份先于角色落库，便于后续排查。
   orgList.forEach((m) => addOrgMember(user.id, m.orgId, m.orgRole || 'member', operator))
 
   // 平台角色写入共享角色存储（permissionData）：保证成员列表 / 角色设置 / 权限矩阵
@@ -491,10 +493,26 @@ export function createAccount(opts = {}) {
   return { ok: true, user }
 }
 
-/** 删除新建的账号（仅限本模块创建的账号），并清理禁用标记 */
+/**
+ * 删除新建的账号（仅限本模块创建的账号），并清理禁用标记。
+ *
+ * 级联清理组织身份：成员关系与账号分开存储，若不清理会留下指向已不存在账号的
+ * 幽灵成员关系（实测确认 user 字段为 null），而它仍参与「最后一名管理员」判定，
+ * 会把对应组织卡死（既移不掉，也改不了管理员）。
+ *
+ * 边界：若账号是某组织的唯一管理员，则**整体拒绝**删除，并提示先转移管理员身份
+ * —— 否则该组织会失去管理员，与「组织必须有一名管理员」冲突。
+ * 先校验再落库，避免「账号删了但组织身份没清干净」的半完成状态。
+ *
+ * @returns {{ ok: boolean, reason?: string }}
+ */
 export function deleteAccount(userId) {
+  if (!userId) return { ok: false, reason: '缺少账号标识' }
+  const res = removeUserMemberships(userId)
+  if (!res.ok) return res
   persist(load().filter((u) => u.id !== userId))
   writeDisabled(readDisabled().filter((id) => id !== userId))
+  return { ok: true }
 }
 
 /**

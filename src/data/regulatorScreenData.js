@@ -85,10 +85,18 @@ export const assetCards = [
 ]
 
 // ==================== 安全风险总览（3 张卡）====================
+/**
+ * tone 取值与语义（大屏侧配色见 RegulatorScreenView 的 .rs-risk-row.is-*）：
+ *   warn    橙 —— 漏洞总量：规模性告警
+ *   danger  红 —— 高危漏洞：最危急
+ *   malware 紫 —— 恶意代码：与漏洞不同性质的威胁
+ * 注意：漏洞类一律不用 primary（青蓝）。青蓝在本项目代表「中性信息 / 资产」，
+ * 挂在风险行上会被读成「一切正常」，与要传递的告警感相反。
+ */
 export const riskOverview = [
-  { key: 'vuln', label: '漏洞总数', value: securityGovernance.totalDetected, unit: '', tone: 'primary' },
+  { key: 'vuln', label: '漏洞总数', value: securityGovernance.totalDetected, unit: '', tone: 'warn' },
   { key: 'high', label: '高危漏洞数', value: securityGovernance.highCount, unit: '', tone: 'danger' },
-  { key: 'malware', label: '恶意代码检出', value: securityGovernance.maliciousCode, unit: '', tone: 'warn' },
+  { key: 'malware', label: '恶意代码检出', value: securityGovernance.maliciousCode, unit: '', tone: 'malware' },
 ]
 
 // ==================== 漏洞风险等级分布（环形）====================

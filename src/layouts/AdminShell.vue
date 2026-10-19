@@ -423,7 +423,10 @@
                     <span class="admin-message-time">{{ m.time }}</span>
                   </div>
                 </div>
-                <p v-if="!messages.length" class="admin-message-empty">暂无站内信</p>
+                <p v-if="!messages.length" class="admin-message-empty">
+                  暂无消息<br />
+                  <span class="admin-message-empty-hint">订阅的软件 / 组件有新版本入库时会在这里提醒</span>
+                </p>
               </div>
             </div>
           </Transition>
@@ -493,17 +496,36 @@ const isOwner = computed(() => currentUser.value?.role === 'owner')
 
 // —— 站内信 ——
 const messagePanelOpen = ref(false)
-const messages = computed(() => getMessages(currentUser.value.id))
-const unreadCount = computed(() => getUnreadCount(currentUser.value.id))
+/**
+ * 消息数据的响应式版本号。
+ * 为什么需要：getMessages() 直接读 localStorage，属**非响应式**数据源；
+ * 若 computed 只依赖 currentUser，点了「已读」后存储虽已写入，computed 也不会失效，
+ * 导致列表与角标不刷新（实测：存储 storedUnread=0，DOM 仍显示未读、角标仍为 1）。
+ * 故所有写操作后递增本计数器，让下面两个 computed 重新求值。
+ */
+const messageVersion = ref(0)
+const messages = computed(() => {
+  void messageVersion.value // 显式依赖：写操作后触发重算
+  return getMessages(currentUser.value.id)
+})
+const unreadCount = computed(() => {
+  void messageVersion.value
+  return getUnreadCount(currentUser.value.id)
+})
 
 function toggleMessagePanel() {
   messagePanelOpen.value = !messagePanelOpen.value
+  // 打开面板时也刷新一次（期间可能有新推送写入）
+  messageVersion.value += 1
 }
 function markReadNow(m) {
-  if (!m.read) markMessageRead(m.id)
+  if (m.read) return
+  markMessageRead(m.id)
+  messageVersion.value += 1
 }
 function markAllReadNow() {
   markAllRead(currentUser.value.id)
+  messageVersion.value += 1
 }
 
 // 用户菜单下拉
@@ -1318,6 +1340,14 @@ const manualPageUrl = computed(() => {
   text-align: center;
   font-size: 13px;
   color: #9ca3af;
+}
+/* 空态补充说明：告知用户消息来源（订阅的软件/组件有新版本入库） */
+.admin-message-empty-hint {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #c0c6cf;
+  line-height: 1.5;
 }
 
 .dropdown-header {

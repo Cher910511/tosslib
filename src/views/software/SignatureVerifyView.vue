@@ -1,9 +1,11 @@
 <template>
   <div class="sig-page">
     <header class="sig-hero">
+      <!-- 标题与小字同排：小字改为动作说明并紧贴标题右侧，基线对齐；
+           历史记录按钮放在同一行的最右端（.sig-hero 用 flex + space-between）。 -->
       <div class="sig-hero-text">
         <h1 class="sig-title">签名认证</h1>
-        <p class="sig-lead">上传待验证的源码包或组件包，通过签名校验验证下载来源真实性，并结合安全检测评估软件可信度。</p>
+        <p class="sig-lead">上传待验证的源码包或组件包，查验签名的有效性</p>
       </div>
       <!-- 原右侧「验」字徽标已按需求移除，该位置改为历史记录入口。
            注：入口只保留这一处 —— 原先标题下方另有一个「历史签名验证记录」按钮，
@@ -208,8 +210,10 @@
             <h2 id="sig-history-title" class="sig-modal-title">
               {{ detailRecord ? '验证记录详情' : '历史签名验证记录' }}
             </h2>
-            <p class="sig-modal-sub">
-              {{ detailRecord ? detailRecord.fileName : `共 ${historyList.length} 条记录，按验证时间倒序` }}
+            <!-- 副标题只在列表视图显示（条数说明）。
+                 详情视图下原本重复显示文件名，与下方横幅里的文件名重复，已按要求去掉。 -->
+            <p v-if="!detailRecord" class="sig-modal-sub">
+              共 {{ historyList.length }} 条记录，按验证时间倒序
             </p>
           </div>
           <button type="button" class="sig-modal-close" aria-label="关闭" @click="closeHistory">×</button>
@@ -217,11 +221,53 @@
 
         <!-- 视图一：列表 -->
         <div v-if="!detailRecord" class="sig-modal-body">
+          <!-- 搜索框：按文件名过滤。仅在存在记录时显示 —— 一条都没有时搜索无意义。 -->
+          <div v-if="historyList.length" class="sig-hist-search">
+            <svg class="sig-search-icon" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+              <path d="M10.4 10.4 L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <input
+              v-model="keyword"
+              type="text"
+              class="sig-search-input"
+              placeholder="搜索文件名"
+              aria-label="按文件名搜索验证记录"
+              autocomplete="off"
+            />
+            <!-- 有关键字时才出现清空按钮，避免常态多一个无效控件 -->
+            <button
+              v-if="keyword"
+              type="button"
+              class="sig-search-clear"
+              aria-label="清空搜索"
+              @click="clearKeyword"
+            >
+              ×
+            </button>
+          </div>
+
+          <!-- 三种空态：无记录 / 搜索无匹配 / 正常列表 -->
           <p v-if="!historyList.length" class="sig-modal-empty">
             暂无历史验证记录。上传文件并提交验证后，记录会自动出现在这里。
           </p>
+          <p v-else-if="!filteredHistory.length" class="sig-modal-empty">
+            未找到文件名含「{{ keyword.trim() }}」的记录，请换个关键字试试。
+          </p>
           <ul v-else class="sig-hist-list">
-            <li v-for="rec in pagedHistory" :key="rec.id" class="sig-hist-item">
+            <!-- 整行点击即进详情（原先行尾有个「详情」按钮，已按要求去掉）。
+                 li 本身不可聚焦，故补 role=button + tabindex + 键盘事件，保证键盘可达。 -->
+            <li
+              v-for="rec in pagedHistory"
+              :key="rec.id"
+              class="sig-hist-item"
+              role="button"
+              tabindex="0"
+              :aria-label="`查看「${rec.fileName}」的验证详情`"
+              @click="openRecordDetail(rec)"
+              @keydown.enter.prevent="openRecordDetail(rec)"
+              @keydown.space.prevent="openRecordDetail(rec)"
+            >
               <span
                 class="sig-hist-mark"
                 :class="recordPassed(rec) ? 'sig-hist-mark--ok' : 'sig-hist-mark--fail'"
@@ -247,14 +293,15 @@
                   {{ rec.trusted ? '可信' : '不可信' }}
                 </span>
               </div>
-              <button type="button" class="sig-hist-detail" @click="openRecordDetail(rec)">详情</button>
             </li>
           </ul>
 
-          <!-- 分页栏：口径与平台其它列表页一致（默认 10 条/页，可切 10/20/50） -->
-          <div v-if="historyList.length" class="sig-pager">
+          <!-- 分页栏：口径与平台其它列表页一致（默认 10 条/页，可切 10/20/50）。
+               条件用 filteredHistory：搜索无匹配时不应出现「第 0-0 条」这种空分页栏；
+               总数用 filteredCount（过滤后条数），否则搜索命中 2 条却显示「共 24 条」。 -->
+          <div v-if="filteredHistory.length" class="sig-pager">
             <span class="sig-pager-total">
-              第 {{ pageRange.from }}-{{ pageRange.to }} 条 / 共 {{ historyList.length }} 条
+              第 {{ pageRange.from }}-{{ pageRange.to }} 条 / 共 {{ filteredCount }} 条
             </span>
             <button
               type="button"
@@ -302,8 +349,9 @@
           >
             <span class="sig-hist-banner-icon" aria-hidden="true">{{ recordPassed(detailRecord) ? '✓' : '!' }}</span>
             <div class="sig-hist-banner-body">
+              <!-- 文件名下方原有一行验证时间，已按要求去掉：
+                   验证时间在下方字段列表里已有独立一行，此处属重复展示。 -->
               <p class="sig-hist-banner-file">{{ detailRecord.fileName }}</p>
-              <p class="sig-hist-banner-time">{{ detailRecord.verifiedAt }}</p>
             </div>
             <span
               class="sig-status-tag"
@@ -370,7 +418,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 import {
   addVerifyRecord,
@@ -403,17 +451,33 @@ const historyList = ref([])
 /** 历史详情：非空时展示单条详情，为空时展示列表 */
 const detailRecord = ref(null)
 
+/* ===== 历史列表搜索 =====
+   按文件名过滤（不区分大小写）。搜索只影响弹窗内的列表展示：
+   - 入口角标 recordCount 仍是总记录数，不随搜索变化
+   - 列表里的「共 N 条」显示的是过滤后的数量，避免搜索结果数与提示不一致 */
+/** 搜索关键字（仅作用于历史列表） */
+const keyword = ref('')
+/** 过滤后的记录（未输入关键字时等于全量） */
+const filteredHistory = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return historyList.value
+  return historyList.value.filter((r) => String(r.fileName || '').toLowerCase().includes(kw))
+})
+/** 是否处于搜索态（用于空态文案区分「无记录」与「无匹配」） */
+const searching = computed(() => keyword.value.trim().length > 0)
+
 /* ===== 历史列表分页 =====
    与平台其它列表页一致的口径：默认 10 条/页，可切 10 / 20 / 50，
-   时间倒序后按页切片展示；页码窗口最多 5 个。 */
+   时间倒序后按页切片展示；页码窗口最多 5 个。
+   分页基于 filteredHistory（搜索结果），而非全量 historyList。 */
 const page = ref(1)
 const pageSize = ref(10)
-/** 当前页的记录（时间倒序后切片） */
+/** 当前页的记录（过滤后按页切片） */
 const pagedHistory = computed(() => {
   const start = (page.value - 1) * pageSize.value
-  return historyList.value.slice(start, start + pageSize.value)
+  return filteredHistory.value.slice(start, start + pageSize.value)
 })
-const totalPages = computed(() => Math.max(1, Math.ceil(historyList.value.length / pageSize.value)))
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredHistory.value.length / pageSize.value)))
 /** 页码窗口：总页数 ≤5 全列；否则以当前页为中心取 5 个，首尾各自贴边 */
 const pageNumbers = computed(() => {
   const t = totalPages.value
@@ -425,10 +489,22 @@ const pageNumbers = computed(() => {
 })
 /** 当前页展示区间的起止序号（用于「第 X-Y 条」提示） */
 const pageRange = computed(() => {
-  if (!historyList.value.length) return { from: 0, to: 0 }
+  if (!filteredHistory.value.length) return { from: 0, to: 0 }
   const from = (page.value - 1) * pageSize.value + 1
-  return { from, to: Math.min(page.value * pageSize.value, historyList.value.length) }
+  return { from, to: Math.min(page.value * pageSize.value, filteredHistory.value.length) }
 })
+/** 过滤后条数（模板「共 N 条」用；搜索时与结果一致） */
+const filteredCount = computed(() => filteredHistory.value.length)
+
+/** 搜索关键字变化：回到第 1 页，否则可能停留在已不存在的页码上而显示空白 */
+watch(keyword, () => {
+  page.value = 1
+})
+
+/** 清空搜索关键字 */
+function clearKeyword() {
+  keyword.value = ''
+}
 
 /** 切页：约束在合法范围内（页码窗口/末页数据变化后防止越界） */
 function goPage(p) {
@@ -770,7 +846,8 @@ onUnmounted(() => {
 
 .sig-hero {
   display: flex;
-  align-items: flex-start;
+  /* 按钮靠最右，标题+小字在左 */
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 22px;
@@ -778,21 +855,37 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--sig-border-soft);
 }
 
+/* 标题与小字同一行：横向排列、基线对齐（字号不同时基线对齐才不显得错位）。
+   min-width:0 让长文案可收缩，配合 .sig-lead 的省略号，避免把右侧按钮挤出容器。 */
+.sig-hero-text {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
 .sig-title {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: var(--sig-fs-page);
   font-weight: 700;
   color: var(--sig-text);
   letter-spacing: -0.02em;
   line-height: 1.25;
+  /* 标题不换行、不被压缩 */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .sig-lead {
   margin: 0;
-  max-width: 520px;
   font-size: var(--sig-fs-body);
   line-height: 1.7;
   color: var(--sig-muted);
+  /* 与标题同排时不再限宽，改为可收缩 + 超长省略，保证按钮始终贴右 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ===== 标题区右侧：历史记录入口 =====
@@ -880,7 +973,8 @@ onUnmounted(() => {
 }
 
 .sig-hist-banner-file {
-  margin: 0 0 3px;
+  /* 下行的验证时间已去掉，故不再需要 3px 下间距 */
+  margin: 0;
   font-size: var(--sig-fs-body-lg);
   font-weight: 600;
   color: var(--sig-text);
@@ -889,12 +983,8 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.sig-hist-banner-time {
-  margin: 0;
-  font-size: var(--sig-fs-caption);
-  color: var(--sig-muted);
-  font-variant-numeric: tabular-nums;
-}
+/* 注：原 .sig-hist-banner-time（横幅内文件名下的验证时间）样式已随之删除 ——
+   该行已按要求去掉，验证时间在下方字段列表里有独立一行。 */
 
 .sig-steps {
   display: flex;
@@ -1524,24 +1614,113 @@ onUnmounted(() => {
 }
 
 /* --- 列表 --- */
+/* --- 搜索框：按文件名过滤 ---
+   位置固定在列表上方（.sig-modal-body 内第一个元素），不随列表滚动 ——
+   body 本身是滚动容器，故给搜索框加吸顶与底色，滚列表时不会与行内容重叠。 */
+.sig-hist-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 与 .sig-hist-item 用同一组负外边距 + 内边距：
+     列表行是 margin:0 -8px / padding:12px 8px，若搜索框不加同样的 -8px，
+     其白底会比行窄 16px，吸顶滚动时行内容会从两侧透出来（实测框 676px / 行 692px）。
+     内边距补回 8px 保证框内内容与行内容左对齐。 */
+  padding: 8px 8px 10px;
+  margin: 0 -8px 2px;
+  background: #fff;
+  border-bottom: 1px solid var(--sig-border-soft);
+}
+
+.sig-search-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: var(--sig-muted);
+}
+
+.sig-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--sig-fs-body);
+  color: var(--sig-text);
+  outline: none;
+}
+
+.sig-search-input::placeholder {
+  color: #9aa4b2;
+}
+
+/* 清空按钮：仅在有关键字时出现 */
+.sig-search-clear {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #eceff3;
+  color: var(--sig-text-sub);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--sig-transition),
+    color var(--sig-transition);
+}
+
+.sig-search-clear:hover {
+  background: #dfe4ea;
+  color: var(--sig-text);
+}
+
+.sig-search-clear:focus-visible {
+  outline: 2px solid var(--sig-primary);
+  outline-offset: 1px;
+}
+
 .sig-hist-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+/* 列表行：整行可点击进详情（原行尾「详情」按钮已去掉），故：
+   - 网格由 4 列收为 3 列（标记 / 主体 / 标签）
+   - 左右补内边距并加负外边距，让 hover 底色铺满而不改变行内对齐
+   - cursor: pointer 明确可点，hover 底色加深以示可交互 */
 .sig-hist-item {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 12px 8px;
+  margin: 0 -8px;
   border-bottom: 1px solid var(--sig-border-soft);
+  cursor: pointer;
   transition: background var(--sig-transition);
 }
 
 .sig-hist-item:hover {
-  background: #fafbfc;
+  background: #f5f8fc;
+}
+
+/* 键盘聚焦时给出与 hover 同等的可见反馈（整行是 role=button） */
+.sig-hist-item:focus-visible {
+  outline: 2px solid var(--sig-primary);
+  outline-offset: -2px;
+  background: #f5f8fc;
 }
 
 .sig-hist-mark {
@@ -1599,33 +1778,8 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.sig-hist-detail {
-  flex-shrink: 0;
-  border: 1px solid var(--sig-border);
-  background: #fff;
-  border-radius: var(--sig-radius-xs);
-  padding: 5px 12px;
-  font-size: var(--sig-fs-caption);
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--sig-text-sub);
-  cursor: pointer;
-  transition:
-    background var(--sig-transition),
-    border-color var(--sig-transition),
-    color var(--sig-transition);
-}
-
-.sig-hist-detail:hover {
-  border-color: var(--sig-primary);
-  color: var(--sig-primary);
-  background: var(--sig-primary-soft);
-}
-
-.sig-hist-detail:focus-visible {
-  outline: 2px solid var(--sig-primary);
-  outline-offset: 2px;
-}
+/* 注：原先此处有 .sig-hist-detail（行尾「详情」按钮）三组样式，
+   按钮已按要求去掉、改为整行点击，样式随之删除。 */
 
 /* --- 分页栏 ---
    口径与平台其它列表页一致（左侧总数、中间页码、右侧每页条数），
@@ -1750,10 +1904,12 @@ onUnmounted(() => {
   background: #fef2f2;
 }
 
-/* 窄屏：列表收起标签，避免挤压文件名 */
+/* 窄屏：列表收起标签，避免挤压文件名。
+   标签一隐藏，第三列就没有内容了 —— 若仍保留 3 条轨道，会多出一条 0 宽轨道
+   外加 12px 列间距（白白占宽），故这里直接降为 2 列。 */
 @media (max-width: 640px) {
   .sig-hist-item {
-    grid-template-columns: 26px minmax(0, 1fr) auto;
+    grid-template-columns: 26px minmax(0, 1fr);
   }
 
   .sig-hist-tags {
@@ -1769,9 +1925,19 @@ onUnmounted(() => {
   .sig-hero {
     /* 标题区改为纵排：横排时右侧的历史入口按钮会把标题文案挤没 */
     flex-direction: column;
+    /* 纵排后按钮不再贴右，改为跟随文字左对齐 */
+    align-items: flex-start;
     gap: 14px;
     margin-bottom: 18px;
     padding-bottom: 16px;
+  }
+
+  /* 标题与小字也回到纵排：窄屏宽度放不下两个并排文本块，
+     继续横排会触发 .sig-lead 的省略号，把说明文字截成半句。 */
+  .sig-hero-text {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .sig-title {
@@ -1781,6 +1947,9 @@ onUnmounted(() => {
   .sig-lead {
     font-size: var(--sig-fs-caption);
     line-height: 1.65;
+    /* 纵排后允许换行，避免说明被省略号截断 */
+    white-space: normal;
+    overflow: visible;
   }
 
   .sig-card {
@@ -1900,6 +2069,48 @@ onUnmounted(() => {
 
   .sig-modal-foot .sig-btn {
     flex: 1;
+  }
+
+  /* 极窄屏（本页在后台栅格内，390px 视口时内容区仅约 122px）：
+     历史入口按钮的「查看历史记录 + 角标」在 13px 字号下需约 134px，会溢出容器被裁
+     （实测按钮 134px / 容器 122px）。此处收紧字号与内边距使其适配；
+     max-width 兜底，避免不同字体渲染下再次溢出。 */
+  .sig-hero-history {
+    font-size: 11.5px;
+    padding: 6px 8px;
+    gap: 5px;
+    max-width: 100%;
+  }
+
+  .sig-hero-history-count {
+    min-width: 15px;
+    padding: 0 3px;
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  /* 搜索框在极窄屏收紧：390px 视口时弹窗内容区仅约 94px，
+     图标 15 + 两处 gap 8 + 清空按钮 20 会占掉 51px，输入框只剩约 43px，
+     placeholder 完全显示不下。故缩小图标与间距、清空按钮一并收窄。 */
+  .sig-hist-search {
+    gap: 5px;
+    padding: 6px 0 8px;
+  }
+
+  .sig-search-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .sig-search-input {
+    height: 26px;
+    font-size: var(--sig-fs-caption);
+  }
+
+  .sig-search-clear {
+    width: 17px;
+    height: 17px;
+    font-size: 12px;
   }
 }
 </style>

@@ -53,6 +53,11 @@
             </button>
             <button type="button" class="perm-btn" @click="resetMatrix">恢复默认</button>
           </template>
+          <!-- 组织列表：搜索 + 新建组织 -->
+          <template v-else-if="activeTab === 'orgs'">
+            <input v-model.trim="orgKeyword" type="text" class="perm-input" placeholder="搜索组织名称 / 行业" />
+            <button type="button" class="perm-btn perm-btn--primary" @click="openOrgCreate">新建组织</button>
+          </template>
         </div>
       </header>
 
@@ -245,6 +250,46 @@
           </table>
         </div>
       </div>
+
+      <!-- 组织列表：平台全部组织（含内置）的管理视角。
+           与「组织管理」页的区别：那边是「我的组织」（只列自己所属），
+           这里供平台管理员查看/创建/删除全平台组织。 -->
+      <div v-else-if="activeTab === 'orgs'" class="perm-orgs-wrap">
+        <div class="perm-table-wrap">
+          <table class="perm-table">
+            <thead>
+              <tr>
+                <th>组织名称</th>
+                <th>所属行业</th>
+                <th class="perm-col-num">管理员</th>
+                <th class="perm-col-num">成员</th>
+                <th>创建时间</th>
+                <th class="perm-col-ops">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in orgRows" :key="o.id">
+                <td class="perm-org-name">{{ o.name }}</td>
+                <td>{{ o.industry || '—' }}</td>
+                <td class="perm-col-num">{{ o.adminCount }}</td>
+                <td class="perm-col-num">{{ o.memberCount }}</td>
+                <td class="perm-muted">{{ o.createdAt || '—' }}</td>
+                <td class="perm-col-ops">
+                  <!-- 内置组织不可删（静态种子数据），仅展示说明 -->
+                  <span v-if="o.isBuiltin" class="perm-muted">不可删除</span>
+                  <button
+                    v-else
+                    type="button"
+                    class="perm-link perm-link--danger"
+                    @click="askDeleteOrg(o)"
+                  >删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="!orgRows.length" class="perm-block-empty">暂无组织</p>
+        </div>
+      </div>
     </section>
 
     <!-- 新建账号弹窗：基本信息 + 权限分配（平台角色与组织归属至少填一项） -->
@@ -328,46 +373,69 @@
                   </div>
                 </div>
 
-                <!-- 组织归属：可多条 -->
+                <!-- 组织归属：可多条 —— 表格内直接添加/编辑
+                     交互：点「+ 添加组织」在表格里新增一行，行内先选组织、再选该组织中的角色，
+                     删行即移除。相比旧版「底部两个无标签下拉 + 点击添加」，
+                     表头直接说明了每列含义，不需要额外的字段说明文字。 -->
                 <div class="perm-field perm-field--full">
                   <label class="perm-label">组织归属（可选，可多条）</label>
                   <table v-if="accountForm.orgMemberships.length" class="perm-table perm-table--sub">
                     <thead>
                       <tr>
-                        <th>添加组织</th>
+                        <th>组织</th>
                         <th>组织角色</th>
                         <th class="perm-col-ops">操作</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-for="(m, idx) in accountForm.orgMemberships" :key="idx">
-                        <td>{{ orgNameOf(m.orgId) }}</td>
                         <td>
-                          <SearchSelect v-model="m.orgRole" class="perm-select" :options="orgRoleSelectOptions" small />
+                          <!-- 刚新增、尚未选组织的行：行内直接选 -->
+                          <SearchSelect
+                            v-if="!m.orgId"
+                            v-model="m.orgId"
+                            class="perm-select"
+                            :options="orgOptionsForRow(accountForm.orgMemberships, idx)"
+                            placeholder="选择组织…"
+                            small
+                          />
+                          <template v-else>
+                            {{ orgNameOf(m.orgId) }}
+                            <span v-if="isInlineCreatedOrg(m.orgId)" class="perm-tag perm-tag--lock">新建</span>
+                          </template>
+                        </td>
+                        <td>
+                          <!-- 内嵌新建的组织锁定为「组织管理员」：需求要求新建组织必须带一名管理员，
+                               而本页新建时管理员就是当前这个新账号，故不允许改角色 -->
+                          <SearchSelect
+                            v-model="m.orgRole"
+                            class="perm-select"
+                            :options="orgRoleSelectOptions"
+                            :disabled="isInlineCreatedOrg(m.orgId)"
+                            small
+                          />
                         </td>
                         <td class="perm-col-ops">
-                          <button type="button" class="perm-link perm-link--danger" @click="removeAccountOrg(idx)">移除</button>
+                          <span v-if="isInlineCreatedOrg(m.orgId)" class="perm-lock-hint" title="新建组织必须由当前账号担任组织管理员">
+                            必为管理员
+                          </span>
+                          <button v-else type="button" class="perm-link perm-link--danger" @click="removeAccountOrg(idx)">移除</button>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                   <p v-else class="perm-block-empty">暂未加入任何组织</p>
 
-                  <div class="perm-join-row">
-                    <SearchSelect
-                      v-model="accountJoinOrgId"
-                      class="perm-select"
-                      :options="accountJoinOrgSelectOptions"
-                      placeholder="选择已有组织…"
-                    />
-                    <SearchSelect v-model="accountJoinOrgRole" class="perm-select" :options="orgRoleSelectOptions" />
-                    <button type="button" class="perm-btn" :disabled="!accountJoinOrgId" @click="addAccountOrg">+ 添加组织</button>
+                  <div class="perm-org-actions">
+                    <button type="button" class="perm-btn" @click="addAccountOrgRow">+ 添加组织</button>
+                    <span class="perm-field-hint">
+                      未找到目标组织？
+                      <button type="button" class="perm-link perm-link--btn" @click="openOrgDialog">
+                        + 新建组织
+                      </button>
+                      （在本页直接创建，建完自动加入下方列表）
+                    </span>
                   </div>
-                  <p class="perm-field-hint">
-                    未找到目标组织？
-                    <RouterLink class="perm-link" :to="{ name: 'org-list' }" target="_blank">前往组织管理新建组织</RouterLink>
-                    ，建好后回到本页即可选择。
-                  </p>
                 </div>
               </div>
 
@@ -378,6 +446,45 @@
               <button type="button" class="perm-btn" @click="closeCreateDialog">取消</button>
               <button type="button" class="perm-btn perm-btn--primary" @click="doCreateAccount">创建</button>
             </footer>
+          </div>
+
+          <!-- 内嵌「新建组织」：建完直接回到建号弹窗并自动选中，不跳页、不开新标签。
+               起因：原流程要跳到「组织管理」页建组织，但那边建组织时需指定「组织管理员」，
+               而管理员账号正是本页下一步才创建的 —— 选不到人只能留空，
+               建完还得手动切回来。内嵌后这一步不再需要（下一步就是给账号分配组织角色）。 -->
+          <div v-if="orgDialogOpen" class="perm-modal-overlay perm-modal-overlay--nested" @click.self="closeOrgDialog">
+            <div class="perm-modal perm-modal--sm">
+              <header class="perm-modal-hd">
+                <div class="perm-modal-hd-info">
+                  <h3 class="perm-modal-title">新建组织</h3>
+                  <p class="perm-modal-sub">创建后会自动填入上方「组织归属」列表，并可继续为其选择组织角色</p>
+                </div>
+                <button type="button" class="perm-dialog-close" @click="closeOrgDialog">&times;</button>
+              </header>
+
+              <div class="perm-modal-body">
+                <div class="perm-invite-grid">
+                  <div class="perm-field">
+                    <label class="perm-label">组织名称 <span class="perm-req">*</span></label>
+                    <input v-model.trim="orgForm.name" type="text" class="perm-input perm-input--wide" placeholder="请输入组织全称" />
+                  </div>
+                  <div class="perm-field">
+                    <label class="perm-label">所属行业</label>
+                    <SearchSelect v-model="orgForm.industry" class="perm-select" :options="industryOptions" />
+                  </div>
+                  <div class="perm-field perm-field--full">
+                    <label class="perm-label">组织简介</label>
+                    <input v-model.trim="orgForm.description" type="text" class="perm-input perm-input--wide" placeholder="选填，简要说明组织情况" />
+                  </div>
+                </div>
+                <p v-if="orgMsg" class="perm-account-msg" :class="{ 'is-error': true }">{{ orgMsg }}</p>
+              </div>
+
+              <footer class="perm-modal-ft">
+                <button type="button" class="perm-btn" @click="closeOrgDialog">取消</button>
+                <button type="button" class="perm-btn perm-btn--primary" @click="doCreateOrgInline">创建并加入</button>
+              </footer>
+            </div>
           </div>
         </div>
       </Transition>
@@ -401,9 +508,11 @@
             </header>
 
             <div class="perm-drawer-body">
-              <!-- 平台管理员账号：整体只读，避免管理员之间互相改权 -->
-              <p v-if="drawerLocked" class="perm-lock-tip">
-                该账号为<strong>平台管理员</strong>，其平台角色与组织归属均不可修改（平台管理员之间也不能互相修改）。
+              <!-- 平台管理员账号：仅平台角色只读（避免管理员之间互相改权）。
+                   「组织归属」已放开 —— 平台角色与组织角色是两套独立体系，
+                   平台管理员也可以担任某组织的管理员。 -->
+              <p v-if="drawerRolesLocked" class="perm-lock-tip">
+                该账号为<strong>平台管理员</strong>，其<strong>平台角色</strong>不可修改（平台管理员之间也不能互相修改）；下方组织归属可以调整。
               </p>
 
               <!-- 区块A：平台角色 -->
@@ -417,13 +526,13 @@
                     v-for="r in PLATFORM_ROLES"
                     :key="r.id"
                     class="perm-role-opt"
-                    :class="{ 'is-checked': drawerRoles.includes(r.id), 'is-locked': drawerLocked }"
+                    :class="{ 'is-checked': drawerRoles.includes(r.id), 'is-locked': drawerRolesLocked }"
                   >
                     <input
                       type="checkbox"
                       class="perm-check"
                       :checked="drawerRoles.includes(r.id)"
-                      :disabled="drawerLocked"
+                      :disabled="drawerRolesLocked"
                       @change="toggleDrawerRole(r.id, $event.target.checked)"
                     />
                     <span class="perm-role-opt-info">
@@ -447,49 +556,52 @@
                   <table v-if="drawerOrgs.length" class="perm-table perm-table--sub">
                     <thead>
                       <tr>
-                        <th>所属组织</th>
+                        <th>组织</th>
                         <th>组织角色</th>
                         <th class="perm-col-ops">操作</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="m in drawerOrgs" :key="m.orgId">
-                        <!-- 组织名由 orgId 实时解析，避免草稿里存冗余副本导致显示为空/过期 -->
-                        <td>{{ orgNameOf(m.orgId) }}</td>
+                      <tr v-for="(m, idx) in drawerOrgs" :key="idx">
+                        <td>
+                          <!-- 刚新增、尚未选组织的行：行内直接选（与新建账号弹窗同一交互） -->
+                          <SearchSelect
+                            v-if="!m.orgId"
+                            :model-value="m.orgId"
+                            class="perm-select"
+                            :options="orgOptionsForDrawerRow(idx)"
+                            placeholder="选择组织…"
+                            small
+                            @change="changeDrawerOrgId(idx, $event)"
+                          />
+                          <!-- 已选：组织名由 orgId 实时解析，避免草稿里存冗余副本导致显示为空/过期 -->
+                          <template v-else>{{ orgNameOf(m.orgId) }}</template>
+                        </td>
                         <td>
                           <SearchSelect
                             :model-value="m.orgRole"
                             class="perm-select"
                             :options="orgRoleSelectOptions"
                             small
-                            :disabled="drawerLocked"
                             @change="changeDrawerOrgRole(m, $event)"
                           />
                         </td>
                         <td class="perm-col-ops">
                           <button
-                            v-if="!drawerLocked"
                             type="button"
                             class="perm-link perm-link--danger"
-                            @click="removeDrawerOrg(m)"
+                            @click="removeDrawerOrg(idx)"
                           >移出组织</button>
-                          <span v-else class="perm-muted">不可修改</span>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                   <p v-else class="perm-block-empty">该账号未加入任何组织</p>
 
-                  <!-- 添加组织（平台管理员账号锁定，整行隐藏） -->
-                  <div v-if="!drawerLocked" class="perm-join-row">
-                    <SearchSelect
-                      v-model="joinOrgId"
-                      class="perm-select"
-                      :options="joinOrgSelectOptions"
-                      placeholder="选择组织…"
-                    />
-                    <SearchSelect v-model="joinOrgRole" class="perm-select" :options="orgRoleSelectOptions" />
-                    <button type="button" class="perm-btn" :disabled="!joinOrgId" @click="joinDrawerOrg">添加组织</button>
+                  <!-- 添加组织：点一下即新增一行，在行内选组织与角色
+                       （平台管理员的组织归属同样可调整，见数据层 addOrgMember 说明） -->
+                  <div class="perm-org-actions">
+                    <button type="button" class="perm-btn" @click="addDrawerOrgRow">+ 添加组织</button>
                   </div>
                 </div>
               </section>
@@ -497,12 +609,11 @@
 
             <footer class="perm-drawer-ft">
               <span v-if="drawerError" class="perm-drawer-error">{{ drawerError }}</span>
-              <span v-else-if="drawerLocked" class="perm-dialog-hint">该账号为平台管理员，不可修改</span>
+              <span v-else-if="drawerRolesLocked" class="perm-dialog-hint">平台角色只读；组织归属的变更会记录更新人为 {{ CURRENT_OPERATOR }}</span>
               <span v-else class="perm-dialog-hint">变更会记录更新人为 {{ CURRENT_OPERATOR }}</span>
               <div class="perm-dialog-ft-actions">
-                <button type="button" class="perm-btn" @click="closeRoleDrawer">{{ drawerLocked ? '关闭' : '取消' }}</button>
+                <button type="button" class="perm-btn" @click="closeRoleDrawer">取消</button>
                 <button
-                  v-if="!drawerLocked"
                   type="button"
                   class="perm-btn perm-btn--primary"
                   @click="saveRoleDrawer"
@@ -554,16 +665,102 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- ===== 新建组织（组织列表 Tab）=====
+         与「组织管理」页的新建组织刻意不同：这里需**指定他人**当管理员，
+         创建者本身不加入该组织 —— 本页是平台视角的组织管理，不是「我的组织」。 -->
+    <Teleport to="body">
+      <Transition name="perm-fade">
+        <div v-if="orgCreateOpen" class="perm-modal-overlay" @click.self="closeOrgCreate">
+          <div class="perm-modal perm-modal--sm">
+            <header class="perm-modal-hd">
+              <div class="perm-modal-hd-info">
+                <h3 class="perm-modal-title">新建组织</h3>
+                <p class="perm-modal-sub">需指定一名组织管理员；创建者不会自动加入该组织</p>
+              </div>
+              <button type="button" class="perm-dialog-close" @click="closeOrgCreate">&times;</button>
+            </header>
+
+            <div class="perm-modal-body">
+              <div class="perm-invite-grid">
+                <div class="perm-field">
+                  <label class="perm-label">组织名称 <span class="perm-req">*</span></label>
+                  <input v-model.trim="orgCreateForm.name" type="text" class="perm-input perm-input--wide" placeholder="请输入组织全称" />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">所属行业</label>
+                  <SearchSelect v-model="orgCreateForm.industry" class="perm-select" :options="industryOptions" />
+                </div>
+                <div class="perm-field perm-field--full">
+                  <label class="perm-label">组织管理员 <span class="perm-req">*</span></label>
+                  <SearchSelect
+                    v-model="orgCreateForm.adminUserId"
+                    class="perm-select"
+                    :options="orgAdminCandidates"
+                    value-key="id"
+                    label-key="name"
+                    placeholder="请选择组织管理员…"
+                  />
+                  <p class="perm-field-hint">必选。指定的账号将成为本组织管理员（新建组织必须有一名管理员）</p>
+                </div>
+                <div class="perm-field perm-field--full">
+                  <label class="perm-label">组织简介</label>
+                  <input v-model.trim="orgCreateForm.description" type="text" class="perm-input perm-input--wide" placeholder="选填，简要说明组织情况" />
+                </div>
+              </div>
+              <p v-if="orgCreateMsg" class="perm-account-msg" :class="{ 'is-error': orgCreateMsgError }">{{ orgCreateMsg }}</p>
+            </div>
+
+            <footer class="perm-modal-ft">
+              <button type="button" class="perm-btn" @click="closeOrgCreate">取消</button>
+              <button type="button" class="perm-btn perm-btn--primary" @click="doCreateOrgFromAdmin">创建组织</button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ===== 删除组织二次确认（组织列表 Tab）=====
+         与「组织管理」页的删除确认区分：此处仅平台管理员可达。
+         级联清理成员关系由数据层 dissolveOrg 完成。 -->
+    <Teleport to="body">
+      <Transition name="perm-fade">
+        <div v-if="orgDeleteTarget" class="perm-modal-overlay" @click.self="orgDeleteTarget = null">
+          <div class="perm-modal perm-modal--sm">
+            <header class="perm-modal-hd">
+              <div class="perm-modal-hd-info">
+                <h3 class="perm-modal-title">删除组织</h3>
+              </div>
+              <button type="button" class="perm-dialog-close" @click="orgDeleteTarget = null">&times;</button>
+            </header>
+
+            <div class="perm-modal-body">
+              <p class="perm-del-warn">确定要删除组织「<b>{{ orgDeleteTarget.name }}</b>」吗？</p>
+              <ul class="perm-del-list">
+                <li>该组织的成员关系将一并清除，相关人员会失去此组织的权限</li>
+                <li>此操作不可恢复</li>
+              </ul>
+              <p v-if="orgDeleteMsg" class="perm-account-msg is-error">{{ orgDeleteMsg }}</p>
+            </div>
+
+            <footer class="perm-modal-ft">
+              <button type="button" class="perm-btn" @click="orgDeleteTarget = null">取消</button>
+              <button type="button" class="perm-btn perm-btn--danger" @click="confirmDeleteOrg">确认删除</button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import SearchSelect from '../../components/common/SearchSelect.vue'
-import { getOrgs } from '../../data/orgStore.js'
+import { getOrgs, createOrg, deleteOrgRaw, INDUSTRY_OPTIONS } from '../../data/orgStore.js'
 import { avatarUrl } from '../../utils/avatar.js'
 import { downloadCsv } from '../../utils/csvExport.js'
-import { getCurrentUsername } from '../../data/orgData.js'
+import { getCurrentUsername, getCurrentUser, ORGS } from '../../data/orgData.js'
 import {
   getAllAccounts,
   accountSourceName,
@@ -592,9 +789,13 @@ import {
 } from '../../data/permissionData.js'
 import {
   getMembershipDetails,
+  getOrgAdminCount,
+  getOrgMemberships,
   addOrgMember,
   removeOrgMember,
+  removeOrgMemberships,
   setOrgRole,
+  dissolveOrg,
 } from '../../data/orgMembershipData.js'
 
 /** 当前操作人标识（用户名）：所有留痕统一记用户名，而非角色名 */
@@ -603,6 +804,7 @@ const CURRENT_OPERATOR = getCurrentUsername()
 const TABS = [
   { id: 'members', label: '成员列表' },
   { id: 'matrix', label: '功能权限矩阵' },
+  { id: 'orgs', label: '组织列表' },
 ]
 const activeTab = ref('members')
 const tip = ref('')
@@ -848,12 +1050,16 @@ const roleDrawerUserId = ref('')
 /** 抽屉内正在编辑的账号行 */
 const roleDrawerRow = computed(() =>
   memberRows.value.find((r) => r.userId === roleDrawerUserId.value) || null)
-/** 某行是否持有 platform-admin 角色（该账号的平台角色与组织归属均被锁定） */
+/** 某行是否持有 platform-admin 角色（该账号的**平台角色**不可改） */
 function isPlatformAdminRow(row) {
   return (row?.platformRoles || []).includes('platform-admin')
 }
-/** 抽屉目标是否为平台管理员：是则整体只读 */
-const drawerLocked = computed(() => isPlatformAdminRow(roleDrawerRow.value))
+/**
+ * 抽屉目标是平台管理员时，仅**平台角色**只读（防管理员之间互相改权）；
+ * 「组织归属」不锁 —— 平台角色与组织角色是两套独立体系，
+ * 平台管理员也可以担任某组织的管理员（种子数据里已有此组合）。
+ */
+const drawerRolesLocked = computed(() => isPlatformAdminRow(roleDrawerRow.value))
 /** 抽屉草稿：平台角色（本地编辑，保存时落库） */
 const drawerRoles = ref([])
 /** 抽屉草稿：组织归属 [{ orgId, orgRole }] */
@@ -871,8 +1077,6 @@ function openRoleDrawer(userId) {
   drawerOrgs.value = (row?.memberships || []).map((m) => ({ orgId: m.orgId, orgRole: m.orgRole }))
   drawerError.value = ''
   pendingRemoveOrg.value = ''
-  joinOrgId.value = ''
-  joinOrgRole.value = 'member'
 }
 
 function closeRoleDrawer() {
@@ -890,17 +1094,34 @@ function toggleDrawerRole(roleId, checked) {
   drawerError.value = ''
 }
 
-/* 区块B：组织角色 */
-const joinOrgId = ref('')
-const joinOrgRole = ref('member')
+/* 区块B：组织角色（与「新建账号」弹窗同一交互：点按钮加行，行内选组织与角色） */
 
-/** 可加入的组织：排除已在草稿里的 */
-const joinableOrgs = computed(() =>
-  getOrgs().filter((o) => !drawerOrgs.value.some((m) => m.orgId === o.id)))
+/**
+ * 抽屉里某一行的可选组织：排除**其它行**已选中的组织。
+ * 不排除本行自己，否则已选中的值会从选项里消失、下拉回显空白。
+ */
+function orgOptionsForDrawerRow(idx) {
+  void orgVersion.value // 显式依赖：新建组织后下拉选项要刷新
+  const takenByOthers = new Set(
+    drawerOrgs.value.filter((m, i) => i !== idx && m.orgId).map((m) => m.orgId),
+  )
+  return getOrgs()
+    .filter((o) => !takenByOthers.has(o.id))
+    .map((o) => ({ value: o.id, label: o.name }))
+}
 
-/** 可加入的组织（角色设置抽屉的下拉选项） */
-const joinOrgSelectOptions = computed(() =>
-  joinableOrgs.value.map((o) => ({ value: o.id, label: o.name })))
+/** 行内选定组织（替换该行草稿） */
+function changeDrawerOrgId(idx, orgId) {
+  if (idx < 0 || idx >= drawerOrgs.value.length) return
+  const dup = drawerOrgs.value.some((m, i) => i !== idx && m.orgId === orgId)
+  if (dup) {
+    drawerError.value = '该账号已加入此组织，请勿重复添加'
+    return
+  }
+  drawerOrgs.value[idx] = { ...drawerOrgs.value[idx], orgId }
+  drawerError.value = ''
+  pendingRemoveOrg.value = ''
+}
 
 /** 修改某组织的组织角色 */
 function changeDrawerOrgRole(m, nextRole) {
@@ -910,24 +1131,35 @@ function changeDrawerOrgRole(m, nextRole) {
   drawerError.value = ''
 }
 
-/** 添加组织（草稿，保存时落库） */
-function joinDrawerOrg() {
-  if (!joinOrgId.value) return
-  if (drawerOrgs.value.some((m) => m.orgId === joinOrgId.value)) return
-  drawerOrgs.value = [...drawerOrgs.value, { orgId: joinOrgId.value, orgRole: joinOrgRole.value || 'member' }]
-  joinOrgId.value = ''
+/**
+ * 新增一条「待选择组织」的行（orgId 为空，行内选）。
+ * 旧交互是「底部先选组织+角色 → 再点添加」，两个下拉无标签、易误解；
+ * 现改为点一下即得一行，语义由表头说明。
+ */
+function addDrawerOrgRow() {
+  drawerOrgs.value = [...drawerOrgs.value, { orgId: '', orgRole: 'member' }]
   drawerError.value = ''
+  pendingRemoveOrg.value = ''
 }
 
 /**
- * 移出组织。
+ * 移出组织（按行下标定位，因为未选组织的行没有 orgId 可用作标识）。
  * 若移出后该账号既无平台角色、又无其他组织，则需二次确认。
  */
-function removeDrawerOrg(m) {
-  const rest = drawerOrgs.value.filter((x) => x.orgId !== m.orgId)
+function removeDrawerOrg(idx) {
+  const target = drawerOrgs.value[idx]
+  if (!target) return
+  // 尚未选组织的行直接移除，不参与「账号不合法」判定
+  if (!target.orgId) {
+    drawerOrgs.value = drawerOrgs.value.filter((x, i) => i !== idx)
+    drawerError.value = ''
+    pendingRemoveOrg.value = ''
+    return
+  }
+  const rest = drawerOrgs.value.filter((x, i) => i !== idx)
   if (!drawerRoles.value.length && !rest.length) {
-    if (pendingRemoveOrg.value !== m.orgId) {
-      pendingRemoveOrg.value = m.orgId
+    if (pendingRemoveOrg.value !== idx) {
+      pendingRemoveOrg.value = idx
       drawerError.value = '移出后该账号将既无平台角色也无组织角色，账号将不合法。请再次点击「移出组织」确认。'
       return
     }
@@ -946,23 +1178,40 @@ function saveRoleDrawer() {
     drawerError.value = '账号必须至少拥有一个平台角色或一个组织角色'
     return
   }
-  // 平台管理员账号的平台角色完全锁定：任何平台管理员（含自己）都不可修改
-  const guard = guardPlatformAdminChange(userId)
-  if (!guard.ok) {
-    drawerError.value = guard.reason
-    return
-  }
+  /**
+   * 平台管理员的**平台角色**不可修改（含自己与其他管理员之间）——
+   * 避免管理员之间互相改权、或误撤全部管理员导致无人可管。
+   * 但其**组织归属**照常可改，故这里不再整体 return，
+   * 而是跳过平台角色写入、继续处理组织变更。
+   */
+  const rolesGuard = guardPlatformAdminChange(userId)
+  const rolesLocked = !rolesGuard.ok
   // 平台角色可自由叠加，无需互斥校验
 
+  /**
+   * 校验：新增的组织行必须选好组织。
+   * 空行若直接落库会写入 orgId:'' 的脏成员关系（实测确认 addOrgMember(userId, '')
+   * 会返回 ok 并写入空 orgId 记录）；若静默丢弃，用户又会以为「我加了却没保存上」。
+   * 故明确提示，让用户自己决定选组织还是删行。
+   */
+  if (drawerOrgs.value.some((m) => !m.orgId)) {
+    drawerError.value = '请为新增的组织选择具体组织，或点「移出组织」删掉该行'
+    return
+  }
+  const validOrgs = drawerOrgs.value.filter((m) => m.orgId)
   const before = memberRows.value.find((r) => r.userId === userId)?.memberships || []
   const beforeIds = before.map((m) => m.orgId)
-  const afterIds = drawerOrgs.value.map((m) => m.orgId)
+  const afterIds = validOrgs.map((m) => m.orgId)
 
-  // 1) 平台角色
-  const res = setMemberRoles(userId, { platformRoles: drawerRoles.value, operator: CURRENT_OPERATOR })
-  if (!res.ok) {
-    drawerError.value = res.reason
-    return
+  // 1) 平台角色：仅非平台管理员可写。
+  //    平台管理员走 setMemberRoles 会被 guardPlatformAdminChange 拒绝，
+  //    若在此 return 会把下面的组织变更一并挡掉，故只跳过这一步。
+  if (!rolesLocked) {
+    const res = setMemberRoles(userId, { platformRoles: drawerRoles.value, operator: CURRENT_OPERATOR })
+    if (!res.ok) {
+      drawerError.value = res.reason
+      return
+    }
   }
   // 2) 移出的组织
   let blocked = ''
@@ -976,8 +1225,8 @@ function saveRoleDrawer() {
     drawerError.value = blocked
     return
   }
-  // 3) 新增/变更的组织角色
-  drawerOrgs.value.forEach((m) => {
+  // 3) 新增/变更的组织角色（只处理已选定组织的行，空行已在上面丢弃）
+  validOrgs.forEach((m) => {
     const prev = before.find((b) => b.orgId === m.orgId)
     if (!prev) addOrgMember(userId, m.orgId, m.orgRole, CURRENT_OPERATOR)
     else if (prev.orgRole !== m.orgRole) setOrgRole(userId, m.orgId, m.orgRole, CURRENT_OPERATOR)
@@ -1078,7 +1327,14 @@ function onDocClick(e) {
   }
 }
 onMounted(() => document.addEventListener('click', onDocClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick)
+  // 离开页面时，弹窗内「内嵌新建但尚未完成建号」的组织必须撤销。
+  // 否则用户建完组织直接点侧栏跳走 / 刷新，就会留下一个没有任何管理员的组织
+  // （实测复现过），违反「新建组织必须有一名管理员」。
+  // 成功建号时标记已清空，故此处的 rollback 是空操作，不会误删已归属新账号的组织。
+  rollbackInlineOrgs()
+})
 
 /** 勾选/取消某个平台角色（全部角色可自由叠加） */
 function toggleAccountRole(roleId, checked) {
@@ -1090,35 +1346,225 @@ function toggleAccountRole(roleId, checked) {
 }
 
 /* 组织归属（可多条） */
-const accountJoinOrgId = ref('')
-const accountJoinOrgRole = ref('member')
 
-/** 可加入的组织：排除已添加的 */
-const accountJoinableOrgs = computed(() =>
-  getOrgs().filter((o) => !accountForm.orgMemberships.some((m) => m.orgId === o.id)))
+/**
+ * 组织数据版本号（响应式）。
+ * getOrgs() 直接读 localStorage，属**非响应式**数据源 —— 若 computed 只依赖
+ * accountForm.orgMemberships，在本页新建组织后下拉选项不会刷新（新建的组织选不到）。
+ * 故组织增删后递增本计数器，让下面依赖组织的 computed 重新求值。
+ */
+const orgVersion = ref(0)
 
-/** 可加入的组织（新建账号表单的下拉选项） */
-const accountJoinOrgSelectOptions = computed(() =>
-  accountJoinableOrgs.value.map((o) => ({ value: o.id, label: o.name })))
+/**
+ * 某一行的可选组织：排除**其它行**已选中的组织。
+ * 不排除本行自己，否则已选中的值会从选项里消失、下拉回显空白。
+ */
+function orgOptionsForRow(list, idx) {
+  void orgVersion.value // 显式依赖：组织增删后触发重算
+  const takenByOthers = new Set(
+    list.filter((m, i) => i !== idx && m.orgId).map((m) => m.orgId),
+  )
+  return getOrgs()
+    .filter((o) => !takenByOthers.has(o.id))
+    .map((o) => ({ value: o.id, label: o.name }))
+}
 
 /** 组织名（查不到时回落 id） */
 function orgNameOf(orgId) {
   return getOrgs().find((o) => o.id === orgId)?.name || orgId || '—'
 }
 
-/** 加入一条组织归属（草稿，创建时一并落库） */
-function addAccountOrg() {
-  if (!accountJoinOrgId.value) return
-  if (accountForm.orgMemberships.some((m) => m.orgId === accountJoinOrgId.value)) return
-  accountForm.orgMemberships.push({ orgId: accountJoinOrgId.value, orgRole: accountJoinOrgRole.value || 'member' })
-  accountJoinOrgId.value = ''
+/* ===== 组织列表 Tab =====
+   平台全部组织（含内置）的管理视角。与「组织管理」页的分工：
+     - 组织管理页 = 「我的组织」，只列当前用户所属的，在那里建组织 = 创建者自己当管理员；
+     - 本 Tab      = 平台全部组织，供平台管理员查看/新建/删除，
+                     在那里建组织需**指定他人**当管理员，创建者不进该组织。 */
+const orgKeyword = ref('')
+
+/** 全部组织（含内置），带管理员数/成员数/是否内置，并支持搜索 */
+const orgRows = computed(() => {
+  void orgVersion.value // 显式依赖：新建/删除组织后触发重算
+  const q = orgKeyword.value.trim().toLowerCase()
+  return getOrgs()
+    .filter((o) => {
+      if (!q) return true
+      return String(o.name || '').toLowerCase().includes(q) || String(o.industry || '').toLowerCase().includes(q)
+    })
+    .map((o) => ({
+      ...o,
+      adminCount: getOrgAdminCount(o.id),
+      memberCount: getOrgMemberships(o.id).filter((m) => m.orgRole === 'member').length,
+      // 内置组织的 id 来自 orgData 的静态 ORGS（不可删）
+      isBuiltin: ORGS.some((b) => b.id === o.id),
+    }))
+})
+
+/* —— 新建组织（本 Tab 专用：需指定他人当管理员，创建者不加入）—— */
+const orgCreateOpen = ref(false)
+const orgCreateMsg = ref('')
+const orgCreateMsgError = ref(false)
+const orgCreateForm = ref({ name: '', industry: '金融', description: '', adminUserId: '' })
+
+/** 可作组织管理员的账号（全部账号；平台管理员已可担任组织管理员） */
+const orgAdminCandidates = computed(() => getAllAccounts().map((u) => ({ id: u.id, name: u.name })))
+
+function openOrgCreate() {
+  orgCreateForm.value = { name: '', industry: '金融', description: '', adminUserId: '' }
+  orgCreateMsg.value = ''
+  orgCreateMsgError.value = false
+  orgCreateOpen.value = true
+}
+
+function closeOrgCreate() {
+  orgCreateOpen.value = false
+  orgCreateMsg.value = ''
+}
+
+/**
+ * 创建组织 + 指定管理员。
+ * 与「组织管理」页的差异：这里创建者**不加入**该组织（管理员是指定的那个人），
+ * 因为本 Tab 是平台视角的组织管理，不是「我的组织」。
+ */
+function doCreateOrgFromAdmin() {
+  const f = orgCreateForm.value
+  if (!f.name) {
+    orgCreateMsgError.value = true
+    orgCreateMsg.value = '请填写组织名称'
+    return
+  }
+  if (!f.adminUserId) {
+    orgCreateMsgError.value = true
+    orgCreateMsg.value = '请指定组织管理员（新建组织必须有一名管理员）'
+    return
+  }
+  const res = createOrg({
+    name: f.name, industry: f.industry, description: f.description, operator: CURRENT_OPERATOR,
+  })
+  if (!res.ok) {
+    orgCreateMsgError.value = true
+    orgCreateMsg.value = res.reason
+    return
+  }
+  const addRes = addOrgMember(f.adminUserId, res.org.id, 'admin', CURRENT_OPERATOR)
+  if (!addRes.ok) {
+    // 管理员未落库 → 回滚，避免留下「0 管理员」的组织
+    removeOrgMemberships(res.org.id)
+    deleteOrgRaw(res.org.id)
+    orgCreateMsgError.value = true
+    orgCreateMsg.value = `创建失败：${addRes.reason || '组织管理员未能加入'}（已回滚）`
+    return
+  }
+  orgVersion.value += 1
+  const acc = orgAdminCandidates.value.find((u) => u.id === f.adminUserId)
+  showTip(`组织「${res.org.name}」已创建，组织管理员：${acc?.name || f.adminUserId}`)
+  closeOrgCreate()
+}
+
+/* —— 删除组织（二次确认）—— */
+const orgDeleteTarget = ref(null)
+const orgDeleteMsg = ref('')
+
+function askDeleteOrg(org) {
+  orgDeleteTarget.value = org
+  orgDeleteMsg.value = ''
+}
+
+/** 确认删除：走 dissolveOrg（权限判定 + 级联清理成员关系） */
+function confirmDeleteOrg() {
+  const o = orgDeleteTarget.value
+  if (!o) return
+  // 以当前操作人身份调用，保留数据层的权限校验（平台管理员可删任意组织）。
+  // 本页在「后台管理」分组下、仅平台管理员可见，故操作人即当前登录用户。
+  const res = dissolveOrg(o.id, getCurrentUser().id)
+  if (!res.ok) {
+    orgDeleteMsg.value = res.reason || '删除失败'
+    return
+  }
+  orgVersion.value += 1
+  showTip(`组织「${o.name}」已删除`)
+  orgDeleteTarget.value = null
+}
+
+/**
+ * 本页内嵌新建的组织 id 集合。
+ * 需求：新建组织必须有一名组织管理员，而在本页新建时「管理员」就是当前这个新账号 ——
+ * 所以这些组织的角色被锁定为「组织管理员」，既不可改成普通成员，也不可移除该行。
+ * 与「从已有组织下拉里添加」的归属区分开：后者是可选、可改、可移除的。
+ */
+const inlineCreatedOrgIds = ref([])
+function isInlineCreatedOrg(orgId) {
+  return inlineCreatedOrgIds.value.includes(orgId)
+}
+
+/**
+ * 在表格里新增一条「待选择」的组织归属行。
+ * 该行 orgId 为空，行内会渲染组织下拉供选择（见模板的 v-if="!m.orgId"）。
+ * 与旧交互的差异：不再需要「先在下拉里选好、再点按钮」这两步，
+ * 点一下就得到一行，选组织与选角色都在行内完成。
+ */
+function addAccountOrgRow() {
+  accountForm.orgMemberships.push({ orgId: '', orgRole: 'member' })
   accountMsg.value = ''
 }
 
 /** 移除一条组织归属 */
 function removeAccountOrg(idx) {
+  const target = accountForm.orgMemberships[idx]
+  // 内嵌新建的组织必须由本账号担任管理员，属新建组织的硬约束，不允许移除
+  if (target && isInlineCreatedOrg(target.orgId)) {
+    accountMsgError.value = true
+    accountMsg.value = `组织「${orgNameOf(target.orgId)}」是在本页新建的，必须由当前账号担任组织管理员，不可移除`
+    return
+  }
+  // 尚未选组织的行（刚点「+ 添加组织」）直接移除，不必提示
   accountForm.orgMemberships.splice(idx, 1)
   accountMsg.value = ''
+}
+
+/* ===== 内嵌「新建组织」=====
+   在本页直接建组织并把结果填进「组织归属」，避免跳到组织管理页后再切回来。
+   与原跳转方案的关键差异：这里**不需要**指定组织管理员 ——
+   管理员账号正是本次要创建的，建完号在同一步里给账号选组织角色即可。 */
+const orgDialogOpen = ref(false)
+const orgMsg = ref('')
+const orgForm = ref({ name: '', industry: '金融', description: '' })
+
+const industryOptions = computed(() => INDUSTRY_OPTIONS.map((i) => ({ value: i, label: i })))
+
+function openOrgDialog() {
+  orgForm.value = { name: '', industry: '金融', description: '' }
+  orgMsg.value = ''
+  orgDialogOpen.value = true
+}
+
+function closeOrgDialog() {
+  orgDialogOpen.value = false
+  orgMsg.value = ''
+}
+
+/** 创建组织 → 自动加入「组织归属」草稿 → 关闭内嵌窗 */
+function doCreateOrgInline() {
+  const f = orgForm.value
+  const res = createOrg({
+    name: f.name,
+    industry: f.industry,
+    description: f.description,
+    operator: CURRENT_OPERATOR,
+  })
+  if (!res.ok) {
+    orgMsg.value = res.reason || '创建失败'
+    return
+  }
+  // 新建的组织直接落到「组织归属」草稿，并**锁定为组织管理员**：
+  // 需求要求新建组织必须带一名管理员，而在本页新建时管理员就是当前这个新账号，
+  // 故登记其 id —— 该行角色下拉会被禁用、移除按钮不显示（见模板与 removeAccountOrg）。
+  accountForm.orgMemberships.push({ orgId: res.org.id, orgRole: 'admin' })
+  inlineCreatedOrgIds.value = [...inlineCreatedOrgIds.value, res.org.id]
+  // 让依赖组织的 computed 重新求值（下拉选项、组织名解析）
+  orgVersion.value += 1
+  closeOrgDialog()
+  accountMsg.value = ''
+  showTip(`组织「${res.org.name}」已创建并加入组织归属（组织角色默认「组织管理员」，可调整）`)
 }
 
 /** 打开新建账号弹窗：清掉上一次的草稿与提示 */
@@ -1127,10 +1573,34 @@ function openCreateDialog() {
   createOpen.value = true
 }
 
-/** 关闭新建账号弹窗 */
+/**
+ * 回滚本次在本页内嵌新建的组织（含其成员关系）。
+ *
+ * 为什么需要：内嵌建组织是「立即落库」，而管理员是「建号成功后才写入」——
+ * 两者之间若用户取消建号、或建号失败，组织就已经落库但**没有任何管理员**，
+ * 直接违反「新建组织必须有一名管理员」这条硬约束（实测复现过）。
+ * 故在这些「未完成」路径上把本次新建的组织一并撤销。
+ *
+ * 用 deleteOrgRaw 而非 dissolveOrg：这是当前操作人的补偿操作，
+ * 不应再被「仅平台管理员/组织管理员」的口径二次拦截。
+ */
+function rollbackInlineOrgs() {
+  const ids = inlineCreatedOrgIds.value
+  if (!ids.length) return
+  ids.forEach((orgId) => {
+    // 先清成员关系再删组织：反之会留下指向已删组织的孤儿记录
+    removeOrgMemberships(orgId)
+    deleteOrgRaw(orgId)
+  })
+  inlineCreatedOrgIds.value = []
+  orgVersion.value += 1
+}
+
+/** 关闭新建账号弹窗（属「放弃」路径，需回滚未完成的内嵌新建组织） */
 function closeCreateDialog() {
   createOpen.value = false
   roleMsOpen.value = false
+  rollbackInlineOrgs()
 }
 
 function resetAccountForm() {
@@ -1139,8 +1609,8 @@ function resetAccountForm() {
   accountForm.confirmPassword = ''
   accountForm.platformRoles = []
   accountForm.orgMemberships = []
-  accountJoinOrgId.value = ''
-  accountJoinOrgRole.value = 'member'
+  // 清掉上一轮的「内嵌新建组织」标记，避免下次建号时误锁无关组织
+  inlineCreatedOrgIds.value = []
   accountMsg.value = ''
 }
 
@@ -1155,6 +1625,32 @@ function doCreateAccount() {
   if (accountForm.password !== accountForm.confirmPassword) {
     accountMsgError.value = true
     accountMsg.value = '两次输入的密码不一致，请重新确认'
+    return
+  }
+  /**
+   * 校验：新增的组织行必须选好组织。
+   * 空行（点过「+ 添加组织」但没选组织）会在落库时被数据层过滤掉，
+   * 而表格里明明有一行 —— 用户会看到「必须至少分配平台角色或加入一个组织」这种
+   * 与眼前界面对不上的报错。故在此明确提示，而不是静默丢弃。
+   */
+  if (accountForm.orgMemberships.some((m) => !m.orgId)) {
+    accountMsgError.value = true
+    accountMsg.value = '请为新增的组织选择具体组织，或点「移除」删掉该行'
+    return
+  }
+  /**
+   * 兜底校验：本页新建的组织必须由本账号担任组织管理员。
+   * 界面上已通过「角色下拉禁用 + 移除按钮隐藏 + removeAccountOrg 守卫」三重限制，
+   * 但提交前再验一次 —— 需求是硬约束（新建组织必须带一名管理员），
+   * 不该因为将来改动 UI 就悄悄失效。
+   */
+  const missingAdmin = inlineCreatedOrgIds.value.find((orgId) => {
+    const m = accountForm.orgMemberships.find((x) => x.orgId === orgId)
+    return !m || m.orgRole !== 'admin'
+  })
+  if (missingAdmin) {
+    accountMsgError.value = true
+    accountMsg.value = `组织「${orgNameOf(missingAdmin)}」是在本页新建的，必须由本账号担任组织管理员才能创建`
     return
   }
   const res = createAccount({
@@ -1177,6 +1673,12 @@ function doCreateAccount() {
   // 平台角色已由 createAccount 写入共享角色存储，此处刷新成员列表即可
   bindings.value = getMemberRoles()
   accountVersion.value += 1
+  /**
+   * 账号已创建成功 → 先清空「内嵌新建组织」标记再关弹窗。
+   * 否则 closeCreateDialog 会把这些组织当成「未完成」回滚掉 ——
+   * 而它们此刻已正式归属于刚建好的账号（账号就是它们的组织管理员）。
+   */
+  inlineCreatedOrgIds.value = []
   closeCreateDialog()
   showTip(`账号「${res.user.name}」已创建（${roleText}）${orgText}`)
 }
@@ -1327,6 +1829,22 @@ function doCreateAccount() {
 }
 .perm-btn--primary:hover:not(:disabled) { background: #c11b36; border-color: #c11b36; }
 /* 危险操作（删除确认） */
+/* 删除组织确认弹窗：警示文案与后果列表 */
+.perm-del-warn {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+}
+.perm-del-warn b { color: #dc2626; }
+.perm-del-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #6b7280;
+}
+
 .perm-btn--danger {
   color: #fff;
   background: #dc2626;
@@ -1616,6 +2134,12 @@ function doCreateAccount() {
 
 /* ===== 功能权限矩阵（只读三态） ===== */
 .perm-matrix-wrap { display: flex; flex-direction: column; }
+/* 组织列表 Tab：表格容器（与成员列表同样的排版约束） */
+.perm-orgs-wrap { display: flex; flex-direction: column; }
+.perm-org-name { font-weight: 500; color: #111827; }
+/* 组织列表的操作列只需容纳「删除」或「不可删除」，比成员列表（两个按钮）窄得多；
+   收窄后多余宽度会自动让给「组织名称」，避免表格右侧大片留白。 */
+.perm-orgs-wrap .perm-col-ops { width: 110px; }
 .perm-matrix-tip {
   margin: 0;
   padding: 10px 20px;
@@ -1716,6 +2240,38 @@ function doCreateAccount() {
 .perm-link:hover { text-decoration: underline; }
 .perm-link--danger { color: #dc2626; }
 
+/* 「新建」标记：标出该组织是在本页刚创建的（其角色被锁定为组织管理员） */
+.perm-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+/* 修饰类必须与 .perm-tag 一起用 —— .perm-tag 本身只定义尺寸，
+   配色全靠修饰类；只写 .perm-tag 会渲染成透明背景的裸文字。 */
+.perm-tag--lock {
+  color: #b45309;
+  background: #fef3c7;
+}
+/* 锁定提示：替代「移除」按钮的位置，说明为何不可改 */
+.perm-lock-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: help;
+}
+
+/* 链接样式的按钮（用于「+ 新建组织」这类动作，与 RouterLink 外观一致） */
+.perm-link--btn {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.perm-link--btn:hover { color: #b01830; }
+
 /* ===== 分页 ===== */
 .perm-footer {
   display: flex;
@@ -1805,6 +2361,18 @@ function doCreateAccount() {
   border-radius: 12px;
   box-shadow: 0 16px 48px rgba(15, 23, 42, 0.2);
   overflow: hidden;
+}
+
+/* 嵌套在「新建账号」弹窗内的次级弹窗（新建组织）：
+   与父遮罩同为 fixed，但 z-index 高一档，保证压在父弹窗之上。 */
+.perm-modal-overlay--nested {
+  z-index: 1100;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+/* 次级弹窗收窄：内容比建号表单少得多，用 720px 会显得空旷 */
+.perm-modal--sm {
+  max-width: 460px;
 }
 .perm-modal-hd {
   display: flex;
@@ -1940,17 +2508,18 @@ function doCreateAccount() {
 .perm-role-opt-name { font-size: 13px; font-weight: 500; color: #111827; }
 .perm-role-opt-desc { font-size: 12px; line-height: 1.5; color: #9ca3af; }
 
-/* 添加组织一行 */
-.perm-join-row {
+/* 组织归属的「+ 添加组织」区（表格下方） */
+.perm-org-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px dashed #eef0f3;
 }
-.perm-join-row .perm-select { flex: 1; min-width: 130px; }
+/* 行内的组织/角色下拉：撑满单元格，保持与其他输入控件同高 */
+.perm-table--sub .perm-select { width: 100%; }
 
 .perm-drawer-ft {
   display: flex;

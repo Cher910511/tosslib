@@ -356,17 +356,17 @@ export function guardPlatformAdminChange(userId) {
 }
 
 /**
- * 平台管理员组织归属保护：平台管理员账号的组织归属一律不可增删改
- * （与平台角色同口径：任何平台管理员都不能操作，包括自己与其他平台管理员之间）。
- * @returns {{ ok: boolean, reason?: string }}
+ * 已移除：guardPlatformAdminOrgChange（原先禁止平台管理员拥有组织归属）。
+ *
+ * 移除原因：平台**角色**与**组织角色**是两套独立体系，平台管理员同样可以担任
+ * 某组织的管理员 —— 项目种子数据本身就有此组合（周雅琴 = 平台管理员 + org-002 成员），
+ * 且「组织管理 → 新建组织」要求创建者直接成为该组织管理员。
+ * 保留该守卫会让上述场景在数据层被拒，故连同三处调用点（addOrgMember /
+ * setOrgRole / removeOrgMember）一并移除。
+ *
+ * 注意：平台**角色**的锁定 guardPlatformAdminChange 依然有效 ——
+ * 那是为了防止平台管理员之间互相改权、或误撤全部管理员导致无人可管，与本条无关。
  */
-export function guardPlatformAdminOrgChange(userId) {
-  const isAdmin = getMemberRolesOf(userId).includes('platform-admin')
-  if (isAdmin) {
-    return { ok: false, reason: '平台管理员的组织归属不可修改' }
-  }
-  return { ok: true }
-}
 
 /** 设置某成员的全部平台角色（整体覆盖）。传空数组即撤销全部平台角色。 */
 export function setMemberRoles(userId, { platformRoles, platformRole, operator = '系统' }) {
