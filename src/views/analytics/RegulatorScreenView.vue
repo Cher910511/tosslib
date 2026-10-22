@@ -104,13 +104,13 @@
             <section class="rs-panel rs-panel--mstat">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">日变化数据</h3>
+                <span class="rs-panel-note">轴名即数值  悬停看环比</span>
               </div>
-              <!-- 展现形式改造：6 张指标卡改为一张雷达图（6 轴 = 6 项月报统计量）。
-                   图形按对数归一只表达相对量级，实际数值与「较昨日/上周/上月」比对
-                   全部收进悬停浮层；原下方指标名称条与点击下钻均已按反馈移除。 -->
+              <!-- 展现形式改造：雷达图 6 轴 = 6 项月报统计量；轴名做成「卡片底」标签，
+                   每枚标签显示「指标名称 + 本期值」并按轴色着色；环比明细收进悬停浮层。 -->
               <div class="rs-radar-wrap">
                 <div ref="radarChartRef" class="rs-chart rs-chart--radar" />
-                <!-- 就近轴悬停浮层：只显示当前指向的单个指标（数值 + 较昨日/上周/上月） -->
+                <!-- 就近轴悬停浮层：鼠标指向哪条轴，就只显示该指标的数值与环比 -->
                 <div
                   v-show="radarTip.show"
                   class="rs-radar-tip"
@@ -426,10 +426,9 @@ function userItem(key) {
 }
 
 /**
- * 左栏「用户数」：柱状图（4 根柱）。
- * 顺序 = 注册用户数 / 活跃用户 / 注册组织数 / 活跃组织；柱顶直接标数值。
- * 已按反馈去掉两根「活跃率」柱，只留数量柱（人 / 家同轴，单位在 tooltip 中注明）；
- * 活跃率仍作为悬停明细附带显示（活跃数 / 注册数，由既有两项相除得到）。
+ * 左栏「用户数」：分组柱状图（按反馈「两两合并」）。
+ * 两组 = 用户 / 组织；每组两根 = 注册 / 活跃，并排对比（数据项与改造前一致，不增不减）。
+ * 柱顶标数值，悬停给单位与活跃率明细。
  */
 function userChartOption() {
   const regUser = userItem('regUser')
@@ -438,20 +437,31 @@ function userChartOption() {
   const activeOrg = userItem('activeOrg')
   const rate = (active, registered) =>
     registered > 0 ? Number(((active / registered) * 100).toFixed(1)) : 0
-  /** 每根柱的元信息：类目 / tooltip 文案 / 归属系列（同一类目只有一根柱有值） */
-  const rows = [
-    { cat: '注册用户数', label: regUser.label || '注册用户数量', value: regUser.value, unit: regUser.unit, series: '注册' },
-    { cat: '活跃用户', label: activeUser.label || '活跃用户', value: activeUser.value, unit: regUser.unit, extra: `活跃率 ${rate(activeUser.value, regUser.value)}%`, series: '活跃' },
-    { cat: '注册组织数', label: regOrg.label || '注册组织数量', value: regOrg.value, unit: regOrg.unit, series: '注册' },
-    { cat: '活跃组织', label: activeOrg.label || '活跃组织', value: activeOrg.value, unit: regOrg.unit, extra: `活跃率 ${rate(activeOrg.value, regOrg.value)}%`, series: '活跃' },
+  /** 两组元信息：注册数 / 活跃数 / 单位 / 活跃率 */
+  const groups = [
+    {
+      cat: '用户',
+      unit: regUser.unit,
+      registered: regUser.value,
+      active: activeUser.value,
+      rate: rate(activeUser.value, regUser.value),
+    },
+    {
+      cat: '组织',
+      unit: regOrg.unit,
+      registered: regOrg.value,
+      active: activeOrg.value,
+      rate: rate(activeOrg.value, regOrg.value),
+    },
   ]
-  /** 每个系列只在自己的类目上有值；barGap:-100% 让同位置的柱重叠居中 */
-  const makeSeries = (name, colors) => ({
+  const makeSeries = (name, key, colors) => ({
     name,
     type: 'bar',
-    barWidth: '58%',
-    barMaxWidth: 86,
-    barGap: '-100%',
+    barWidth: '34%',
+    barMaxWidth: 64,
+    // 组内两根柱贴紧（间隙 20% → 6%），组与组之间也略收一档
+    barGap: '6%',
+    barCategoryGap: '38%',
     itemStyle: barGradient(...colors),
     label: {
       show: true,
@@ -463,12 +473,12 @@ function userChartOption() {
       fontFamily: "'Orbitron', 'DIN Alternate', ui-monospace, monospace",
       formatter: (p) => Number(p.value).toLocaleString(),
     },
-    data: rows.map((r) => (r.series === name ? r.value : null)),
+    data: groups.map((g) => g[key]),
   })
   return {
     animationDuration: 900,
-    // 留出放大卡的空间：顶部留白加大，柱体高度随之收一档
-    grid: { left: 6, right: 6, top: 52, bottom: 4, containLabel: true },
+    // 图例占顶部，纵向留白给放大卡让出一档
+    grid: { left: 6, right: 6, top: 40, bottom: 4, containLabel: true },
     legend: {
       top: 0,
       right: 0,
@@ -480,25 +490,32 @@ function userChartOption() {
       textStyle: { color: '#B9D6F2', fontSize: 13, fontWeight: 600 },
     },
     tooltip: {
-      trigger: 'item',
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(56, 189, 248, 0.08)' } },
       ...CHART_TIP,
-      formatter: (p) => {
-        const r = rows[p.dataIndex]
-        const extra = r.extra
-          ? `<div style="display:flex;gap:16px;justify-content:space-between">
-              <span style="color:#C8DEF5">占比</span>
-              <b style="color:#FFD98A">${r.extra}</b></div>`
-          : ''
-        return `<div style="font-weight:600;margin-bottom:4px;color:#7DDCFF">${r.label}</div>
+      formatter: (ps) => {
+        const g = groups[ps[0].dataIndex]
+        const unit = g.unit || ''
+        const rows = [
+          { name: '注册', value: g.registered, color: '#7DDCFF' },
+          { name: '活跃', value: g.active, color: '#FFD98A' },
+        ]
+          .map(
+            (r) => `<div style="display:flex;gap:16px;justify-content:space-between">
+              <span style="color:#C8DEF5">${r.name}</span>
+              <b style="color:${r.color}">${Number(r.value).toLocaleString()} ${unit}</b></div>`,
+          )
+          .join('')
+        return `<div style="font-weight:600;margin-bottom:4px;color:#7DDCFF">${g.cat}</div>${rows}
           <div style="display:flex;gap:16px;justify-content:space-between">
-          <span style="color:#C8DEF5">${r.cat}</span>
-          <b>${Number(r.value).toLocaleString()} ${r.unit || ''}</b></div>${extra}`
+          <span style="color:#C8DEF5">活跃率</span>
+          <b style="color:#FFD98A">${g.rate}%</b></div>`
       },
     },
     xAxis: {
       type: 'category',
-      data: rows.map((r) => r.cat),
-      axisLabel: { color: '#C8DEF5', fontSize: 10.5, interval: 0 },
+      data: groups.map((g) => g.cat),
+      axisLabel: { color: '#C8DEF5', fontSize: 12.5, fontWeight: 600 },
       axisLine: { lineStyle: { color: 'rgba(0, 145, 255, 0.25)' } },
       axisTick: { show: false },
     },
@@ -512,8 +529,8 @@ function userChartOption() {
       splitLine: { lineStyle: { color: AXIS_SPLIT, type: 'dashed' } },
     },
     series: [
-      makeSeries('注册', ['#38BDF8', 'rgba(0, 91, 203, 0.35)', 'rgba(56, 189, 248, 0.35)']),
-      makeSeries('活跃', ['#FFD98A', 'rgba(180, 130, 20, 0.3)', 'rgba(255, 217, 138, 0.3)']),
+      makeSeries('注册', 'registered', ['#38BDF8', 'rgba(0, 91, 203, 0.35)', 'rgba(56, 189, 248, 0.35)']),
+      makeSeries('活跃', 'active', ['#FFD98A', 'rgba(180, 130, 20, 0.3)', 'rgba(255, 217, 138, 0.3)']),
     ],
   }
 }
@@ -593,17 +610,34 @@ function radarChartOption() {
     radar: {
       // 中心再上移（53% → 50%）：底部名称条占位，整图偏上更平衡
       center: ['50%', '50%'],
-      // 字号放大一档（11.5 → 13），半径相应从 74% 收到 71%，避免轴名贴边被裁
-      radius: '71%',
-      splitNumber: 4,
+      // 轴名已恢复为纯名称（数值移入下方卡片），半径回到 77% 让雷达更饱满
+      radius: '77%',
+      // 驱动刻度更密：网格环 4 → 5 圈，配合轴刻度形成「雷达屏」层次
+      splitNumber: 5,
       indicator: monthlyReportStats.map((m, i) => ({
-        name: RADAR_AXIS_NAME[m.key] || m.label,
+        // 轴名两行：指标名称 + 本期值（关键数字常驻，环比明细由悬停浮层给出）
+        name: `${RADAR_AXIS_NAME[m.key] || m.label}\n${Number(m.value).toLocaleString()}${m.unit || ''}`,
         max: 1,
         // RadarModel 会把 indicator.color 合并进该轴的 nameTextStyle → 轴名按轴着色
         color: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length],
       })),
-      axisName: { fontSize: 13, lineHeight: 17 },
+      // 轴名做「卡片底」：深底 + 细描边 + 圆角 + 内边距，文字仍按轴取专色。
+      // 字体用 Orbitron（艺术体）：它只有西文/数字字形，中文会自动回退到系统字体，
+      // 于是「名称保持可读、数值变成艺术体」一次生效，无需富文本拆行。
+      axisName: {
+        fontSize: 12.5,
+        lineHeight: 16,
+        fontFamily: "'Orbitron', 'DIN Alternate', ui-monospace, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+        fontWeight: 700,
+        padding: [3, 7],
+        backgroundColor: 'rgba(4, 20, 40, 0.82)',
+        borderColor: 'rgba(56, 189, 248, 0.35)',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
       axisLine: { lineStyle: { color: 'rgba(125, 211, 252, 0.32)' } },
+      // 轴刻度：每条辐条在每圈处画一枚短刻度，视觉上更像仪表
+      axisTick: { show: true, lineStyle: { color: 'rgba(0, 229, 255, 0.45)' } },
       // splitLine.color 支持数组：按环序号轮转，每一圈一个鲜艳色
       splitLine: {
         lineStyle: {
@@ -613,11 +647,48 @@ function radarChartOption() {
             'rgba(0, 176, 255, 0.38)',
             'rgba(168, 85, 247, 0.38)',
             'rgba(0, 229, 195, 0.34)',
+            'rgba(255, 197, 61, 0.3)',
           ],
         },
       },
-      splitArea: { areaStyle: { color: ['rgba(0, 229, 255, 0.1)', 'rgba(168, 85, 247, 0.18)'] } },
+      // 环带交错底色用三色轮转，层次更丰富
+      splitArea: {
+        areaStyle: {
+          color: [
+            'rgba(0, 229, 255, 0.1)',
+            'rgba(168, 85, 247, 0.16)',
+            'rgba(0, 229, 195, 0.12)',
+          ],
+        },
+      },
     },
+    // 中心光核（纯装饰，不参与数据）：径向光斑 + 亮点，补出「雷达屏」的中心感
+    graphic: [
+      {
+        type: 'circle',
+        left: 'center',
+        top: 'center',
+        silent: true,
+        z: 0,
+        shape: { r: 46 },
+        style: {
+          fill: new echarts.graphic.RadialGradient(0.5, 0.5, 0.5, [
+            { offset: 0, color: 'rgba(0, 229, 255, 0.42)' },
+            { offset: 0.55, color: 'rgba(0, 176, 255, 0.14)' },
+            { offset: 1, color: 'rgba(0, 176, 255, 0)' },
+          ]),
+        },
+      },
+      {
+        type: 'circle',
+        left: 'center',
+        top: 'center',
+        silent: true,
+        z: 0,
+        shape: { r: 4 },
+        style: { fill: '#E6FFFF', shadowBlur: 12, shadowColor: 'rgba(0, 229, 255, 0.95)' },
+      },
+    ],
     series: [
       // 光晕层：同一组数值加粗低透明描边，纯装饰、不参与悬停与缩放
       {
@@ -681,9 +752,9 @@ function mountChart(el, option) {
    按反馈改为只显示鼠标当前指向的那一轴：按鼠标相对雷达中心的角度就近取轴，
    用 DOM 浮层渲染（样式与 echarts tooltip 保持一致）。 */
 const radarTip = ref({ show: false, html: '', style: {} })
-/** 与 radarChartOption 中 center ['50%','50%']、radius '71%' 保持一致 */
+/** 与 radarChartOption 中 center ['50%','50%']、radius '77%' 保持一致 */
 const RADAR_CENTER = { x: 0.5, y: 0.5 }
-const RADAR_RADIUS = 0.71
+const RADAR_RADIUS = 0.77
 
 /** 鼠标位置命中的雷达轴下标；不在雷达范围内返回 -1 */
 function radarAxisAt(offsetX, offsetY, w, h) {
@@ -1886,21 +1957,22 @@ onBeforeUnmount(() => {
   width: 21px;
   height: 21px;
 }
-/* 按实体分色：注册用户 = 青蓝，注册组织 = 金色（图标底色、数字、描边同步） */
+/* 按实体分色：注册用户 / 注册组织均为蓝色系（组织的金色会与下方「活跃」金色混淆，故改回蓝色；
+   两张卡用深浅两档蓝区分：用户亮青蓝 #7DDCFF、组织天蓝 #38BDF8，与柱图「注册」系列同色系） */
 .rs-kpi-featured-card.is-regUser { border-color: rgba(56, 189, 248, 0.55); }
-.rs-kpi-featured-card.is-regOrg { border-color: rgba(255, 217, 138, 0.5); }
+.rs-kpi-featured-card.is-regOrg { border-color: rgba(56, 189, 248, 0.4); }
 .rs-kpi-featured-card.is-regUser .rs-kpi-featured-icon {
   color: #7DDCFF;
   background: rgba(56, 189, 248, 0.15);
   border-color: rgba(56, 189, 248, 0.5);
 }
 .rs-kpi-featured-card.is-regOrg .rs-kpi-featured-icon {
-  color: #FDE68A;
-  background: rgba(253, 230, 138, 0.14);
-  border-color: rgba(253, 230, 138, 0.5);
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 .rs-kpi-featured-card.is-regUser .rs-kpi-featured-num { color: #7DDCFF; }
-.rs-kpi-featured-card.is-regOrg .rs-kpi-featured-num { color: #FFD98A; }
+.rs-kpi-featured-card.is-regOrg .rs-kpi-featured-num { color: #38BDF8; }
 .rs-kpi-featured-value {
   display: flex;
   align-items: baseline;
@@ -1926,7 +1998,7 @@ onBeforeUnmount(() => {
   color: var(--text-sub);
 }
 
-/* ===== 上区右栏：日变化数据（雷达图 + 名称条）===== */
+/* ===== 上区右栏：日变化数据（雷达图）===== */
 /* 雷达图占面板主体，外面包一层定位容器用于放置自绘的「就近轴」悬停浮层 */
 .rs-radar-wrap {
   position: relative;
@@ -1935,12 +2007,39 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
 }
-/* 底部名称条只放指标名（数值与比对在悬停浮层中），
-   点击名称仍可下钻，与改造前「点击指标卡下钻」的行为一致。 */
+/* 雷达扫描光带：一圈低透明度扇形缓慢旋转，纯装饰（pointer-events:none）。
+   尺寸取 71%（与雷达 radius 71% 对应的直径一致），居中后绕自身中心旋转。 */
+.rs-radar-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: auto;
+  height: 71%;
+  aspect-ratio: 1;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 229, 255, 0.22) 0deg,
+    rgba(0, 229, 255, 0.06) 30deg,
+    transparent 72deg,
+    transparent 360deg
+  );
+  opacity: 0.55;
+  animation: rs-radar-scan 9s linear infinite;
+}
+@keyframes rs-radar-scan {
+  to { transform: rotate(360deg); }
+}
+/* 雷达图本体 */
 .rs-chart--radar {
   flex: 1;
   min-height: 0;
 }
+/* 注：曾在此加过一组「雷达下方指标卡片」样式（.rs-metric-cards / .rs-metric-card*），
+   已按反馈撤回 —— 数据与文案改为直接做在雷达轴文字的「卡片底」上，样式随之删除。 */
 /* 就近轴浮层：只显示鼠标当前指向的那一个指标，样式对齐 echarts tooltip。
    宽度随内容自适应（max-content）——此前写死 min/max-width 且比对不换行，
    长文本会溢出卡片；现在宽度只取最长一行，max-width 仅作兜底。 */
@@ -1963,7 +2062,7 @@ onBeforeUnmount(() => {
   color: #C8DEF5;
 }
 .rs-radar-tip :deep(.rs-tip-value) {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
+  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
   font-size: 17px;
   font-weight: 700;
   color: #7DDCFF;
@@ -2255,6 +2354,7 @@ onBeforeUnmount(() => {
   .rs-orb-arc,
   .rs-orb-pulse,
   .rs-hero-plinth-ring,
+  .rs-radar-wrap::after,
   .rs-status i {
     animation: none !important;
   }
