@@ -69,7 +69,6 @@
             <section class="rs-panel rs-panel--fill">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">用户数</h3>
-                <span class="rs-panel-note">柱顶标数值  悬停看明细</span>
               </div>
               <!-- 注册用户数 / 注册组织数：放大卡形式（领导要求突出），置于柱图上方 -->
               <div class="rs-kpi-featured">
@@ -105,41 +104,19 @@
             <section class="rs-panel rs-panel--mstat">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">日变化数据</h3>
-                <span class="rs-panel-note">悬停查看数值与比对  点击名称下钻</span>
               </div>
               <!-- 展现形式改造：6 张指标卡改为一张雷达图（6 轴 = 6 项月报统计量）。
-                   图形按对数归一只表达相对量级，实际数值与「较上日/周/月」比对
-                   全部收进悬停 tooltip；点击下方名称条仍可下钻（原卡片点击行为保留）。 -->
+                   图形按对数归一只表达相对量级，实际数值与「较昨日/上周/上月」比对
+                   全部收进悬停浮层；原下方指标名称条与点击下钻均已按反馈移除。 -->
               <div class="rs-radar-wrap">
                 <div ref="radarChartRef" class="rs-chart rs-chart--radar" />
-                <!-- 就近轴悬停浮层：只显示当前指向的单个指标（数值 + 较上日/周/月） -->
+                <!-- 就近轴悬停浮层：只显示当前指向的单个指标（数值 + 较昨日/上周/上月） -->
                 <div
                   v-show="radarTip.show"
                   class="rs-radar-tip"
                   :style="radarTip.style"
                   v-html="radarTip.html"
                 />
-              </div>
-              <div class="rs-legend-chips">
-                <button
-                  v-for="(m, i) in monthlyReportStats"
-                  :key="m.key"
-                  type="button"
-                  class="rs-chip"
-                  :style="{ color: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length] }"
-                  :title="`点击查看「${m.label}」的组织下钻数据`"
-                  @click="openMetricDrill(m)"
-                >
-                  <i
-                    class="rs-chip-dot"
-                    aria-hidden="true"
-                    :style="{
-                      background: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length],
-                      boxShadow: `0 0 6px ${RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length]}`,
-                    }"
-                  />
-                  {{ m.label }}
-                </button>
               </div>
             </section>
           </div>
@@ -293,7 +270,6 @@
             <section class="rs-panel">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">组织活跃度 Top10</h3>
-                <span class="rs-panel-note">点击组织看用户明细</span>
               </div>
               <!-- 组织活跃度榜单：平台以组织为统计单位（用户必须先加入组织才能使用），
                    故由「用户活跃」改为「组织活跃度」；名次带往期比对箭头，点击可下钻。 -->
@@ -322,7 +298,6 @@
             <section class="rs-panel">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">最新漏洞动态</h3>
-                <span class="rs-panel-note">最新 {{ vulnFeed10.length }} 条</span>
               </div>
               <div class="rs-panel-body">
                 <ScreenTable :columns="vulnColumns" :rows="vulnFeed10" :duration="46" />
@@ -332,7 +307,6 @@
             <section class="rs-panel">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">恶意代码检测动态</h3>
-                <span class="rs-panel-note">最新 {{ malwareFeed10.length }} 条</span>
               </div>
               <div class="rs-panel-body">
                 <ScreenTable :columns="malwareColumns" :rows="malwareFeed10" :duration="34" />
@@ -775,27 +749,8 @@ const drillShowOrg = ref(false)
 /** 聚焦指标列（高亮对应列） */
 const drillMetricKey = ref('')
 
-/**
- * 点击月报统计量卡片 → 打开组织下钻弹窗。
- * 因平台真实看板只到组织级，这里按「指标 → 对应的用户级字段」做跨组织汇总展示：
- *   visits/search/download → pv/download/ai 等用户行为字段
- * 展示的是**脱敏后**的用户数据（数据层已过 maskUserName），并标出各用户所属组织。
- */
-function openMetricDrill(metric) {
-  const FIELD = { visits: 'pv', search: 'pv', download: 'download', embed: 'api', inbound: 'ai', batchPull: 'api', singlePull: 'api' }
-  const field = FIELD[metric.key] || 'pv'
-  const rows = []
-  Object.entries(orgDrillStats).forEach(([org, users]) => {
-    users.forEach((u) => rows.push({ ...u, org }))
-  })
-  rows.sort((a, b) => (Number(b[field]) || 0) - (Number(a[field]) || 0))
-  drillTitle.value = `${metric.label} · 组织下钻`
-  drillSubtitle.value = `按「${metric.label}」相关的用户行为降序展示，跨组织汇总；用户姓名已脱敏`
-  drillUsers.value = rows
-  drillShowOrg.value = true
-  drillMetricKey.value = field
-  drillOpen.value = true
-}
+/* 注：原「点击指标名称条 → 打开组织下钻」的 openMetricDrill 已随点击入口移除，
+   函数与指标到字段的映射表一并删除，避免死代码。组织活跃度榜单的 openOrgDrill 保留。 */
 
 /** 点击组织（组织活跃度榜单）→ 打开该组织内的用户级下钻 */
 function openOrgDrill(orgName) {
@@ -2028,47 +1983,9 @@ onBeforeUnmount(() => {
   font-size: 10.5px;
   white-space: nowrap;
 }
-.rs-legend-chips {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-  margin-top: 6px;
-}
-/* 名称条本体是 button（可点击下钻），需重置按钮默认样式。
-   文字色由模板按雷达轴色内联注入（与上方 6 条轴一一对应），故此处不再写死 color。 */
-.rs-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 4px 8px;
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 600;
-  color: #A8C6E6;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-/* 轴色圆点：颜色由模板内联注入 */
-.rs-chip-dot {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  border-radius: 50%;
-}
-.rs-chip:hover {
-  border-color: rgba(34, 211, 238, 0.6);
-  background: rgba(10, 46, 92, 0.85);
-}
+
+/* 注：雷达下方的指标名称条（.rs-legend-chips / .rs-chip / .rs-chip-dot）已按反馈
+   整体移除，样式一并删除；指标数值与比对只保留就近轴悬停浮层。 */
 
 /* 注：原「日变化数据」的 6 张指标卡（.rs-mstat-grid / .rs-mstat-* 及日/周/月
    比对行、CSS 三角箭头）已随雷达图改造整体移除，样式一并删除，避免死代码；
@@ -2243,8 +2160,6 @@ onBeforeUnmount(() => {
     font-size: clamp(29px, 2.4vw, 46px);
     text-shadow: none;
   }
-  .rs-chip { padding: 3px 6px; font-size: 11px; }
-  .rs-legend-chips { gap: 4px; margin-top: 4px; }
   .rs-footer { height: 26px; }
 }
 
@@ -2323,8 +2238,6 @@ onBeforeUnmount(() => {
   .rs-status { display: none; }
   .rs-brand-title { font-size: 16px; letter-spacing: 2px; }
   .rs-clock { font-size: 11px; }
-  /* 名称条在移动端两列排布，避免 6 个 7 字标签挤成一行 */
-  .rs-legend-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rs-panel { min-height: 180px; }
 }
 
