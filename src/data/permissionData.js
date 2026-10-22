@@ -356,6 +356,32 @@ export function guardPlatformAdminChange(userId) {
 }
 
 /**
+ * 删除某账号的**全部平台角色绑定**（供 accountData.deleteAccount 级联调用）。
+ *
+ * 为什么需要独立的函数、而不复用 setMemberRoles(userId, [])：
+ *   后者会先过 guardPlatformAdminChange —— 持有 platform-admin 的账号一律被拒。
+ *   但账号注销与「改权」是两回事：账号都已不存在了，再谈「平台管理员的平台角色
+ *   不可修改」没有意义，留着只会让绑定成为孤儿。
+ *   （同理见 orgMembershipData.removeUserMemberships：账号级联清理不受守卫约束。）
+ *
+ * 为什么直接删存储即可、不需要「墓碑」标记：
+ *   本函数只被 deleteAccount 调用，而 deleteAccount 只处理**平台新建的账号**
+ *   （存储中的 load() 列表）；这些 id 都是运行时生成的，不可能出现在 SEED_MEMBERS 里，
+ *   故不存在「getMemberRoles() 把种子合并回来」的问题。
+ *   —— 这条前提若将来变了（例如允许删除内置账号），此处需补删除标记。
+ *
+ * @returns {{ ok: boolean, removed: boolean }} removed 表示原本是否有绑定
+ */
+export function removeMemberRoles(userId) {
+  if (!userId) return { ok: false, removed: false }
+  const list = getMemberRoles()
+  const kept = list.filter((m) => m.userId !== userId)
+  const removed = kept.length !== list.length
+  if (removed) persist(kept)
+  return { ok: true, removed }
+}
+
+/**
  * 已移除：guardPlatformAdminOrgChange（原先禁止平台管理员拥有组织归属）。
  *
  * 移除原因：平台**角色**与**组织角色**是两套独立体系，平台管理员同样可以担任

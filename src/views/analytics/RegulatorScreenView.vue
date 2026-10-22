@@ -64,69 +64,81 @@
 
         <!-- ===== 主体：上 2/3（用户数 + 日变化数据 | 资产数 | 安全风险总览 + 资产趋势）+ 下 1/3（组织活跃度 / 漏洞动态 / 恶意代码动态） ===== -->
         <main class="rs-main">
-          <!-- 上区-左栏：用户数（注册用户 / 注册企业放大 + 活跃度指标）+ 日变化数据 -->
+          <!-- 上区-左栏：用户数 -->
           <div class="rs-col rs-col--left">
             <section class="rs-panel rs-panel--fill">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">用户数</h3>
-                <span class="rs-panel-note">注册用户 / 注册企业放大展示</span>
+                <span class="rs-panel-note">柱顶标数值  悬停看明细</span>
               </div>
-              <!-- 注册用户数 / 注册企业数：领导要求放大展示 -->
+              <!-- 注册用户数 / 注册组织数：放大卡形式（领导要求突出），置于柱图上方 -->
               <div class="rs-kpi-featured">
-                <div v-for="u in userOverviewFeatured" :key="u.key" class="rs-kpi-featured-card">
-                  <span class="rs-kpi-featured-label">{{ u.label }}</span>
+                <div
+                  v-for="u in userOverviewFeatured"
+                  :key="u.key"
+                  class="rs-kpi-featured-card"
+                  :class="`is-${u.key}`"
+                >
+                  <span class="rs-kpi-featured-label">
+                    <span
+                      class="rs-kpi-featured-icon"
+                      aria-hidden="true"
+                      v-html="FEATURED_ICONS[u.key]"
+                    />
+                    {{ u.label }}
+                  </span>
                   <span class="rs-kpi-featured-value">
                     <CountUp class="rs-kpi-featured-num" :end="u.value" />
                     <em v-if="u.unit" class="rs-kpi-featured-unit">{{ u.unit }}</em>
                   </span>
                 </div>
               </div>
-              <!-- 其余行为指标 -->
-              <div class="rs-kpi-grid">
-                <div v-for="u in userOverviewRest" :key="u.key" class="rs-kpi">
-                  <span class="rs-kpi-label">{{ u.label }}</span>
-                  <span class="rs-kpi-value">
-                    <CountUp class="rs-kpi-num" :end="u.value" :decimals="u.decimals || 0" />
-                  </span>
-                </div>
-              </div>
+              <!-- 柱图 6 根：注册用户数 / 活跃用户 / 注册组织数 / 活跃组织 / 用户活跃率 / 企业活跃率。
+                   数量（人/家）走左轴、活跃率（%）走右轴，柱顶直接标数值；明细由悬停 tooltip 给出 -->
+              <div ref="userChartRef" class="rs-chart rs-chart--user" />
             </section>
 
-            <!-- 日变化数据：月报统计量，含较上日 / 周 / 月比对与组织下钻 -->
+          </div>
+
+          <!-- 上区-右栏：日变化数据 -->
+          <div class="rs-col rs-col--right">
             <section class="rs-panel rs-panel--mstat">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">日变化数据</h3>
-                <span class="rs-panel-note">较上日 / 周 / 月  点击下钻</span>
+                <span class="rs-panel-note">悬停查看数值与比对  点击名称下钻</span>
               </div>
-              <!-- 月报统计量 6 项：每项含数值 + 较上日/周/月比对与趋势箭头。
-                   点击卡片下钻，弹窗展示该指标的组织级/用户级脱敏统计。 -->
-              <div class="rs-mstat-grid">
+              <!-- 展现形式改造：6 张指标卡改为一张雷达图（6 轴 = 6 项月报统计量）。
+                   图形按对数归一只表达相对量级，实际数值与「较上日/周/月」比对
+                   全部收进悬停 tooltip；点击下方名称条仍可下钻（原卡片点击行为保留）。 -->
+              <div class="rs-radar-wrap">
+                <div ref="radarChartRef" class="rs-chart rs-chart--radar" />
+                <!-- 就近轴悬停浮层：只显示当前指向的单个指标（数值 + 较上日/周/月） -->
+                <div
+                  v-show="radarTip.show"
+                  class="rs-radar-tip"
+                  :style="radarTip.style"
+                  v-html="radarTip.html"
+                />
+              </div>
+              <div class="rs-legend-chips">
                 <button
-                  v-for="m in monthlyReportStats"
+                  v-for="(m, i) in monthlyReportStats"
                   :key="m.key"
                   type="button"
-                  class="rs-mstat"
+                  class="rs-chip"
+                  :style="{ color: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length] }"
                   :title="`点击查看「${m.label}」的组织下钻数据`"
                   @click="openMetricDrill(m)"
                 >
-                  <span class="rs-mstat-label">{{ m.label }}</span>
-                  <span class="rs-mstat-value">
-                    <CountUp class="rs-mstat-num" :end="m.value" :decimals="m.decimals || 0" />
-                    <em v-if="m.unit" class="rs-mstat-unit">{{ m.unit }}</em>
-                  </span>
-                  <span class="rs-mstat-compare">
-                    <span
-                      v-for="c in compareItems(m)"
-                      :key="c.key"
-                      class="rs-mstat-cmp"
-                      :class="`is-${c.dir}`"
-                      :title="`较上${c.label}：${c.text}`"
-                    >
-                      <em class="rs-mstat-cmp-label">{{ c.label }}</em>
-                      <i class="rs-mstat-arrow" :class="`is-${c.dir}`" aria-hidden="true" />
-                      <b class="rs-mstat-cmp-num">{{ c.text }}</b>
-                    </span>
-                  </span>
+                  <i
+                    class="rs-chip-dot"
+                    aria-hidden="true"
+                    :style="{
+                      background: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length],
+                      boxShadow: `0 0 6px ${RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length]}`,
+                    }"
+                  />
+                  {{ m.label }}
                 </button>
               </div>
             </section>
@@ -256,11 +268,9 @@
                    （排在「本月净增资产」之后），本面板不再展示。 -->
             </section>
 
-            <!-- 资产统计（原名「资产流转统计」）：按领导意见，中栏风险提醒改为资产维度统计。
-                 现 8 项 / 2 行 × 4 列：第 1 行 = 资产规模（源码数/制品数/许可证/语言生态），
-                 第 2 行 = 本期流转与覆盖（上线/下线/净增/SBOM 覆盖率）。
-                 行序由数据层 assetFlowStats 的数组顺序决定，对调两行只需改数组。
-                 每张卡下方的进度条已按要求去掉（各项量纲不可比，强行给条会误导）。 -->
+            <!-- 资产统计：4 项资产规模（源码数/制品数/许可证/语言生态，沿用 assetFlowStats 顺序）。
+                 展现形式保持为数值卡（此前一度改为双轴柱图，按反馈恢复原样）；
+                 每张卡下方的进度条此前已按要求去掉（各项量纲不可比，给条会误导）。 -->
             <section class="rs-panel rs-panel--hug">
               <div class="rs-panel-hd">
                 <h3 class="rs-panel-title">资产统计</h3>
@@ -276,38 +286,6 @@
               </div>
             </section>
 
-          </div>
-
-          <!-- 上区-右栏：安全风险总览（两项明细表的汇总口径）+ 资产趋势 -->
-          <div class="rs-col rs-col--right">
-            <!-- 安全风险总览：收口下区两张明细表的汇总口径（漏洞总数 / 高危漏洞数 / 恶意代码检出） -->
-            <section class="rs-panel rs-panel--risk">
-              <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">安全风险总览</h3>
-                <span class="rs-panel-note">明细见下区两张表</span>
-              </div>
-              <div class="rs-risk-list">
-                <div v-for="r in riskOverview" :key="r.key" class="rs-risk-row" :class="`is-${r.tone}`">
-                  <span class="rs-risk-label">{{ r.label }}</span>
-                  <span class="rs-risk-value">
-                    <CountUp class="rs-risk-num" :end="r.value" />
-                    <em v-if="r.unit" class="rs-risk-unit">{{ r.unit }}</em>
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            <!-- 资产趋势：源码数 / 制品数（左轴，万级）+ 漏洞感知 / 版本更新（右轴，千级）
-                 与「安全风险总览」同栏：风险看当下积压，资产趋势看近 12 月走向。 -->
-            <section class="rs-panel rs-panel--chart">
-              <div class="rs-panel-hd">
-                <h3 class="rs-panel-title">资产趋势</h3>
-                <span class="rs-panel-note">近 12 月</span>
-              </div>
-              <div class="rs-panel-body">
-                <ScreenLineChart :categories="assetTrend.months" :series="assetTrend.series" />
-              </div>
-            </section>
           </div>
 
           <!-- 下区（1/3 高度）：组织活跃度 Top10 / 最新漏洞动态 / 恶意代码检测动态，三块严格等分 -->
@@ -401,15 +379,13 @@
  *       克制发光与装饰密度，保证政务场景的高级感。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import * as echarts from 'echarts'
 import CountUp from '../../components/CountUp.vue'
 import ScreenTable from '../../components/screen/ScreenTable.vue'
-import ScreenLineChart from '../../components/screen/ScreenLineChart.vue'
 import OrgDrillDialog from '../../components/screen/OrgDrillDialog.vue'
 import {
   platformMeta,
   assetCards,
-  assetTrend,
-  riskOverview,
   vulnFeed,
   malwareFeed,
   userOverview,
@@ -418,18 +394,155 @@ import {
   orgDrillStats,
   maskUserName,
   USER_OVERVIEW_FEATURED_KEYS,
-  USER_OVERVIEW_GRID_KEYS,
   assetFlowStats,
   footerInfo,
 } from '../../data/regulatorScreenData.js'
 
-/* ===== 用户行为总览：放大项与其余项拆分 ===== */
-/** 放大展示：注册用户数 / 注册企业数（领导要求） */
+/* ===== 用户行为总览：放大项 ===== */
+/** 放大展示：注册用户数 / 注册组织数（领导要求突出） */
 const userOverviewFeatured = computed(() =>
   userOverview.filter((u) => USER_OVERVIEW_FEATURED_KEYS.includes(u.key)))
-/** 其余行为指标（按 USER_OVERVIEW_GRID_KEYS 的顺序与范围，当前 4 项 = 2 行 × 2） */
-const userOverviewRest = computed(() =>
-  USER_OVERVIEW_GRID_KEYS.map((k) => userOverview.find((u) => u.key === k)).filter(Boolean))
+
+/** 放大卡图标（内联 SVG，stroke=currentColor；颜色由卡片的 .is-* 类注入） */
+const FEATURED_ICONS = {
+  // 注册用户：双人剪影
+  regUser:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>'
+    + '<path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  // 注册组织：楼宇
+  regOrg:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/>'
+    + '<path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>',
+}
+
+/* ===== 上区三块面板：图表化改造（ECharts）=====
+   改造原则：只换展现形式，数据项与改造前一一对应，不新增任何指标。
+   具体数值一律收进 tooltip（鼠标悬停显示），图上只保留图形与名称。 */
+
+/** 图表公共样式：深色 tooltip / 轴文字 / 分割线，与面板玻璃质感对齐 */
+const CHART_TIP = {
+  backgroundColor: 'rgba(8, 24, 46, 0.96)',
+  borderColor: 'rgba(56, 189, 248, 0.45)',
+  borderWidth: 1,
+  padding: [8, 12],
+  textStyle: { color: '#E2ECF8', fontSize: 12 },
+  extraCssText: 'box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55); border-radius: 6px;',
+}
+const AXIS_TEXT = '#9DC0E4'
+const AXIS_SPLIT = 'rgba(0, 145, 255, 0.18)'
+
+/** 柱体渐变：顶部亮、底部透，配同色辉光，避免平涂色块显得廉价 */
+function barGradient(top, bottom, shadow) {
+  return {
+    borderRadius: [3, 3, 0, 0],
+    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: top },
+      { offset: 1, color: bottom },
+    ]),
+    shadowBlur: 10,
+    shadowColor: shadow,
+  }
+}
+
+/** 取用户行为总览里的某一项（找不到时给 0，避免图表报错） */
+function userItem(key) {
+  return userOverview.find((u) => u.key === key) || { value: 0, unit: '', label: key }
+}
+
+/**
+ * 左栏「用户数」：柱状图（4 根柱）。
+ * 顺序 = 注册用户数 / 活跃用户 / 注册组织数 / 活跃组织；柱顶直接标数值。
+ * 已按反馈去掉两根「活跃率」柱，只留数量柱（人 / 家同轴，单位在 tooltip 中注明）；
+ * 活跃率仍作为悬停明细附带显示（活跃数 / 注册数，由既有两项相除得到）。
+ */
+function userChartOption() {
+  const regUser = userItem('regUser')
+  const regOrg = userItem('regOrg')
+  const activeUser = userItem('activeUser')
+  const activeOrg = userItem('activeOrg')
+  const rate = (active, registered) =>
+    registered > 0 ? Number(((active / registered) * 100).toFixed(1)) : 0
+  /** 每根柱的元信息：类目 / tooltip 文案 / 归属系列（同一类目只有一根柱有值） */
+  const rows = [
+    { cat: '注册用户数', label: regUser.label || '注册用户数量', value: regUser.value, unit: regUser.unit, series: '注册' },
+    { cat: '活跃用户', label: activeUser.label || '活跃用户', value: activeUser.value, unit: regUser.unit, extra: `活跃率 ${rate(activeUser.value, regUser.value)}%`, series: '活跃' },
+    { cat: '注册组织数', label: regOrg.label || '注册组织数量', value: regOrg.value, unit: regOrg.unit, series: '注册' },
+    { cat: '活跃组织', label: activeOrg.label || '活跃组织', value: activeOrg.value, unit: regOrg.unit, extra: `活跃率 ${rate(activeOrg.value, regOrg.value)}%`, series: '活跃' },
+  ]
+  /** 每个系列只在自己的类目上有值；barGap:-100% 让同位置的柱重叠居中 */
+  const makeSeries = (name, colors) => ({
+    name,
+    type: 'bar',
+    barWidth: '58%',
+    barMaxWidth: 86,
+    barGap: '-100%',
+    itemStyle: barGradient(...colors),
+    label: {
+      show: true,
+      position: 'top',
+      // 数字跟系列同色：注册青蓝、活跃金色；Orbitron 字体 + 加粗，投屏更醒目
+      color: name === '注册' ? '#7DDCFF' : '#FFD98A',
+      fontSize: 13,
+      fontWeight: 700,
+      fontFamily: "'Orbitron', 'DIN Alternate', ui-monospace, monospace",
+      formatter: (p) => Number(p.value).toLocaleString(),
+    },
+    data: rows.map((r) => (r.series === name ? r.value : null)),
+  })
+  return {
+    animationDuration: 900,
+    // 留出放大卡的空间：顶部留白加大，柱体高度随之收一档
+    grid: { left: 6, right: 6, top: 52, bottom: 4, containLabel: true },
+    legend: {
+      top: 0,
+      right: 0,
+      itemWidth: 16,
+      itemHeight: 10,
+      itemGap: 18,
+      icon: 'roundRect',
+      data: ['注册', '活跃'],
+      textStyle: { color: '#B9D6F2', fontSize: 13, fontWeight: 600 },
+    },
+    tooltip: {
+      trigger: 'item',
+      ...CHART_TIP,
+      formatter: (p) => {
+        const r = rows[p.dataIndex]
+        const extra = r.extra
+          ? `<div style="display:flex;gap:16px;justify-content:space-between">
+              <span style="color:#C8DEF5">占比</span>
+              <b style="color:#FFD98A">${r.extra}</b></div>`
+          : ''
+        return `<div style="font-weight:600;margin-bottom:4px;color:#7DDCFF">${r.label}</div>
+          <div style="display:flex;gap:16px;justify-content:space-between">
+          <span style="color:#C8DEF5">${r.cat}</span>
+          <b>${Number(r.value).toLocaleString()} ${r.unit || ''}</b></div>${extra}`
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: rows.map((r) => r.cat),
+      axisLabel: { color: '#C8DEF5', fontSize: 10.5, interval: 0 },
+      axisLine: { lineStyle: { color: 'rgba(0, 145, 255, 0.25)' } },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        color: '#7DDCFF',
+        fontSize: 10,
+        formatter: (v) => (v >= 1000 ? `${v / 1000}k` : v),
+      },
+      splitLine: { lineStyle: { color: AXIS_SPLIT, type: 'dashed' } },
+    },
+    series: [
+      makeSeries('注册', ['#38BDF8', 'rgba(0, 91, 203, 0.35)', 'rgba(56, 189, 248, 0.35)']),
+      makeSeries('活跃', ['#FFD98A', 'rgba(180, 130, 20, 0.3)', 'rgba(255, 217, 138, 0.3)']),
+    ],
+  }
+}
 
 /* ===== 资产总览：中心总数（主视觉）=====
    四角指标卡与底部 SBOM 指标带已按要求移入中栏「资产流转统计」表格，
@@ -457,6 +570,198 @@ function compareItems(metric) {
     arrow: ARROW[x.dir],
     text: x.dir === 'flat' ? '持平' : `${x.val > 0 ? '+' : ''}${x.val.toLocaleString()}`,
   }))
+}
+
+/* ===== 右栏「日变化数据」：雷达图 ===== */
+/** 雷达轴名：完整标签过长，按语义折成两行；完整名称仍出现在 tooltip 里 */
+const RADAR_AXIS_NAME = {
+  visits: '平台\n访问量',
+  search: '开源项目\n搜索量',
+  download: '源码\n下载',
+  inbound: '代码入库\n反馈量',
+  batchPull: '研发场景\n继承',
+  singlePull: '在线使用\n系统',
+}
+
+/** 雷达 6 轴专色：鲜艳霓虹档（亮青/天蓝/紫/青绿/绿/金），第 3 轴用紫色点缀 */
+const RADAR_AXIS_COLORS = ['#00E5FF', '#00B0FF', '#A855F7', '#00E5C3', '#22E06B', '#FFC53D']
+
+/**
+ * 右栏「日变化数据」：雷达图（6 轴 = 6 项月报统计量，与改造前的 6 张卡一一对应）。
+ * 6 项量级从 42 到 12,680，线性归一会把小值压成贴中心的一条线；
+ * 故按对数归一到 0~1 **只用于图形形状**，实际数值与「较上日/周/月」全部由 tooltip 给出，
+ * 原始数据不做任何改动。
+ */
+function radarChartOption() {
+  const maxValue = Math.max(...monthlyReportStats.map((m) => m.value), 10)
+  const denom = Math.log(maxValue)
+  const normalized = monthlyReportStats.map((m) =>
+    Number((Math.log(Math.max(m.value, 1)) / denom).toFixed(4)),
+  )
+  /* 鲜艳霓虹配色（按反馈再鲜艳一档）：
+     面积 = 径向渐变（中心亮青 0.62 → 中段亮蓝 0.5 → 外缘亮紫 0.3）；
+     描边 = 对角线性渐变（亮青 → 亮蓝 → 亮紫），配同色辉光；
+     网格环与分区底色同步提亮。 */
+  const areaGradient = new echarts.graphic.RadialGradient(0.5, 0.5, 0.92, [
+    { offset: 0, color: 'rgba(0, 229, 255, 0.62)' },
+    { offset: 0.55, color: 'rgba(0, 176, 255, 0.5)' },
+    { offset: 1, color: 'rgba(168, 85, 247, 0.3)' },
+  ])
+  const strokeGradient = new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+    { offset: 0, color: '#00E5FF' },
+    { offset: 0.5, color: '#00B0FF' },
+    { offset: 1, color: '#A855F7' },
+  ])
+  return {
+    animationDuration: 900,
+    // 自带 tooltip 会把 6 项全部列出，按反馈关闭，改由 bindRadarHover 的就近轴浮层只显示当前一项
+    tooltip: { show: false },
+    radar: {
+      // 中心再上移（53% → 50%）：底部名称条占位，整图偏上更平衡
+      center: ['50%', '50%'],
+      // 字号放大一档（11.5 → 13），半径相应从 74% 收到 71%，避免轴名贴边被裁
+      radius: '71%',
+      splitNumber: 4,
+      indicator: monthlyReportStats.map((m, i) => ({
+        name: RADAR_AXIS_NAME[m.key] || m.label,
+        max: 1,
+        // RadarModel 会把 indicator.color 合并进该轴的 nameTextStyle → 轴名按轴着色
+        color: RADAR_AXIS_COLORS[i % RADAR_AXIS_COLORS.length],
+      })),
+      axisName: { fontSize: 13, lineHeight: 17 },
+      axisLine: { lineStyle: { color: 'rgba(125, 211, 252, 0.32)' } },
+      // splitLine.color 支持数组：按环序号轮转，每一圈一个鲜艳色
+      splitLine: {
+        lineStyle: {
+          width: 1,
+          color: [
+            'rgba(0, 229, 255, 0.42)',
+            'rgba(0, 176, 255, 0.38)',
+            'rgba(168, 85, 247, 0.38)',
+            'rgba(0, 229, 195, 0.34)',
+          ],
+        },
+      },
+      splitArea: { areaStyle: { color: ['rgba(0, 229, 255, 0.1)', 'rgba(168, 85, 247, 0.18)'] } },
+    },
+    series: [
+      // 光晕层：同一组数值加粗低透明描边，纯装饰、不参与悬停与缩放
+      {
+        type: 'radar',
+        silent: true,
+        symbol: 'none',
+        lineStyle: {
+          width: 9,
+          color: strokeGradient,
+          opacity: 0.18,
+          shadowBlur: 14,
+          shadowColor: 'rgba(56, 189, 248, 0.4)',
+        },
+        data: [{ value: normalized }],
+        z: 1,
+      },
+      {
+        type: 'radar',
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: {
+          width: 2.2,
+          color: strokeGradient,
+          shadowBlur: 12,
+          shadowColor: 'rgba(56, 189, 248, 0.65)',
+        },
+        itemStyle: {
+          color: '#A5F3FC',
+          borderColor: '#22D3EE',
+          borderWidth: 1.4,
+          shadowBlur: 8,
+          shadowColor: 'rgba(34, 211, 238, 0.7)',
+        },
+        areaStyle: { color: areaGradient },
+        data: [{ value: normalized, name: '月报统计量' }],
+        z: 2,
+      },
+    ],
+  }
+}
+
+/* ===== 上区图表实例：两个容器各自 init，统一 ResizeObserver 与销毁 =====
+   面板随视口缩放（且大屏本体按 vw/vh 流式布局），故用 ResizeObserver 跟随容器。 */
+const userChartRef = ref(null)
+const radarChartRef = ref(null)
+/** [{ chart, ro }]：卸载时统一 disconnect + dispose，避免实例泄漏 */
+const chartEntries = []
+
+function mountChart(el, option) {
+  if (!el) return null
+  const chart = echarts.init(el)
+  chart.setOption(option)
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => chart.resize()) : null
+  ro?.observe(el)
+  chartEntries.push({ chart, ro })
+  return chart
+}
+
+/* ===== 雷达图「就近轴」悬停提示 =====
+   echarts 雷达图的 item tooltip 只能整系列展示（会把 6 项全部列出），
+   按反馈改为只显示鼠标当前指向的那一轴：按鼠标相对雷达中心的角度就近取轴，
+   用 DOM 浮层渲染（样式与 echarts tooltip 保持一致）。 */
+const radarTip = ref({ show: false, html: '', style: {} })
+/** 与 radarChartOption 中 center ['50%','50%']、radius '71%' 保持一致 */
+const RADAR_CENTER = { x: 0.5, y: 0.5 }
+const RADAR_RADIUS = 0.71
+
+/** 鼠标位置命中的雷达轴下标；不在雷达范围内返回 -1 */
+function radarAxisAt(offsetX, offsetY, w, h) {
+  const cx = w * RADAR_CENTER.x
+  const cy = h * RADAR_CENTER.y
+  const radius = (RADAR_RADIUS * Math.min(w, h)) / 2
+  const dx = offsetX - cx
+  const dy = offsetY - cy
+  const dist = Math.hypot(dx, dy)
+  if (dist < 6 || dist > radius * 1.08) return -1
+  const count = monthlyReportStats.length
+  // ECharts 雷达轴自正上方起「逆时针」均分（coordToPoint: x=cx+cosθ, y=cy−sinθ，startAngle=90°）。
+  // 先把鼠标方位角换算回 echarts 的角度体系（屏幕 y 向下，故取 −dy），再按 360/count 就近取整。
+  const theta = (Math.atan2(-dy, dx) * 180) / Math.PI
+  const idx = Math.round((theta - 90) / (360 / count))
+  return ((idx % count) + count) % count
+}
+
+/** 单个指标的浮层内容：名称 + 实际数值 + 较上日/周/月比对（比对一项一行，宽度只取最长一行） */
+function radarTipHtml(m) {
+  const cmp = compareItems(m)
+    .map((c) => {
+      const color = c.dir === 'up' ? '#6EE7A8' : c.dir === 'down' ? '#FF8A7A' : '#8FA8C4'
+      return `<span style="color:${color}">较${c.label === '日' ? '昨日' : `上${c.label}`} ${c.text}</span>`
+    })
+    .join('')
+  return `<div class="rs-tip-title">${m.label}</div>
+    <div class="rs-tip-value">${Number(m.value).toLocaleString()}<em>${m.unit || ''}</em></div>
+    <div class="rs-tip-cmp">${cmp}</div>`
+}
+
+/** 绑定雷达图的就近轴悬停（zrender 层监听，不依赖 echarts 的系列级 tooltip） */
+function bindRadarHover(chart, el) {
+  const zr = chart.getZr()
+  zr.on('mousemove', (e) => {
+    const w = el.clientWidth
+    const h = el.clientHeight
+    const idx = radarAxisAt(e.offsetX, e.offsetY, w, h)
+    if (idx < 0) {
+      radarTip.value.show = false
+      return
+    }
+    radarTip.value = {
+      show: true,
+      html: radarTipHtml(monthlyReportStats[idx]),
+      style: {
+        left: `${Math.min(e.offsetX + 16, Math.max(w - 200, 8))}px`,
+        top: `${Math.min(e.offsetY + 12, Math.max(h - 110, 8))}px`,
+      },
+    }
+  })
+  zr.on('globalout', () => { radarTip.value.show = false })
 }
 
 /* ===== 组织下钻弹窗（按指标下钻）===== */
@@ -636,10 +941,19 @@ const techMarks = computed(() =>
 
 onMounted(() => {
   clockTimer = window.setInterval(() => { now.value = new Date() }, 1000)
+  // 图表在 DOM 就绪后初始化（面板入场动画只做 transform，不影响布局尺寸）
+  mountChart(userChartRef.value, userChartOption())
+  const radarChart = mountChart(radarChartRef.value, radarChartOption())
+  if (radarChart) bindRadarHover(radarChart, radarChartRef.value)
 })
 
 onBeforeUnmount(() => {
   if (clockTimer) clearInterval(clockTimer)
+  chartEntries.forEach(({ chart, ro }) => {
+    ro?.disconnect()
+    chart.dispose()
+  })
+  chartEntries.length = 0
 })
 </script>
 
@@ -973,7 +1287,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: grid;
   /* 上区三栏严格等分（领导要求版面左右对称，不按内容重量配比）：
-     日变化数据 / 资产数 / 用户数 + 安全风险总览 各占三分之一。 */
+     用户数 / 资产数 / 日变化数据 各占三分之一。 */
   grid-template-columns: repeat(3, minmax(0, 1fr));
   /* 关键：上区 2 份、下区 1 份，行高约束在可用空间内，防止内容把整页撑出视口 */
   grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
@@ -1000,18 +1314,20 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--gap);
 }
-/* 栏内纵向配比：
-   左栏「用户数」（放大卡 + KPI 网格）与「日变化数据」= 1 : 1.15 ——
-   日变化改为 2 列 × 3 行后每卡约 85px，足够放下「标签 + 数值 + 三段比对」，
-   比原先单列 6 行所需的 1.35 省下高度，也让出空间给放大卡；
-   中栏「资产总览」吃掉扣掉「资产统计」后的剩余高度（球体按容器查询单位自适应）；
-   右栏「安全风险总览」与「资产趋势」= 1 : 1.2 —— 风险总览回到三行纵排后更吃高度。
+/* 栏内纵向配比（上区现为三个单面板栏，左右两栏各一块面板独占整栏高度）：
+   左栏只有「用户数」、右栏只有「日变化数据」，二者都 flex:1 铺满；
+   中栏「资产总览」吃掉扣掉「资产统计」后的剩余高度（球体按容器查询单位自适应）。
    注意必须用栏位限定，避免影响下区各列的高度。 */
 .rs-col--left .rs-panel--fill { flex: 1; }
-.rs-col--left .rs-panel--mstat { flex: 1.15; }
+.rs-col--right .rs-panel--mstat { flex: 1; }
 .rs-col--center .rs-hero { flex: 1; }
-.rs-col--right .rs-panel--risk { flex: 1; }
-.rs-col--right .rs-panel--chart { flex: 1.2; }
+/* 上区三块面板均已图表化（echarts 深色配置见脚本）：
+   图容器 flex:1 铺满面板剩余高度，「名称 / 数值」由图形与悬停 tooltip 承载。 */
+.rs-chart {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
 
 /* ===== 面板：玻璃面 + 辉光勾边 + 四角科技括号 ===== */
 .rs-panel {
@@ -1328,18 +1644,16 @@ onBeforeUnmount(() => {
 
 /* ---- 底部 SBOM 指标带的样式已随该指标移入「资产流转统计」而删除 ---- */
 
-/* ===== 中栏：资产流转统计（资产维度，替代原风险提醒）===== */
+/* ===== 中栏：资产统计（资产维度）===== */
 /* 面板按内容高度，不参与拉伸 —— 否则卡片下方留白 */
 .rs-panel--hug {
   flex: 0 0 auto;
 }
+/* 4 列 × 1 行 = 4 项资产规模：软件源码数 / 组织制品数 / 开源许可证数量 / 覆盖语言生态数。
+   「本期流转与覆盖」一行与卡片进度条此前已按要求移除（各项量纲不可比，给条会误导）。 */
 .rs-flow-grid {
   flex: none;
   display: grid;
-  /* 4 列 × 2 行 = 8 项：
-     第 1 行 本月上线 / 本月下线 / 本月净增 / SBOM 覆盖率
-     第 2 行 软件源码数 / 组织制品数 / 开源许可证数量 / 覆盖语言生态数
-     （四角指标与 SBOM 由「资产总览」面板移入，故本表由 3 项扩到 8 项） */
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
 }
@@ -1348,7 +1662,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: safe center;
   gap: 5px;
-  /* 列数 3 → 4 后每张卡窄了约 25%，故内边距与最小高度同步收紧 */
   min-height: 62px;
   padding: 7px 10px;
   /* 底色加深，与浅色文字拉开对比（投屏环境光会进一步压低对比） */
@@ -1359,7 +1672,6 @@ onBeforeUnmount(() => {
 }
 .rs-flow-label {
   flex-shrink: 0;
-  /* 4 列后卡宽收窄，字号随之下调（原 11.5~14px 在窄卡内会挤压数值行） */
   font-size: clamp(10.5px, 0.7vw, 12.5px);
   font-weight: 500;
   color: #C8DEF5;
@@ -1370,8 +1682,6 @@ onBeforeUnmount(() => {
 .rs-flow-value { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
 .rs-flow-num {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  /* 4 列后卡宽收窄，主数值从 30px 档收到 23px 档（配 letter-spacing 微收），
-     避免「24,897」这类 5 位数在窄卡里溢出被裁 */
   font-size: clamp(15px, 1.15vw, 23px);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1386,9 +1696,6 @@ onBeforeUnmount(() => {
   font-size: clamp(9.5px, 0.62vw, 11.5px);
   color: #A8C6E6;
 }
-/* 注：原先此处有 .rs-flow-bar / .rs-flow-bar i / .rs-flow-bar--empty 三组样式，
-   用于卡片下方的进度条。进度条已按要求全部去掉，样式随之删除。
-   附带原因：本表各项量纲不可比（「项」/「种」/百分比混排），给条会误导。 */
 
 .rs-orb {
   position: relative;
@@ -1567,25 +1874,21 @@ onBeforeUnmount(() => {
   color: #6EE7A8;
 }
 
-/* ===== 左栏：用户行为 KPI ===== */
-/* 用户数面板（上区左栏上方）：与「日变化数据」按 1 : 1.35 分配栏高 ——
-   「注册用户 / 注册企业」放大卡与下方 KPI 网格按 1:1 分摊本面板剩余空间。 */
+/* ===== 左栏：用户数（放大卡 + 活跃占比柱图）===== */
+/* 面板占满整栏高度：放大卡按内容高度置顶，柱图（.rs-chart 为 flex:1）吃掉剩余高度。 */
 .rs-panel--fill {
   flex: 1;
 }
-.rs-panel--fill .rs-kpi-featured { flex: 1; }
-.rs-panel--fill .rs-kpi-grid {
-  flex: 1;
-  grid-auto-rows: minmax(46px, 1fr);
-}
+.rs-panel--fill .rs-kpi-featured { flex: none; }
 
-/* 放大展示卡（注册用户数 / 注册企业数）：领导要求突出，占两列、数值更大 */
+/* 放大展示卡（注册用户数 / 注册组织数）：领导要求突出，数值更大 */
 .rs-kpi-featured {
   flex: none;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
-  margin-bottom: 7px;
+  /* 与下方柱图保持呼吸间距（用户反馈柱图贴卡片太紧，再次加大） */
+  margin-bottom: 24px;
 }
 .rs-kpi-featured-card {
   display: flex;
@@ -1602,26 +1905,64 @@ onBeforeUnmount(() => {
 }
 .rs-kpi-featured-label {
   flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  color: #B9D6F2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 放大卡图标：做成带底色的图标块（30px 圆角方块），颜色与底色由卡片的 .is-* 类注入 */
+.rs-kpi-featured-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.14);
+}
+.rs-kpi-featured-icon :deep(svg) {
+  display: block;
+  width: 21px;
+  height: 21px;
+}
+/* 按实体分色：注册用户 = 青蓝，注册组织 = 金色（图标底色、数字、描边同步） */
+.rs-kpi-featured-card.is-regUser { border-color: rgba(56, 189, 248, 0.55); }
+.rs-kpi-featured-card.is-regOrg { border-color: rgba(255, 217, 138, 0.5); }
+.rs-kpi-featured-card.is-regUser .rs-kpi-featured-icon {
+  color: #7DDCFF;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+.rs-kpi-featured-card.is-regOrg .rs-kpi-featured-icon {
+  color: #FDE68A;
+  background: rgba(253, 230, 138, 0.14);
+  border-color: rgba(253, 230, 138, 0.5);
+}
+.rs-kpi-featured-card.is-regUser .rs-kpi-featured-num { color: #7DDCFF; }
+.rs-kpi-featured-card.is-regOrg .rs-kpi-featured-num { color: #FFD98A; }
 .rs-kpi-featured-value {
   display: flex;
   align-items: baseline;
   gap: 3px;
   min-width: 0;
 }
-/* 放大：左栏现在只承载「用户数」，字号比普通指标卡再大一档 */
+/* 放大：左栏现在只承载「用户数」，字号比普通指标卡再大一档；
+   字体用全局已加载的 Orbitron（科技感数字字体），比 DIN 更有辨识度 */
 .rs-kpi-featured-num {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(38px, 3.2vw, 62px);
+  font-family: 'Orbitron', 'DIN Alternate', ui-monospace, monospace;
+  font-size: clamp(42px, 3.6vw, 68px);
   font-weight: 700;
+  letter-spacing: 0.01em;
   color: #7DDCFF;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 20px rgba(56, 189, 248, 0.75);
+  /* 去掉文字辉光（曾反馈「光影感不科技」）：纯净实色数字更利落 */
+  text-shadow: none;
 }
 .rs-kpi-featured-unit {
   flex-shrink: 0;
@@ -1629,172 +1970,109 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--text-sub);
 }
-.rs-kpi-grid {
-  /* 不参与拉伸：行高固定，卡片不被压扁（曾用 minmax(0,1fr)，矮屏下会把
-     卡片压到文字裁切）。改为定高后靠下方面板吸收剩余空间。 */
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  /* 行高 minmax(46px, auto)：下限保证紧凑美观，上限按内容撑开 ——
-     写死高度会让「标签 + 数值」放不下而被 overflow 裁掉（实测 V2 曾裁 6px）。
-     行数自适应：用户行为总览 8 项（4 行）、开源资产使用 6 项（3 行）。 */
-  grid-auto-rows: minmax(46px, auto);
-  gap: 7px;
-}
-.rs-kpi {
-  display: flex;
-  flex-direction: column;
-  /* 与 V2 统一：标签与数值居中聚拢 + 适中间隙。
-     用 safe center 而非普通 center —— 内容万一超出时退化为顶对齐，
-     不会把顶部「指标标题」裁掉（space-between 会把二者顶到卡片两端，过散）。 */
-  justify-content: safe center;
-  gap: 8px;
-  padding: 5px 10px;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.rs-kpi-label {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  line-height: 1.3;
-  color: var(--text-sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* 数值 + 单位：同行基线对齐 */
-.rs-kpi-value {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  min-width: 0;
-}
-.rs-kpi-num {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(18px, 1.5vw, 28px);
-  font-weight: 700;
-  color: var(--brand-bright);
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
-}
-.rs-kpi-unit {
-  flex-shrink: 0;
-  font-style: normal;
-  font-size: 10px;
-  color: var(--text-sub);
-}
 
-/* ===== 左栏：平台使用情况（月报统计量 7 项 + 比对箭头）===== */
-/* 需求要点：① 每项要展示「较上日/周/月」的增/平/减与趋势箭头；
-             ② 点击卡片可下钻看组织/用户级脱敏统计。 */
-.rs-mstat-grid {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-/* 上区左栏「日变化数据」：6 项按「一行两个」排成 2 列 × 3 行。
-   此前是纵向单列 6 行，每张卡被压到约 45px，标签 + 数值之下的
-   「较上日 / 周 / 月」三段比对放不下被裁掉；改成 2 列后每卡高度约翻倍，
-   三段比对完整露出，同时仍保持一行一行的横向比较节奏。 */
-.rs-col--left .rs-mstat-grid {
+/* ===== 上区右栏：日变化数据（雷达图 + 名称条）===== */
+/* 雷达图占面板主体，外面包一层定位容器用于放置自绘的「就近轴」悬停浮层 */
+.rs-radar-wrap {
+  position: relative;
   flex: 1;
   min-height: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 6px;
-}
-.rs-col--left .rs-mstat { justify-content: center; }
-/* 卡片变窄后三段比对不再挤在一行：允许折行，宁可两行也不 ellipsis 掉数值 */
-.rs-col--left .rs-mstat-compare {
-  gap: 6px;
-  row-gap: 2px;
-  flex-wrap: wrap;
-  overflow: visible;
-}
-/* 指标卡：本体是 button（可点击下钻），故需重置按钮默认样式 */
-.rs-mstat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 7px 9px;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  background: rgba(6, 34, 70, 0.55);
-  border: 1px solid var(--hairline-soft);
+}
+/* 底部名称条只放指标名（数值与比对在悬停浮层中），
+   点击名称仍可下钻，与改造前「点击指标卡下钻」的行为一致。 */
+.rs-chart--radar {
+  flex: 1;
+  min-height: 0;
+}
+/* 就近轴浮层：只显示鼠标当前指向的那一个指标，样式对齐 echarts tooltip。
+   宽度随内容自适应（max-content）——此前写死 min/max-width 且比对不换行，
+   长文本会溢出卡片；现在宽度只取最长一行，max-width 仅作兜底。 */
+.rs-radar-tip {
+  position: absolute;
+  z-index: 5;
+  width: max-content;
+  max-width: 240px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  pointer-events: none;
+  background: rgba(8, 24, 46, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
   border-radius: 6px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: border-color 0.2s, background 0.2s;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
 }
-.rs-mstat:hover {
-  border-color: rgba(34, 211, 238, 0.6);
-  background: rgba(10, 46, 92, 0.8);
+.rs-radar-tip :deep(.rs-tip-title) {
+  margin-bottom: 3px;
+  font-size: 11px;
+  color: #C8DEF5;
 }
-.rs-mstat-label {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  color: var(--text-sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rs-mstat-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
-.rs-mstat-num {
+.rs-radar-tip :deep(.rs-tip-value) {
   font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(15px, 1.1vw, 21px);
+  font-size: 17px;
   font-weight: 700;
   color: #7DDCFF;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
 }
-.rs-mstat-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
-
-/* 比对行：三格（日/周/月）横排，颜色区分增/减/持平 */
-.rs-mstat-compare {
+.rs-radar-tip :deep(.rs-tip-value em) {
+  margin-left: 2px;
+  font-style: normal;
+  font-size: 10px;
+  color: #A8C6E6;
+}
+.rs-radar-tip :deep(.rs-tip-cmp) {
+  margin-top: 3px;
   display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.rs-legend-chips {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 6px;
+}
+/* 名称条本体是 button（可点击下钻），需重置按钮默认样式。
+   文字色由模板按雷达轴色内联注入（与上方 6 条轴一一对应），故此处不再写死 color。 */
+.rs-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-width: 0;
-  font-size: 9.5px;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #A8C6E6;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(6, 34, 70, 0.55);
+  border: 1px solid var(--hairline-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
 }
-.rs-mstat-cmp { display: inline-flex; align-items: center; gap: 2px; color: var(--text-dim); }
-.rs-mstat-cmp-label { font-style: normal; opacity: 0.85; }
-.rs-mstat-cmp-num { font-weight: 700; font-variant-numeric: tabular-nums; }
-
-/* 趋势箭头：用 CSS 三角绘制，避免依赖字体符号（投屏时字体缺失会变豆腐块） */
-.rs-mstat-arrow {
-  width: 0;
-  height: 0;
-  border-left: 3.5px solid transparent;
-  border-right: 3.5px solid transparent;
-}
-/* 增加：向上实心三角 + 绿 */
-.rs-mstat-arrow.is-up {
-  border-bottom: 6px solid #34D399;
-  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.7));
-}
-/* 减少：向下实心三角 + 红 */
-.rs-mstat-arrow.is-down {
-  border-top: 6px solid #FF8A7A;
-  filter: drop-shadow(0 0 4px rgba(255, 107, 107, 0.7));
-}
-/* 持平：短横线 + 灰 */
-.rs-mstat-arrow.is-flat {
+/* 轴色圆点：颜色由模板内联注入 */
+.rs-chip-dot {
   width: 7px;
-  height: 2px;
-  border: none;
-  background: #8FA8C4;
-  border-radius: 1px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
 }
-.rs-mstat-cmp.is-up .rs-mstat-cmp-num { color: #6EE7A8; }
-.rs-mstat-cmp.is-down .rs-mstat-cmp-num { color: #FF8A7A; }
-.rs-mstat-cmp.is-flat .rs-mstat-cmp-num { color: #8FA8C4; }
+.rs-chip:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  background: rgba(10, 46, 92, 0.85);
+}
+
+/* 注：原「日变化数据」的 6 张指标卡（.rs-mstat-grid / .rs-mstat-* 及日/周/月
+   比对行、CSS 三角箭头）已随雷达图改造整体移除，样式一并删除，避免死代码；
+   数值与「较上日/周/月」比对现由图表 tooltip 承载（深色 tooltip 见脚本 CHART_TIP）。 */
 
 /* ===== 左栏：组织活跃度 Top10（组织维度 + 往期名次比对 + 点击下钻）===== */
 /* 需求要点：① 不再展示用户姓名（个人敏感信息）；② 改为组织维度；
@@ -1934,98 +2212,15 @@ onBeforeUnmount(() => {
    超出时按既有约定允许手动滚动（不为挤空间牺牲可读性）。 */
 .rs-bottom .rs-org-rank { grid-auto-rows: minmax(24px, 1fr); }
 
-/* ===== 上区右栏：安全风险总览（置于资产趋势之上，一行一项、共三行）===== */
-/* 口径 = 最新漏洞动态 + 恶意代码检测动态的汇总：漏洞总数 / 高危漏洞数 / 恶意代码检出。
-   按领导要求回到「一行一个数据、总共三行」：标签在左、数值在右，
-   数值可用整行宽度放大，投屏比三项横排更清楚。 */
-.rs-panel--risk { flex: 1; }
-.rs-risk-list {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  /* 三项纵向均分：1 列 × 3 行 */
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 6px;
-}
-/* 三行各用一个醒目颜色立起来：橙（漏洞总量）/ 红（高危）/ 紫（恶意代码）。
-   漏洞类不再用青蓝 —— 青蓝在本项目是「中性信息 / 资产」语义，
-   挂在风险行上会被读成「一切正常」，与要传达的告警感相反。
-   颜色统一走 --risk-* 变量，边框、底色、辉光、左侧色条跟随 tone 一起变，
-   避免出现「边框红了但底色还是蓝的」这种半套配色。
-   默认值取橙（而非此前的青蓝）：任何未匹配到 tone 的行也不会退化成蓝色。 */
-.rs-risk-row {
-  --risk-line: rgba(255, 159, 46, 0.75);
-  --risk-fill: rgba(255, 159, 46, 0.2);
-  --risk-glow: rgba(255, 159, 46, 0.26);
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-  padding: 4px 12px 4px 10px;
-  background: linear-gradient(90deg, var(--risk-fill) 0%, rgba(6, 34, 70, 0.55) 55%);
-  border: 1px solid var(--risk-line);
-  border-left: 3px solid var(--risk-line);
-  border-radius: 6px;
-  box-shadow: 0 0 12px var(--risk-glow), inset 0 0 18px var(--risk-glow);
-}
-.rs-risk-row.is-danger {
-  --risk-line: rgba(255, 77, 77, 0.72);
-  --risk-fill: rgba(255, 77, 77, 0.2);
-  --risk-glow: rgba(255, 77, 77, 0.26);
-}
-.rs-risk-row.is-warn {
-  --risk-line: rgba(255, 159, 46, 0.75);
-  --risk-fill: rgba(255, 159, 46, 0.2);
-  --risk-glow: rgba(255, 159, 46, 0.26);
-}
-/* 恶意代码：紫 —— 与漏洞（橙/红）在色相上彻底分开，一眼能分出「这是另一种威胁」 */
-.rs-risk-row.is-malware {
-  --risk-line: rgba(192, 132, 252, 0.72);
-  --risk-fill: rgba(192, 132, 252, 0.2);
-  --risk-glow: rgba(192, 132, 252, 0.26);
-}
-.rs-risk-label {
-  font-size: 11px;
-  color: var(--text-sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rs-risk-value { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
-.rs-risk-num {
-  font-family: 'DIN Alternate', ui-monospace, monospace;
-  font-size: clamp(20px, 1.6vw, 32px);
-  font-weight: 700;
-  /* 默认中性冷白（不用青蓝）：实际三行都由 tone 覆盖，这里只做兜底 */
-  color: #D7E6F5;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 14px rgba(214, 230, 246, 0.35);
-}
-.rs-risk-unit { flex-shrink: 0; font-style: normal; font-size: 10px; color: var(--text-sub); }
-/* 三项按语义分色：漏洞总量橙 / 高危红 / 恶意代码紫 */
-.rs-risk-row.is-danger .rs-risk-num {
-  color: #FF8F8F;
-  text-shadow: 0 0 14px rgba(255, 92, 92, 0.5);
-}
-.rs-risk-row.is-warn .rs-risk-num {
-  color: #FFB258;
-  text-shadow: 0 0 14px rgba(255, 159, 46, 0.5);
-}
-.rs-risk-row.is-malware .rs-risk-num {
-  color: #D8B4FE;
-  text-shadow: 0 0 14px rgba(192, 132, 252, 0.5);
-}
+/* 注：上区右栏原有「安全风险总览」（.rs-panel--risk / .rs-risk-* 三行分色）
+   与「资产趋势」（.rs-panel--chart + ScreenLineChart），两个面板已按要求整体移除，
+   其全部样式与 --risk-* 颜色变量随之删除（漏洞/恶意代码仍在下区两张明细表中体现）。 */
 
 /* 各面板依次入场：上区从左到右，下区从左上到右下 */
 .rs-col--left .rs-panel:nth-child(1) { animation-delay: 0.05s; }
 .rs-col--center .rs-panel:nth-child(1) { animation-delay: 0.09s; }
 .rs-col--center .rs-panel:nth-child(2) { animation-delay: 0.16s; }
 .rs-col--right .rs-panel:nth-child(1) { animation-delay: 0.07s; }
-.rs-col--right .rs-panel:nth-child(2) { animation-delay: 0.14s; }
 .rs-bottom .rs-panel:nth-child(1) { animation-delay: 0.22s; }
 .rs-bottom .rs-panel:nth-child(2) { animation-delay: 0.26s; }
 .rs-bottom .rs-panel:nth-child(3) { animation-delay: 0.30s; }
@@ -2040,62 +2235,17 @@ onBeforeUnmount(() => {
   .rs-screen { padding: 8px 12px 3px; }
   .rs-top { height: clamp(44px, 6vh, 58px); padding-bottom: 6px; }
   .rs-panel { padding: 7px 10px 8px; }
-  /* KPI 网格的列数：本断点下该网格只有 4 项（活跃用户/活跃组织/UV/PV），
-     改为「1 行 4 列」正好整除、不会出现末行错位，比 2 列 2 行省约 45px；
-     详见下方「上区左栏」的矮屏压缩说明。
-     （历史上该网格曾有 8 项，3 列会排成 3+3+2 而错位，所以当时固定 2 列。） */
-  .rs-kpi { padding: 4px 7px; }
-  .rs-kpi-label { font-size: 9.5px; }
-  /* 注：原先此处收紧「四角指标卡」——该卡已移入资产流转统计，规则随之删除 */
-  .rs-footer { height: 26px; }
-
-  /* ---- 上区左栏（用户数 / 日变化数据）的矮屏专用压缩 ----
-     1366×768 这类屏上，上区 2/3 约 450px，左栏两块按栏内配比分掉后
-     各只剩 200px 出头。而放大卡的数字是 vw 驱动（矮屏不会跟着缩）、
-     KPI 与日变化卡又都有可读下限，原样排会被面板的 overflow:hidden 裁掉。
-     处理办法：
-       ① 放大卡显式下压字号与内边距（clamp 下限从 38px 降到 26px）；
-       ② 4 项活跃度指标由「2 列 × 2 行」改为「1 行 × 4 列」—— 4 项正好
-          整除 4 列，不会出现末行错位（这一点与此前 8 项时不能改 3 列
-          的情况不同），单此一项就省下约 45px；
-       ③ 日变化卡的比对行改为不折行（字号同步降一档），每行省一行文字高；
-       ④ 兜底：仍差几像素时让「网格」自己纵向滚动（不是整块面板滚，
-          以免四角装饰跟着滚走），宁可滚一点也不要裁掉「较上日/周/月」。 */
-  .rs-kpi-featured { margin-bottom: 5px; gap: 6px; }
+  /* ---- 上区矮屏压缩：放大卡与名称条收紧，图表本身随容器自适应 ---- */
+  .rs-kpi-featured { margin-bottom: 18px; gap: 6px; }
   .rs-kpi-featured-card { padding: 7px 9px; gap: 3px; }
-  .rs-kpi-featured-label { font-size: 11px; }
+  .rs-kpi-featured-label { font-size: 12px; }
   .rs-kpi-featured-num {
-    font-size: clamp(26px, 2.2vw, 42px);
-    text-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+    font-size: clamp(29px, 2.4vw, 46px);
+    text-shadow: none;
   }
-  .rs-panel--fill .rs-kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-auto-rows: minmax(38px, 1fr);
-    gap: 5px;
-  }
-  /* 矮屏下卡片被网格拉到 80px 上下，内容却「居中聚拢」→ 标签与数值之间、
-     卡片上下各留一块死白（本次反馈：指标上下边距很大、不协调）。
-     改为 space-evenly：留白按卡片高度均分，标签贴上、数值压中、比对接下，
-     卡片再高也是均匀分布，不再出现「中间一坨、上下两大块空」。
-     mstat 必须带 .rs-col--left 前缀，否则压不过基础样式的 .rs-col--left .rs-mstat。 */
-  .rs-kpi { justify-content: space-evenly; padding: 3px 6px; gap: 3px; }
-  .rs-panel--fill .rs-kpi-featured-card { justify-content: space-evenly; }
-  .rs-kpi-num { font-size: clamp(15px, 1.15vw, 19px); }
-  .rs-col--left .rs-mstat { justify-content: space-evenly; padding: 5px 7px; gap: 2px; }
-  .rs-mstat-label { font-size: 10px; }
-  .rs-mstat-num { font-size: clamp(14px, 1vw, 18px); }
-  .rs-mstat-compare { font-size: 9px; gap: 4px; row-gap: 1px; }
-  /* 日变化 6 项：矮屏下由「2 列 × 3 行」改为「3 列 × 2 行」。
-     2 列时卡片约 190px 宽、每行只有约 61px 高，标签 + 数值 + 三段比对
-     无论如何塞不进一行（实测需要约 71px）；改 3 列后卡片变窄、三段比对
-     各占一行完整露出，但总高从 3 行降到 2 行，反而整体装得下。
-     6 项正好整除 3 列，不会出现末行错位。 */
-  .rs-col--left .rs-mstat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
-  }
-  .rs-panel--fill .rs-kpi-grid,
-  .rs-col--left .rs-mstat-grid { overflow-y: auto; }
+  .rs-chip { padding: 3px 6px; font-size: 11px; }
+  .rs-legend-chips { gap: 4px; margin-top: 4px; }
+  .rs-footer { height: 26px; }
 }
 
 /* --- 二档：宽度不足（笔记本 / 小尺寸屏）时收紧横向密度 --- */
@@ -2120,7 +2270,7 @@ onBeforeUnmount(() => {
   .rs-viewport { height: auto; min-height: 100vh; overflow: visible; }
   .rs-screen { height: auto; min-height: 100vh; padding: 10px 10px 6px; }
   .rs-main {
-    /* 单栏堆叠：上区三栏 + 下区三列表与风险总览全部按内容高度纵向排列 */
+    /* 单栏堆叠：上区三栏（用户数 / 资产数 / 日变化）与下区三列表全部按内容高度纵向排列 */
     grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: auto;
   }
@@ -2132,12 +2282,9 @@ onBeforeUnmount(() => {
   .rs-col--left .rs-panel,
   .rs-col--right .rs-panel,
   .rs-col--center .rs-hero { flex: none; }
-  /* 面板不再整栏拉伸时，放大卡 / KPI 网格 / 日变化列表回到按内容高度 */
-  .rs-panel--fill .rs-kpi-featured,
-  .rs-panel--fill .rs-kpi-grid,
-  .rs-col--left .rs-mstat-grid { flex: none; }
-  .rs-panel--fill .rs-kpi-grid,
-  .rs-col--left .rs-mstat-grid { grid-auto-rows: minmax(46px, auto); }
+  /* 面板不再整栏拉伸时，图表改为按固定高度呈现（容器高度为 0 会画不出图） */
+  .rs-chart--user,
+  .rs-chart--radar { flex: none; height: 300px; }
   .rs-panel { min-height: 200px; }
   /* 窄屏下卡片回到常规流与球体共用高度，stage 必须留出「球体 + 两行卡片」的空间。
      注意 container-type: size 含 contain: size —— 内容不会撑高容器，
@@ -2160,10 +2307,7 @@ onBeforeUnmount(() => {
     /* 跨满整行 */
     grid-column: 1 / -1;
   }
-  /* 注：原先此处让「四角指标卡」脱离绝对定位回到常规流 —— 该卡已移入
-     资产流转统计，规则随之删除 */
-  /* 资产流转统计：窄屏/极矮屏下 4 列太挤（每列约 1/4 宽，
-     「开源许可证数量」这类 7 字标签 + 数值会被裁），降为 2 列 × 4 行 */
+  /* 资产统计：窄屏/极矮屏下 4 列太挤（「开源许可证数量」这类 7 字标签会被裁），降为 2 列 */
   .rs-flow-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2179,10 +2323,8 @@ onBeforeUnmount(() => {
   .rs-status { display: none; }
   .rs-brand-title { font-size: 16px; letter-spacing: 2px; }
   .rs-clock { font-size: 11px; }
-  .rs-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(52px, auto); }
-  .rs-kpi-label { font-size: 10px; white-space: normal; }
-  /* 注：原先此处再压一档「四角指标卡」字号与 SBOM 指标带换行 —— 二者已移入
-     资产流转统计，规则随之删除（该表在窄屏由 4 列降为 2 列，见流转统计样式） */
+  /* 名称条在移动端两列排布，避免 6 个 7 字标签挤成一行 */
+  .rs-legend-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rs-panel { min-height: 180px; }
 }
 

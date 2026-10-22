@@ -174,7 +174,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { getOrgAdminCount, getOrgMemberships, getMemberships, getMembership, addOrgMember, dissolveOrg } from '../../data/orgMembershipData.js'
 import { getOrgs, createOrg, deleteOrgRaw, INDUSTRY_OPTIONS } from '../../data/orgStore.js'
 import { USERS, ORGS } from '../../data/orgData.js'
-import { hasRole } from '../../data/permissionData.js'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 
 const route = useRoute()
@@ -191,15 +190,6 @@ const currentUser = computed(() => USERS.find((u) => u.id === route.query.user) 
 const currentUserId = computed(() => currentUser.value?.id)
 /** 当前操作人标识（用户名）：留痕统一记用户名 */
 const currentOperator = computed(() => currentUser.value?.username || currentUser.value?.name || '系统')
-
-/**
- * 是否为跨组织的平台角色。
- * 判定依据是**平台角色**（permissionData 的角色绑定），不是 user.role ——
- * 两者是独立两套：例如 user-mem-4 的 role='member'，但平台角色含 platform-admin。
- * 平台管理员需要跨组织管理（新建组织、指定管理员），故可见全量组织；
- * 其余角色只能看到自己所属的组织。
- */
-const isPlatformAdmin = computed(() => hasRole(currentUserId.value, 'platform-admin'))
 
 /**
  * 组织数据版本号（响应式）。
@@ -282,6 +272,8 @@ function doCreateOrg() {
     name: f.name, industry: f.industry, description: f.description,
     contactEmail: f.contactEmail, contactPhone: f.contactPhone,
     operator: currentOperator.value,
+    // 记录创建者角色快照：本页任何角色都能建组织，需区分是否平台管理员所建
+    operatorId: currentUserId.value,
   })
   if (!res.ok) {
     createMsgError.value = true
@@ -331,12 +323,17 @@ function isBuiltinOrg(orgId) {
 
 /**
  * 当前用户能否删除该组织（决定按钮是否显示）。
- * 平台管理员：任意组织；组织管理员：仅自己任管理员的组织。
- * 内置组织一律不可删。
+ *
+ * 口径必须与数据层 dissolveOrg **完全一致**：仅「自己在该组织中任管理员」可删。
+ * 本页**不给平台管理员任何全局豁免** —— 否则会出现「按钮给了、点了被拒」
+ * 的误导（实测：平台管理员兼任某组织普通成员时，按钮可见但数据层返回
+ * 「仅组织管理员可删除本组织」）。用户已明确本页口径为「只删自己任组织管理员的」。
+ *
+ * 删不了的组织，自有其去处：内置组织不可删；成员建的组织由其组织管理员在本页删；
+ * 平台级删除（含「平台管理员创建的组织」）在「平台权限设置 → 组织列表」。
  */
 function canDeleteOrg(orgId) {
   if (isBuiltinOrg(orgId)) return false
-  if (isPlatformAdmin.value) return true
   return getMembership(currentUserId.value, orgId)?.orgRole === 'admin'
 }
 

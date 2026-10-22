@@ -295,6 +295,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onPanelViewportChange, true)
   window.removeEventListener('resize', onPanelViewportChange)
 })
+
+/**
+ * 把焦点移入本下拉（不展开面板）。
+ * 供父组件做「连贯性引导」用，例如组织归属里选中组织后，
+ * 把焦点引到新行夹带出来的角色下拉上，用户接着就能改角色，
+ * 不必回头找那一行、再点一次。
+ * 必须经 defineExpose 暴露：组件根节点是 div，父级 ref 拿到的是组件实例，
+ * 未暴露时 el 上不存在该方法。
+ */
+function focus() {
+  nextTick(() => inputRef.value?.focus())
+}
+defineExpose({ focus })
 </script>
 
 <style scoped>

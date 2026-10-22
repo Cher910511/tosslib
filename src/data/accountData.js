@@ -13,7 +13,7 @@
 import { USERS } from './orgData.js'
 import { getRegisteredUsers } from './inviteData.js'
 import { addOrgMember, getMemberships, removeUserMemberships } from './orgMembershipData.js'
-import { getMemberRoles, getMemberRolesOf, validateRoleMutex, setMemberRoles, isPlatformRole } from './permissionData.js'
+import { getMemberRoles, getMemberRolesOf, validateRoleMutex, setMemberRoles, isPlatformRole, removeMemberRoles } from './permissionData.js'
 import { findOrg } from './orgStore.js'
 
 const ACCOUNT_KEY = 'tosslib_created_accounts'
@@ -504,14 +504,22 @@ export function createAccount(opts = {}) {
  * —— 否则该组织会失去管理员，与「组织必须有一名管理员」冲突。
  * 先校验再落库，避免「账号删了但组织身份没清干净」的半完成状态。
  *
+ * 级联清理平台角色绑定：账号信息存于本模块，而平台角色存于 permissionData，
+ * 两条链路分开存储。只删账号会让角色绑定变成孤儿 —— 成员列表有「绑定表有、
+ * 账号表无的记录也展示」的兜底逻辑，孤儿绑定会渲染成一行姓名显示为 id 的**幽灵行**
+ * （实测确认：删账号后成员列表总数 +1，末页出现 user-created-xxx / 治理人员 这样一行）。
+ *
  * @returns {{ ok: boolean, reason?: string }}
  */
 export function deleteAccount(userId) {
   if (!userId) return { ok: false, reason: '缺少账号标识' }
+  // 先做可能失败的校验（唯一管理员检查），通过后再落库，避免半完成状态
   const res = removeUserMemberships(userId)
   if (!res.ok) return res
   persist(load().filter((u) => u.id !== userId))
   writeDisabled(readDisabled().filter((id) => id !== userId))
+  // 平台角色绑定：用绕过守卫的专用函数（账号已注销，不该再受「平台角色不可改」约束）
+  removeMemberRoles(userId)
   return { ok: true }
 }
 
