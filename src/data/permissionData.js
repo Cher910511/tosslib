@@ -169,7 +169,7 @@ export const MENU_PERMISSIONS = [
   { id: 'ai-assistant', name: 'AI 助手', desc: '智能助手，辅助完成开源选型、组件比对、合规校验等', grants: ['member', 'admin', 'audit-expert'] },
   { id: 'signature-verify', name: '签名验证', desc: '软件、组件的签名验证，支持签名文件上传、验证执行与结果查看', grants: ['member', 'admin'] },
   { id: 'gov-tools', name: '治理工具', desc: '治理功能与流水线集成，覆盖软件组成分析、漏洞检测、许可证合规、SBOM 生成', grants: ['member', 'admin'] },
-  { id: 'dev-tools', name: '研发工具', desc: '全链路开源治理工具集：软件超级工厂、VSCode 插件、Notebook 等', grants: ['member', 'admin'] },
+  { id: 'dev-tools', name: '研发工具', desc: '全链路开源治理工具集：工具下载（软件超级工厂、VSCode 插件、开源软件摸底工具）与在线工具（软件物料清单生成）', grants: ['member', 'admin'] },
   { id: 'org-manage', name: '组织管理', desc: '组织驾驶舱、企业认证、成员邀请、成员管理、预警信息、版本火车等', grants: ['admin'] },
   { id: 'code-demand', name: '软件入库需求反馈', desc: '上传需入库的软件列表，与看护团队治理功能联动', grants: ['admin'] },
   { id: 'care-assign', name: '软件看护-入库需求反馈分配', desc: '接收平台分配的用户软件治理需求，分配治理任务', grants: ['audit-expert'] },

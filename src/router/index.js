@@ -37,6 +37,9 @@ import BoardsPage from '../views/admin/report/BoardsPage.vue'
 import OpenApiDocView from '../views/admin/OpenApiDocView.vue'
 import ApiKeyManageView from '../views/admin/ApiKeyManageView.vue'
 import ToolsetView from '../views/admin/ToolsetView.vue'
+import SbomToolLayout from '../views/admin/sbom/SbomToolLayout.vue'
+import SbomGenerateView from '../views/admin/sbom/SbomGenerateView.vue'
+import SbomAnalysisView from '../views/admin/sbom/SbomAnalysisView.vue'
 import PersonalSettingsView from '../views/admin/PersonalSettingsView.vue'
 import StandardBuildView from '../views/standard/StandardBuildView.vue'
 import IntelVulnView from '../views/intel/IntelVulnView.vue'
@@ -219,6 +222,30 @@ const routes = [
         name: 'toolset',
         component: ToolsetView,
         meta: { adminTitle: '工具集' },
+      },
+      // 工具集 · 在线工具：软件物料清单（SBOM）
+      {
+        path: 'toolset/sbom',
+        component: SbomToolLayout,
+        meta: { adminTitle: '软件物料清单' },
+        children: [
+          {
+            path: '',
+            redirect: { name: 'sbom-generate' },
+          },
+          {
+            path: 'generate',
+            name: 'sbom-generate',
+            component: SbomGenerateView,
+            meta: { adminTitle: 'SBOM 生成' },
+          },
+          {
+            path: 'analysis',
+            name: 'sbom-analysis',
+            component: SbomAnalysisView,
+            meta: { adminTitle: '详情分析' },
+          },
+        ],
       },
       // ==================== 数据看板 ====================
       {

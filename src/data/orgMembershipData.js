@@ -27,8 +27,11 @@ const STORAGE_KEY = 'tosslib_org_memberships'
  *        会把「不在种子里的存储记录」当作新增追加回来，仅改种子不会让它们消失。
  *        实测：不递增时仍残留 36 条演示组织的普通成员记录，
  *        成员列表的「组织角色」列继续被撑长（正是本次要修的问题）。
+ * 版本 3：平台管理员（user-super-1）新增组织归属，使「组织管理」页初始非空。
+ *        同样必须递增：组织管理页按「当前用户所属组织」过滤，
+ *        老存档里读不到新种子的这两条记录，页面仍会是空的。
  */
-const SEED_VERSION = 2
+const SEED_VERSION = 3
 
 /** 组织身份取值 */
 /**
@@ -62,7 +65,6 @@ function buildSeed() {
   ]
   let seq = 0
   USERS.forEach((u) => {
-    if (u.role === 'superadmin') return // 平台管理员不属于任何组织
     getUserOrgIds(u).forEach((orgId) => {
       const org = ORGS.find((o) => o.id === orgId)
       if (!org) return
@@ -84,6 +86,37 @@ function buildSeed() {
    * 否则组织列表里它们会显示「管理员 0 人 / 成员 0 人」，
    * 且「最后一名管理员不可移除」等规则因无管理人而失去意义。
    */
+  /**
+   * 平台管理员的组织归属。
+   *
+   * 为什么需要单独补（原先这里是 `if (u.role === 'superadmin') return` 直接跳过）：
+   *   平台管理员（user-super-1）的 orgIds 为空，而「组织管理」页默认身份正是他
+   *   （侧栏与组织页都取 `route.query.user || USERS[0]`），于是**页面初始永远是空的**
+   *   —— 演示时第一眼看到「您尚未加入任何组织」，看不出这个页面有什么内容。
+   *
+   * 为什么可以让他属于组织（原先的跳过规则已过时）：
+   *   平台**角色**与**组织角色**是两套独立体系。项目里早有反例：周雅琴（user-mem-4）
+   *   同时持 platform-admin 与 org-002 成员；且「组织管理 → 新建组织」要求创建者
+   *   直接成为该组织管理员。故「平台管理员不属于任何组织」这条旧口径不再成立。
+   *
+   * 给两个内置组织、角色为组织管理员：这样「我的组织」既能立刻看到内容，
+   * 也能演示「删除组织」「成员管理」等只有组织管理员才可用的操作。
+   */
+  const PLATFORM_ADMIN_ORGS = [
+    { orgId: 'org-001', orgRole: 'admin', joinedAt: '2026-08-01 09:30' },
+    { orgId: 'org-003', orgRole: 'admin', joinedAt: '2026-08-02 10:15' },
+  ]
+  PLATFORM_ADMIN_ORGS.forEach(({ orgId, orgRole, joinedAt }) => {
+    rows.push({
+      userId: CURRENT_USER_ID,
+      orgId,
+      orgRole,
+      joinedAt,
+      updatedBy: '系统初始化',
+      updatedAt: '2026-08-01 09:00',
+    })
+  })
+
   DEMO_ORG_SPECS.forEach((spec) => {
     const joinedAt = `${spec.createdAt} 10:00`
     if (spec.adminUserId) {

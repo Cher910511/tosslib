@@ -275,9 +275,10 @@
           <table class="vt-tab-table">
             <thead>
               <tr>
-                <th>火车编号</th>
+                <th>生成时间</th>
                 <th>名称</th>
-                <th>开始时间</th>
+                <th>版本号</th>
+                <th>发车时间</th>
                 <th>结束时间</th>
                 <th>状态</th>
                 <th>软件数</th>
@@ -285,17 +286,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="h in paginatedHistory" :key="h.id">
-                <td class="vt-tab-code">{{ h.id }}</td>
+              <!-- 平铺：一个事件一行，按「生成时间」倒序。
+                   「状态」列表示该次发车周期此刻是否仍生效（已发车 / 已过期）；
+                   每个版本只占一行，过期不另起一行，避免同版本出现相反状态
+                   火车到期是系统自动写入的日志、无人操作，故叫「生成时间」而非「操作时间」 -->
+              <tr v-for="(h, i) in paginatedHistory" :key="`${h.id}-${i}`">
+                <td class="vt-hist-time">{{ h.generatedAt || h.releaseTime }}</td>
                 <td>{{ h.name }}</td>
+                <td><span class="vt-tab-code">{{ h.versionNum || '—' }}</span></td>
                 <td>{{ h.releaseTime }}</td>
                 <td>{{ h.endTime }}</td>
-                <td><span class="vt-tab-badge" :class="'vt-tab-badge--' + h.status">{{ h.status }}</span></td>
+                <td>
+                  <span
+                    class="vt-tab-badge"
+                    :class="h.status === '已发车' ? 'vt-tab-badge--已发车' : 'vt-tab-badge--已过期'"
+                  >{{ h.status }}</span>
+                </td>
                 <td>{{ h.softwareCount }}</td>
                 <td>{{ h.componentCount }}</td>
               </tr>
               <tr v-if="paginatedHistory.length === 0">
-                <td colspan="7" class="vt-tab-empty-cell">{{ filteredHistory.length === 0 ? '暂无发车历史' : '没有匹配的结果' }}</td>
+                <td colspan="8" class="vt-tab-empty-cell">{{ filteredHistory.length === 0 ? '暂无发车日志' : '没有匹配的结果' }}</td>
               </tr>
             </tbody>
           </table>
@@ -306,7 +317,8 @@
             <button v-for="p in histPageNumbers" :key="p" class="vt-tab-page-btn" :class="{ 'vt-tab-page-btn--active': p === histPage }" @click="histPage = p">{{ p }}</button>
             <button class="vt-tab-page-btn" :disabled="histPage >= histTotalPages" @click="histPage++">›</button>
             <button class="vt-tab-page-btn" :disabled="histPage >= histTotalPages" @click="histPage = histTotalPages">»</button>
-            <span class="vt-tab-page-info">{{ histPage }}/{{ histTotalPages }} 页，共 {{ filteredHistory.length }} 项</span>
+            <!-- 条数口径：一次发车一条记录 -->
+            <span class="vt-tab-page-info">{{ histPage }}/{{ histTotalPages }} 页，共 {{ filteredHistory.length }} 条发车记录</span>
           </div>
         </div>
       </div>
@@ -945,12 +957,31 @@ const histSearch = ref('')
 const histPage = ref(1)
 const HIST_PAGE_SIZE = 8
 
+/**
+ * 发车日志：**平铺**，按「生成时间」倒序。
+ *
+ * 不做按火车号归并 —— 同一列火车可以「撤回发车 → 再次发车」，每次留一条记录；
+ * 直接按 generatedAt 倒序平铺、每行显示该次的生成时间与版本号，就能自然区分
+ *「哪次是哪次」，比折叠成「N 次」再点开找更直观。
+ * 与「版本火车发车」页（VersionTrainReleaseView）口径保持一致。
+ *
+ * 排序键用 generatedAt（这条日志生成的时刻），缺失时回落到 releaseTime
+ *（早期数据可能没有该字段）。
+ * 叫「生成时间」而非「操作时间」：火车到期由系统自动写入日志，没有人操作。
+ */
+const sortedHistory = computed(() =>
+  releaseHistory
+    .slice()
+    .sort((a, b) =>
+      String(b.generatedAt || b.releaseTime || '').localeCompare(String(a.generatedAt || a.releaseTime || '')),
+    ),
+)
+
 const filteredHistory = computed(() => {
   const q = histSearch.value.trim().toLowerCase()
-  if (!q) return releaseHistory
-  return releaseHistory.filter(h =>
-    h.id.toLowerCase().includes(q) ||
-    h.name.toLowerCase().includes(q)
+  if (!q) return sortedHistory.value
+  return sortedHistory.value.filter(
+    (h) => String(h.id).toLowerCase().includes(q) || String(h.name).toLowerCase().includes(q),
   )
 })
 
@@ -1682,6 +1713,16 @@ watch(activeTrainId, () => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   color: #6b7280;
+}
+
+/* ====== 发车历史：操作时间列 ======
+   发车历史按「操作时间」倒序平铺，每次发车占一行（不做合并），
+   故这里只需突出时间列，让它成为区分「哪一次」的主线索。 */
+.vt-hist-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
 }
 
 .vt-tab-version-link {

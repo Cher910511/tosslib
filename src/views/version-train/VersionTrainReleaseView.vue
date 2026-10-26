@@ -280,8 +280,9 @@
             <table class="vt-table">
               <thead>
                 <tr>
-                  <th>版本火车号</th>
+                  <th>生成时间</th>
                   <th>名称</th>
+                  <th>版本号</th>
                   <th>发车时间</th>
                   <th>结束时间</th>
                   <th>软件数量</th>
@@ -289,9 +290,14 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="rec in paginatedHistory" :key="rec.id">
-                  <td><span class="vt-code">{{ rec.id }}</span></td>
+                <!-- 平铺展示：一个事件一行，按「生成时间」倒序。
+                     「动作」列说明这一条发生了什么（火车发车 / 火车过期）；
+                     火车到期是系统自动写入的日志，没有人工操作，
+                     故该列时间叫「生成时间」而不是「操作时间」。 -->
+                <tr v-for="(rec, i) in paginatedHistory" :key="`${rec.id}-${i}`">
+                  <td class="vt-hist-time">{{ rec.generatedAt || rec.releaseTime }}</td>
                   <td>{{ rec.name }}</td>
+                  <td><span class="vt-code">{{ rec.versionNum || '—' }}</span></td>
                   <td>{{ rec.releaseTime }}</td>
                   <td>{{ rec.endTime }}</td>
                   <td>{{ rec.softwareCount }}</td>
@@ -313,7 +319,8 @@
               <button class="vt-page-btn" :disabled="histPage <= 1" @click="histPage--">‹</button>
               <span class="vt-page-info">{{ histPage }} / {{ histTotalPages }}</span>
               <button class="vt-page-btn" :disabled="histPage >= histTotalPages" @click="histPage++">›</button>
-              <span class="vt-page-total">共 {{ filteredHistory.length }} 条</span>
+              <!-- 条数口径：一次发车一条记录 -->
+              <span class="vt-page-total">共 {{ filteredHistory.length }} 条发车记录</span>
             </div>
           </div>
         </div>
@@ -577,10 +584,19 @@
               </div>
             </div>
             <div class="vt-form-row">
+              <!-- 版本号：同一列火车可以多次发车（发车 → 撤回 → 再发车），
+                   每次的版本号不同。发车历史的下属流水靠它区分「这是哪一次」，
+                   不填则流水里只能靠时间辨认，故设为必填。 -->
+              <div class="vt-form-group">
+                <label class="vt-form-label">版本号 <span class="vt-form-required">*</span></label>
+                <input v-model="formData.versionNum" type="text" class="vt-input" placeholder="例如：v4.2.0">
+              </div>
               <div class="vt-form-group">
                 <label class="vt-form-label">发车时间 <span class="vt-form-required">*</span></label>
                 <input v-model="formData.startTime" type="datetime-local" class="vt-input">
               </div>
+            </div>
+            <div class="vt-form-row">
               <div class="vt-form-group">
                 <label class="vt-form-label">结束时间 <span class="vt-form-required">*</span></label>
                 <input v-model="formData.endTime" type="datetime-local" class="vt-input">
@@ -916,11 +932,30 @@ const histSearch = ref('')
 const histPage = ref(1)
 const HIST_PAGE_SIZE = 5
 
+/**
+ * 发车日志：**平铺**，按「生成时间」倒序。
+ *
+ * 不做按火车号归并 —— 同一列火车可以「撤回发车 → 再次发车」，
+ * 每个事件都会留一条记录，直接按时间倒序平铺、每行显示该次的生成时间与版本号，
+ * 就能自然区分「哪次是哪次」，不必再折叠成「N 次」让人点开找。
+ *
+ * 排序键用 generatedAt（这条日志生成的时刻），缺失时回落到 releaseTime
+ *（早期数据/外部写入可能没有 generatedAt，回落可避免整行被排到末尾）。
+ * 注意叫「生成时间」而非「操作时间」：火车到期由系统自动写入日志，无人操作。
+ */
+const sortedHistory = computed(() =>
+  releaseHistory.value
+    .slice()
+    .sort((a, b) =>
+      String(b.generatedAt || b.releaseTime || '').localeCompare(String(a.generatedAt || a.releaseTime || '')),
+    ),
+)
+
 const filteredHistory = computed(() => {
   const q = histSearch.value.trim().toLowerCase()
-  if (!q) return releaseHistory.value
-  return releaseHistory.value.filter(r =>
-    r.id.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)
+  if (!q) return sortedHistory.value
+  return sortedHistory.value.filter(
+    (r) => String(r.id).toLowerCase().includes(q) || String(r.name).toLowerCase().includes(q),
   )
 })
 
@@ -934,8 +969,21 @@ const histTotalPages = computed(() => {
 })
 
 watch(histSearch, () => { histPage.value = 1 })
+
+/**
+ * 打开「发车历史」时回到第 1 页。
+ *
+ * 不重置的后果（实测复现）：上次停在末页、关掉弹窗，发车后再打开，
+ * 仍停在旧页 —— 而按生成时间倒序时**新记录永远在第 1 页**，
+ * 用户会以为「刚发的车没进历史」，甚至看到一整页旧记录而困惑。
+ */
+watch(showHistory, (open) => {
+  if (open) histPage.value = 1
+})
 const canRelease = computed(() =>
-  formData.value.trainId.trim() && formData.value.trainName.trim() && formData.value.startTime && formData.value.endTime
+  formData.value.trainId.trim() && formData.value.trainName.trim()
+  && formData.value.versionNum.trim()
+  && formData.value.startTime && formData.value.endTime
 )
 
 // ------- 辅助 -------
@@ -1001,11 +1049,24 @@ function doRelease() {
     id: formData.value.trainId,
     name: formData.value.trainName,
     versionNum: formData.value.versionNum,
+    // 生成时间 = 这条日志写入的时刻（用户点「确认发车」的时间）。
+    // 与下面 releaseTime（业务上的生效时间，由用户在表单里填）是两个概念：
+    // 日志按 generatedAt 倒序，同一火车多次发车也能按「哪次先生成」排清楚。
+    generatedAt: now,
     releaseTime: formData.value.startTime.replace('T', ' '),
     endTime: formData.value.endTime.replace('T', ' '),
+    // 状态（这条发车记录此刻的状态），不是动作：
+    // 一次发车留下一条记录，之后被新的发车取代或自然到期时，
+    // 由数据层把它改成「已过期」，而不是再追加一条「火车过期」记录
+    //（否则同一版本会出现两行、状态相反，用户看不出到底发没发）。
     status: '已发车',
     softwareCount: editingTrain.value.softwareList.length,
   })
+  // 该火车此前仍在生效的发车记录 → 标记为已过期（同一版本只保留一行，不追加新记录）
+  releaseHistory.value
+    .filter((r) => r.id === formData.value.trainId && r.status === '已发车')
+    .slice(1) // unshift 后第一条就是本次新记录，其余旧记录一律失效
+    .forEach((r) => { r.status = '已过期' })
   // 将火车标记为已发车，所有软件标记为已发布
   editingTrain.value.status = '已发车'
   editingTrain.value.releasedVersion = formData.value.versionNum
@@ -1644,6 +1705,16 @@ function importSelectedSoftware() {
 .vt-th-chk input[type="checkbox"],
 .vt-td-chk input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #da203e; }
 .vt-code { font-size: 12px; color: #da203e; font-weight: 600; }
+
+/* 发车历史：操作时间列
+   列表按「操作时间」倒序平铺，每次发车一行（不做合并），
+   时间列是区分「哪一次」的主线索，故用等宽字体并禁止折行。 */
+.vt-hist-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
+}
 .vt-cell-opinion {
   max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: #6b7280;

@@ -164,7 +164,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { versionTrains, releaseHistory } from '../../data/versionTrainData.js'
+import { versionTrains } from '../../data/versionTrainData.js'
 
 const searchQuery = ref('')
 const allExpanded = ref(true)
@@ -235,7 +235,17 @@ const pendingSoftwareCount = computed(() =>
   versionTrains.filter(t => t.status === '待发车')
     .reduce((sum, t) => sum + getSoftwareItems(t).length, 0)
 )
-const releasedTrains = computed(() => releaseHistory.length)
+/**
+ * 已发车火车数：按**火车状态**统计，与上方「待发车火车」同一口径。
+ *
+ * 两次修正，记下来免得再错：
+ *   ① 原实现 `releaseHistory.length` 是「发车记录数」，同一火车多次发车会被重复计数
+ *     （实测：3 列火车发了 5 次 → 显示 5）。
+ *   ② 中间一版改成「按火车号去重的发车记录数」，仍不对 —— 那会把**已过期**的火车
+ *     也算进「已发车」（实测：3 已发车 + 2 已过期 = 5）。
+ *     本卡片与「待发车火车」并列，口径应当都是**当前状态**，故按 status 过滤。
+ */
+const releasedTrains = computed(() => versionTrains.filter(t => t.status === '已发车').length)
 
 const filteredTrains = computed(() => {
   if (!searchQuery.value) return versionTrains

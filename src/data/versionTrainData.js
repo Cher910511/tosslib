@@ -215,8 +215,10 @@ export const versionTrains = [
     createdAt: '2025-11-01',
     releasedVersion: 'v4.3.0',
     releaseTime: '2025-12-01 10:00',
-    endTime: '2026-06-01 23:59',
-    remark: '本次发车包含4个高危CVE修复，涉及日志、协议、容器、序列化等领域。请各业务线在2026年6月前完成升级。',
+    // 结束时间必须在未来：状态是「已发车」，若 endTime 已过就自相矛盾
+    //（原值 2026-06-01 早于当前日期，与「已发车」冲突，故顺延一年）
+    endTime: '2027-06-01 23:59',
+    remark: '本次发车包含4个高危CVE修复，涉及日志、协议、容器、序列化等领域。请各业务线在2027年6月前完成升级。',
     viewers: ['张三', '陈七'],
     softwareList: [
       { id: 101, name: 'log4j-core', type: 'software', version: '2.24.0', lang: 'Java', license: 'Apache-2.0', status: '已发布', scanned: true, scanStatus: '已扫描', reviewResult: '通过', reviewOpinion: '日志组件安全更新', reviewedAt: '2025-11-20', published: true },
@@ -241,7 +243,8 @@ export const versionTrains = [
     createdAt: '2025-12-10',
     releasedVersion: 'v4.4.0',
     releaseTime: '2025-12-20 10:00',
-    endTime: '2026-06-20 23:59',
+    // 同上：状态「已发车」需 endTime 在未来
+    endTime: '2027-06-20 23:59',
     remark: 'Spring Boot 3.2.3 及周边框架统一升级，兼容性已验证。Nacos客户端同步升级到2.4.0。',
     viewers: ['张三', '王五', '刘八'],
     softwareList: [
@@ -266,7 +269,8 @@ export const versionTrains = [
     createdAt: '2025-12-15',
     releasedVersion: 'v4.5.0',
     releaseTime: '2025-12-28 10:00',
-    endTime: '2026-06-28 23:59',
+    // 同上：状态「已发车」需 endTime 在未来
+    endTime: '2027-06-28 23:59',
     remark: 'Prometheus + Grafana 监控体系统一打包，AGPL许可组件已通过法务审批。',
     viewers: ['陈七', '刘八', '吴十'],
     softwareList: [
@@ -318,36 +322,270 @@ export const versionTrains = [
 ]
 
 // 3. 发车历史
+/**
+ * 发车历史：数据取自**真实系统导出**，字段与线上一致。
+ *
+ * 真实字段只有 7 个：版本号(id) / 名称 / 开始时间 / 结束时间 / 状态 / 软件数 / 组件数。
+ * **线上没有「生成时间」这个字段** —— 下列 `generatedAt` 是本项目为排序虚拟出来的，
+ * 规则见下。改数据时不要误以为它来自真实系统。
+ *
+ * ── generatedAt 的虚拟规则 ────────────────────────────────
+ * 线上没有该字段，这里按「**该次发车的开始时间**」虚拟，即 `generatedAt = releaseTime`，
+ * 已发车与已过期两种状态一视同仁（不按状态取不同来源）。
+ *   —— 曾误写成「已过期取 endTime」，与实际数据不符：8 条已过期记录的
+ *      generatedAt 全部等于 releaseTime，故此处以代码实际行为为准。
+ * 列表按 generatedAt **倒序**展示（最新在前）。
+ *
+ * ── 真实数据自带的几处「脏」，原样保留（不要在种子层偷偷修）──────────
+ * ① 版本号重复：`v0` 出现多次、`VT-2026-070` 出现两次 —— 线上确实如此。
+ * ② 存在完全重复的行：`v0 / 2026年测试发车 / … 已过期` 出现 3 次。
+ * ③ 引用了不在 versionTrains 里的版本号：`vt-001`、`vt-002`。
+ * ④ 同一 (版本号, 开始时间) 既有「已发车」又有「已过期」（vt-001 / vt-002）。
+ * 这些都是线上真实状况，保留才能复现用户看到的问题；
+ * 若要清理，属于数据治理，另开任务处理，不要在这里悄悄改掉。
+ *
+ * ── status 的语义（针对**这一条记录**，不是整列火车）────────────────
+ *   '已发车' = 该次发车仍在生效
+ *   '已过期' = 该次发车周期已结束（被后来的发车取代，或已过自身 endTime）
+ *
+ * 数组本身即按 generatedAt 倒序写入；展示层仍会在渲染时再排一次，
+ * 避免有人手工调整数组顺序后页面顺序错乱。
+ */
 export const releaseHistory = [
+  // ===== 2026-10（最新）=====
   {
-    id: 'VT-2025-004',
-    name: '2025年Q4补丁包',
-    versionNum: 'v4.2.0',
-    releaseTime: '2025-12-20 10:00:00',
-    endTime: '2026-06-20 23:59:59',
+    // 注意：版本号重复出现（VT-2026-070 另有一条 2026-09-03 的记录），线上真实如此
+    id: 'VT-2026-070',
+    name: '2026年Q3第三次发车',
+    versionNum: 'VT-2026-070',
+    generatedAt: '2026-10-20 14:13:51',
+    releaseTime: '2026-10-20 14:13:51',
+    endTime: '2027-01-31 15:13:51',
     status: '已发车',
-    softwareCount: 6,
-    componentCount: 4,
+    softwareCount: 48,
+    componentCount: 35,
   },
   {
-    id: 'VT-2025-003',
-    name: '2025年Q3首次发车',
-    versionNum: 'v4.1.0',
-    releaseTime: '2025-09-15 10:00:00',
-    endTime: '2026-03-15 23:59:59',
-    status: '已过期',
-    softwareCount: 12,
-    componentCount: 8,
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:49:15',
+    releaseTime: '2026-10-20 10:49:15',
+    endTime: '2026-10-20 11:53:05',
+    status: '已发车',
+    softwareCount: 1,
+    componentCount: 1,
   },
   {
-    id: 'VT-2025-002',
-    name: '2025年Q2安全补丁包',
-    versionNum: 'v4.0.1',
-    releaseTime: '2025-06-01 10:00:00',
-    endTime: '2025-12-01 23:59:59',
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:32:00',
+    releaseTime: '2026-10-20 10:32:00',
+    endTime: '2026-10-20 11:36:28',
+    status: '已发车',
+    softwareCount: 1,
+    componentCount: 10,
+  },
+  {
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:24:13',
+    releaseTime: '2026-10-20 10:24:13',
+    endTime: '2026-10-20 11:28:54',
+    status: '已发车',
+    softwareCount: 1,
+    // 原始导出此处被截断（显示为 --），按 0 处理
+    componentCount: 0,
+  },
+
+  // ===== 2026-09 =====
+  {
+    id: 'VT-2026-072',
+    name: '2026年首次发车',
+    versionNum: 'VT-2026-072',
+    generatedAt: '2026-09-03 11:27:21',
+    releaseTime: '2026-09-03 11:27:21',
+    endTime: '2026-12-31 12:31:39',
+    status: '已发车',
+    softwareCount: 180,
+    componentCount: 68,
+  },
+  {
+    id: 'VT-2026-071',
+    name: '2026年Q2首次发车副本',
+    versionNum: 'VT-2026-071',
+    generatedAt: '2026-09-03 11:26:28',
+    releaseTime: '2026-09-03 11:26:28',
+    endTime: '2027-02-28 12:30:22',
+    status: '已发车',
+    softwareCount: 23,
+    componentCount: 20,
+  },
+  {
+    id: 'VT-2026-070',
+    name: '2026年Q3第三次发车',
+    versionNum: 'VT-2026-070',
+    generatedAt: '2026-09-03 11:25:03',
+    releaseTime: '2026-09-03 11:25:03',
+    endTime: '2026-11-30 12:29:46',
+    status: '已发车',
+    softwareCount: 108,
+    componentCount: 33,
+  },
+
+  // ===== 2026-08 =====
+  {
+    id: 'vt-004',
+    name: '2026年Q3第二次发车',
+    versionNum: 'vt-004',
+    generatedAt: '2026-08-18 17:14:16',
+    releaseTime: '2026-08-18 17:14:16',
+    endTime: '2026-08-31 18:14:16',
+    status: '已发车',
+    softwareCount: 108,
+    componentCount: 35,
+  },
+  {
+    id: 'vt-005',
+    name: '2026年Q3第三次发车',
+    versionNum: 'vt-005',
+    generatedAt: '2026-08-18 17:14:12',
+    releaseTime: '2026-08-18 17:14:12',
+    endTime: '2026-09-01 18:17:12',
+    status: '已发车',
+    softwareCount: 180,
+    componentCount: 70,
+  },
+
+  // ===== 2026-07 =====
+  {
+    id: 'vt-003',
+    name: '2026年Q3首次发车',
+    versionNum: 'vt-003',
+    generatedAt: '2026-07-03 10:43:14',
+    releaseTime: '2026-07-03 10:43:14',
+    endTime: '2026-07-03 11:47:14',
+    status: '已发车',
+    softwareCount: 15,
+    componentCount: 5,
+  },
+
+  // ===== 2026-06 =====
+  {
+    id: 'vt-002',
+    name: '2026年Q2首次发车',
+    versionNum: 'vt-002',
+    generatedAt: '2026-06-16 09:52:05',
+    releaseTime: '2026-06-16 09:52:05',
+    endTime: '2026-06-16 10:56:05',
+    status: '已发车',
+    softwareCount: 23,
+    componentCount: 20,
+  },
+  {
+    id: 'vt-001',
+    name: '2026年Q1首次发车',
+    versionNum: 'vt-001',
+    generatedAt: '2026-06-16 09:47:50',
+    releaseTime: '2026-06-16 09:47:50',
+    endTime: '2026-06-16 09:51:50',
+    status: '已发车',
+    softwareCount: 11,
+    componentCount: 6,
+  },
+
+  // ===== 以下为真实导出中的「已过期」记录 =====
+  // 注意：v0 这一组（同一 版本号+开始+结束+软件数+组件数）在线上出现 3 次完全相同的行，
+  // 且同一 (版本号, 开始时间) 同时存在「已发车」与「已过期」，均按原样保留。
+  {
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:49:15',
+    releaseTime: '2026-10-20 10:49:15',
+    endTime: '2026-10-20 11:53:05',
     status: '已过期',
-    softwareCount: 4,
-    componentCount: 2,
+    softwareCount: 1,
+    componentCount: 1,
+  },
+  {
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:49:15',
+    releaseTime: '2026-10-20 10:49:15',
+    endTime: '2026-10-20 11:53:05',
+    status: '已过期',
+    softwareCount: 1,
+    componentCount: 1,
+  },
+  {
+    id: 'v0',
+    name: '2026年测试发车',
+    versionNum: 'v0',
+    generatedAt: '2026-10-20 10:49:15',
+    releaseTime: '2026-10-20 10:49:15',
+    endTime: '2026-10-20 11:53:05',
+    status: '已过期',
+    softwareCount: 1,
+    componentCount: 1,
+  },
+  {
+    id: 'vt-004',
+    name: '2026年Q3第二次发车',
+    versionNum: 'vt-004',
+    generatedAt: '2026-08-18 17:14:16',
+    releaseTime: '2026-08-18 17:14:16',
+    endTime: '2026-08-31 18:14:16',
+    status: '已过期',
+    softwareCount: 108,
+    componentCount: 35,
+  },
+  {
+    id: 'vt-005',
+    name: '2026年Q3第三次发车',
+    versionNum: 'vt-005',
+    generatedAt: '2026-08-18 17:14:12',
+    releaseTime: '2026-08-18 17:14:12',
+    endTime: '2026-09-01 18:17:12',
+    status: '已过期',
+    softwareCount: 180,
+    componentCount: 70,
+  },
+  {
+    id: 'vt-003',
+    name: '2026年Q3首次发车',
+    versionNum: 'vt-003',
+    generatedAt: '2026-07-03 10:43:14',
+    releaseTime: '2026-07-03 10:43:14',
+    endTime: '2026-07-03 11:47:14',
+    status: '已过期',
+    softwareCount: 15,
+    componentCount: 5,
+  },
+  {
+    id: 'vt-002',
+    name: '2026年Q2首次发车',
+    versionNum: 'vt-002',
+    generatedAt: '2026-06-16 09:52:05',
+    releaseTime: '2026-06-16 09:52:05',
+    endTime: '2026-06-16 10:56:05',
+    status: '已过期',
+    softwareCount: 23,
+    componentCount: 20,
+  },
+  {
+    id: 'vt-001',
+    name: '2026年Q1首次发车',
+    versionNum: 'vt-001',
+    generatedAt: '2026-06-16 09:47:50',
+    releaseTime: '2026-06-16 09:47:50',
+    endTime: '2026-06-16 09:51:50',
+    status: '已过期',
+    softwareCount: 11,
+    componentCount: 6,
   },
 ]
 
@@ -361,9 +599,16 @@ export const patchPlanCVEList = [
 ]
 
 // 5. 补丁通知记录
+/**
+ * 补丁通知记录：patchNotificationHistory。
+ *
+ * trainId 必须指向 versionTrains 里**真实存在**的火车，且通知时间落在该火车的
+ * 发车周期内（releaseTime ~ endTime）——否则就是一条指向不存在对象的脏记录
+ *（原先引用的 VT-2025-004 / VT-2025-003 在火车列表中并不存在，已改为真实火车）。
+ */
 export const patchNotificationHistory = [
-  { id: 1, trainId: 'VT-2025-004', cveId: 'CVE-2025-49844', component: 'Redis', affectedVersions: '7.2.0', notifyTime: '2025-12-21 14:00:00', action: '下架通知已发送', status: '已完成' },
-  { id: 2, trainId: 'VT-2025-003', cveId: 'CVE-2025-15467', component: 'OpenSSL', affectedVersions: '3.0.0-3.2.0', notifyTime: '2025-09-16 09:30:00', action: '补丁升级通知已发送', status: '已完成' },
+  { id: 1, trainId: 'VT-2025-005', cveId: 'CVE-2025-49844', component: 'Redis', affectedVersions: '7.2.0', notifyTime: '2025-12-21 14:00:00', action: '下架通知已发送', status: '已完成' },
+  { id: 2, trainId: 'VT-2025-001', cveId: 'CVE-2025-15467', component: 'OpenSSL', affectedVersions: '3.0.0-3.2.0', notifyTime: '2025-09-16 09:30:00', action: '补丁升级通知已发送', status: '已完成' },
 ]
 
 // 6. 软件出入库列表

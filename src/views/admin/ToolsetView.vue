@@ -6,173 +6,163 @@
       <div class="ts-hero-body">
         <h1 class="ts-title">工具集</h1>
         <div class="ts-hero-tag">全链路开源治理工具</div>
-        <p class="ts-subtitle">从桌面端超级工厂到 IDE 插件，从交互式 Notebook 到标准 API 接口——覆盖开源治理的每一个环节。连接可信开源代码库，一站式完成组件选型、安全扫描、许可证合规与漏洞修复。</p>
+        <p class="ts-subtitle">
+          从桌面端与编辑器插件，到本地开源软件盘点，再到浏览器中即可完成的在线工具——覆盖开源治理的每一个环节。连接可信开源代码库，一站式完成组件选型、安全扫描、许可证合规与物料清单生成。
+        </p>
       </div>
       <div class="ts-overview">
-        <div class="ts-card" @click="scrollTo('sec-factory')">
+        <div class="ts-card" @click="scrollTo('sec-download')">
           <div class="ts-card-header">
-            <span class="ts-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-            <div><h3 class="ts-card-title">超级工厂</h3><span class="ts-card-badge">桌面端 · Agent 驱动</span></div>
+            <span class="ts-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            </span>
+            <div>
+              <h3 class="ts-card-title">工具下载</h3>
+              <span class="ts-card-badge">桌面端 · 编辑器插件 · 本地工具</span>
+            </div>
           </div>
-          <p class="ts-card-desc">将可信开源代码库的全部能力带到你的桌面。智能 Agent 协助你完成组件选型、许可证合规、漏洞修复等全链路治理工作，无需打开浏览器。</p>
-          <span class="ts-card-foot">macOS / Windows / Linux</span>
+          <p class="ts-card-desc">下载安装包，在本地完成开源治理。支持超级工厂、VSCode 插件与开源软件摸底工具，覆盖 macOS、Windows、Linux。</p>
+          <span class="ts-card-foot">{{ DOWNLOAD_TOOLS.length }} 个工具 · 安装包下载</span>
         </div>
-        <div class="ts-card" @click="scrollTo('sec-vscode')">
+        <div class="ts-card" @click="scrollTo('sec-online')">
           <div class="ts-card-header">
-            <span class="ts-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-            <div><h3 class="ts-card-title">VSCode 插件</h3><span class="ts-card-badge">编辑器 · 侧边栏</span></div>
+            <span class="ts-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
+            </span>
+            <div>
+              <h3 class="ts-card-title">在线工具</h3>
+              <span class="ts-card-badge">浏览器即用 · 无需安装</span>
+            </div>
           </div>
-          <p class="ts-card-desc">在 VSCode 中直接使用可信开源代码库的全部能力。安装即用，无需切换窗口，让开源治理融入日常编码流程。</p>
-          <span class="ts-card-foot">VSCode / Cursor / Windsurf</span>
-        </div>
-        <div class="ts-card" @click="scrollTo('sec-notebook')">
-          <div class="ts-card-header">
-            <span class="ts-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
-            <div><h3 class="ts-card-title">Notebook</h3><span class="ts-card-badge">交互式 · Jupyter</span></div>
-          </div>
-          <p class="ts-card-desc">基于 Jupyter 的在线交互式分析环境。编写 Python 脚本、可视化检测结果、一键生成报告——一切在浏览器中完成。</p>
-          <span class="ts-card-foot">Python 3.11 · 浏览器即用</span>
+          <p class="ts-card-desc">打开网页即可使用的在线能力，无需下载安装。包括软件物料清单生成等工具，并持续接入更多在线服务。</p>
+          <span class="ts-card-foot">{{ ONLINE_TOOLS.length }} 个工具 · 持续接入中</span>
         </div>
       </div>
     </section>
 
-    <!-- 软件超级工厂 -->
-    <section id="sec-factory" class="ts-section ts-section--alt">
+    <!-- 模块一：工具下载 -->
+    <section id="sec-download" class="ts-section ts-section--white">
       <div class="ts-inner">
         <div class="ts-sec-header">
-          <h2 class="ts-section-title">软件超级工厂</h2>
-          <span class="ts-section-badge">桌面端 Agent</span>
-          <p class="ts-section-desc">智能 Agent 驱动，连接可信开源代码库，覆盖开源治理全流程。支持自然语言交互式选型、自动安全扫描与许可证合规检测。</p>
-          <div class="ts-tags"><span class="ts-tag">macOS</span><span class="ts-tag">Windows</span><span class="ts-tag">Linux</span></div>
+          <div class="ts-sec-index">01</div>
+          <h2 class="ts-section-title">工具下载</h2>
+          <span class="ts-section-badge">安装包 · 本地运行</span>
+          <p class="ts-section-desc">
+            下载并安装到本地，在桌面端、编辑器中或本机环境中完成开源治理。所有工具均支持 macOS、Windows 与 Linux。
+          </p>
         </div>
 
-        <div class="ts-chat-panel">
-          <div class="ts-chat-msg ts-chat-msg--user">
-            <div class="ts-chat-bubble">帮我写一个完整的 Web 后台管理系统，用 FastAPI + Vue3 技术栈，要有用户管理、权限控制和数据看板，同时确保所有开源依赖都经过安全审查。</div>
-          </div>
-          <div class="ts-chat-msg ts-chat-msg--agent">
-            <div class="ts-chat-bubble"><div class="ts-chat-think">已连接可信开源代码库，正在生成项目代码并分析依赖...</div></div>
-          </div>
-          <div class="ts-chat-checklist">
-            <div class="ts-chat-checklist-hd">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-              前置准备 · 治理任务分解
-            </div>
-            <div class="ts-chat-task ts-chat-task--done"><span class="ts-chat-task-icon">✓</span><span>搭建 FastAPI 项目骨架：路由、中间件、数据库连接配置</span></div>
-            <div class="ts-chat-task ts-chat-task--done"><span class="ts-chat-task-icon">✓</span><span>扫描项目依赖树，识别 47 个开源组件及版本信息</span></div>
-            <div class="ts-chat-task ts-chat-task--done"><span class="ts-chat-task-icon">✓</span><span>生成 Vue3 前端页面：登录、用户列表、权限分配、数据大屏</span></div>
-            <div class="ts-chat-task ts-chat-task--active"><span class="ts-chat-task-icon">◷</span><span>许可证冲突检测：分析 GPL / AGPL / Apache / MIT 兼容性矩阵</span></div>
-            <div class="ts-chat-task"><span class="ts-chat-task-icon">○</span><span>高危漏洞扫描：同步 CVE / NVD / CNNVD 数据库，标记 CVSS ≥ 7.0 漏洞</span></div>
-            <div class="ts-chat-task"><span class="ts-chat-task-icon">○</span><span>编写单元测试：后端 API 全覆盖 + 前端组件测试</span></div>
-            <div class="ts-chat-task"><span class="ts-chat-task-icon">○</span><span>SBOM 生成 + 安全替代方案推荐 + 治理报告输出</span></div>
-          </div>
-          <div class="ts-chat-msg ts-chat-msg--agent">
-            <div class="ts-chat-bubble">
-              <div class="ts-chat-summary-hd">项目交付总结</div>
-              <div class="ts-chat-summary-grid">
-                <div class="ts-chat-summary-item"><span class="ts-chat-summary-num">12</span><span class="ts-chat-summary-label">已生成文件</span></div>
-                <div class="ts-chat-summary-item"><span class="ts-chat-summary-num">47</span><span class="ts-chat-summary-label">已扫描组件</span></div>
-                <div class="ts-chat-summary-item"><span class="ts-chat-summary-num ts-chat-summary-num--warn">2</span><span class="ts-chat-summary-label">许可证冲突</span></div>
-                <div class="ts-chat-summary-item"><span class="ts-chat-summary-num ts-chat-summary-num--ok">5</span><span class="ts-chat-summary-label">推荐替代</span></div>
+        <div class="ts-dl-list">
+          <article
+            v-for="tool in DOWNLOAD_TOOLS"
+            :key="tool.key"
+            class="ts-dl-card"
+            :class="{ 'ts-dl-card--editions': tool.editions }"
+          >
+            <div class="ts-dl-main">
+              <div class="ts-si-icon ts-si-icon--lg" v-html="tool.icon" />
+              <div class="ts-dl-info">
+                <h4 class="ts-dl-name">
+                  {{ tool.name }}
+                  <span v-if="tool.isNew" class="ts-new-badge">NEW</span>
+                </h4>
+                <p class="ts-si-sub">{{ tool.subtitle }}</p>
+                <p class="ts-dl-desc">{{ tool.desc }}</p>
               </div>
             </div>
-          </div>
-          <div class="ts-chat-input-wrap"><span class="ts-chat-input-hint">继续描述你的治理需求...</span></div>
-          <div class="ts-downloads">
-            <p class="ts-downloads-desc">支持 macOS、Windows、Linux，一次下载，全平台可用</p>
-            <div class="ts-dl-btns">
-              <a href="#" class="ts-dl-btn" @click.prevent><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14m0 0-4-4m4 4 4-4M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span class="ts-dl-text"><small>macOS</small><strong>Intel / Apple Silicon</strong></span></a>
-              <a href="#" class="ts-dl-btn" @click.prevent><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14m0 0-4-4m4 4 4-4M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span class="ts-dl-text"><small>Windows</small><strong>Win 10 / Win 11</strong></span></a>
-              <a href="#" class="ts-dl-btn" @click.prevent><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14m0 0-4-4m4 4 4-4M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span class="ts-dl-text"><small>Linux</small><strong>AppImage / Deb</strong></span></a>
+            <!-- 带版本区分的工具（在线版 / 离线版） -->
+            <div v-if="tool.editions" class="ts-dl-editions">
+              <div v-for="ed in tool.editions" :key="ed.key" class="ts-dl-edition">
+                <div class="ts-ed-hd">
+                  <span class="ts-ed-name">{{ ed.label }}</span>
+                  <span class="ts-ed-tag" :class="'ts-ed-tag--' + ed.key">{{ ed.tag }}</span>
+                </div>
+                <p class="ts-ed-desc">{{ ed.desc }}</p>
+                <div class="ts-dl-btns">
+                  <a
+                    v-for="p in ed.platforms"
+                    :key="p.os"
+                    href="#"
+                    class="ts-dl-btn"
+                    @click.prevent
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14m0 0-4-4m4 4 4-4M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <span class="ts-dl-text">
+                      <small>{{ p.os }}</small>
+                      <strong>{{ p.detail }}</strong>
+                    </span>
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
+
+            <!-- 单一形态的工具 -->
+            <div v-else class="ts-dl-btns">
+              <a
+                v-for="p in tool.platforms"
+                :key="p.os"
+                href="#"
+                class="ts-dl-btn"
+                @click.prevent
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14m0 0-4-4m4 4 4-4M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                <span class="ts-dl-text">
+                  <small>{{ p.os }}</small>
+                  <strong>{{ p.detail }}</strong>
+                </span>
+              </a>
+            </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- VSCode 插件 -->
-    <section id="sec-vscode" class="ts-section ts-section--white">
+    <!-- 模块二：在线工具 -->
+    <section id="sec-online" class="ts-section">
       <div class="ts-inner">
-        <div class="ts-sec-header"><h2 class="ts-section-title">VSCode 侧边栏插件</h2><span class="ts-section-badge">编辑器插件</span></div>
-        <p class="ts-section-desc">在 VSCode / Cursor / Windsurf 中直接使用可信开源代码库的全部能力。安装即用，无需切换窗口，让开源治理融入日常编码流程。</p>
-        <div class="ts-vs-preview">
-          <div class="ts-vs-activitybar">
-            <span class="ts-vs-activity-icon is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
-            <span class="ts-vs-activity-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-            <span class="ts-vs-activity-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-          </div>
-          <div class="ts-vs-explorer">
-            <div class="ts-vs-explorer-hd">资源管理器</div>
-            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> src</div>
-            <div class="ts-vs-file ts-vs-file--open"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> pom.xml</div>
-            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> application.yml</div>
-            <div class="ts-vs-file"><span class="ts-vs-file-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> package.json</div>
-          </div>
-          <div class="ts-vs-editor-wrap">
-            <div class="ts-vs-tabs">
-              <span class="ts-vs-tab is-active">pom.xml</span>
-              <span class="ts-vs-tab">application.yml</span>
-            </div>
-            <div class="ts-vs-editor-body">
-              <div class="ts-vs-line"><span class="ts-vs-num">12</span><span class="ts-vs-cmt">&lt;!-- ⚠ 检测到高危漏洞 CVE-2024-xxxx --&gt;</span></div>
-              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">13</span>&lt;dependency&gt;</div>
-              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">14</span>  &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;</div>
-              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">15</span>  &lt;artifactId&gt;<span class="ts-vs-warn">log4j-core</span>&lt;/artifactId&gt;</div>
-              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">16</span>  &lt;version&gt;<span class="ts-vs-warn">2.23.1</span>&lt;/version&gt;</div>
-              <div class="ts-vs-line ts-vs-line--hl"><span class="ts-vs-num">17</span>&lt;/dependency&gt;</div>
-              <div class="ts-vs-line"><span class="ts-vs-num">18</span></div>
-              <div class="ts-vs-line"><span class="ts-vs-num">19</span>&lt;dependency&gt;</div>
-              <div class="ts-vs-line"><span class="ts-vs-num">20</span>  &lt;groupId&gt;com.alibaba&lt;/groupId&gt;</div>
-              <div class="ts-vs-line"><span class="ts-vs-num">21</span>  &lt;artifactId&gt;<span class="ts-vs-ok">fastjson2</span>&lt;/artifactId&gt;</div>
-              <div class="ts-vs-line"><span class="ts-vs-num">22</span>  &lt;version&gt;<span class="ts-vs-ok">2.0.47</span>&lt;/version&gt; <span class="ts-vs-cmt">✓ 已认证</span></div>
-              <div class="ts-vs-line"><span class="ts-vs-num">23</span>&lt;/dependency&gt;</div>
-            </div>
-          </div>
-          <div class="ts-vs-panel">
-            <div class="ts-vs-panel-hd">可信治理 Agent</div>
-            <div class="ts-vs-panel-chat">
-              <div class="ts-vs-panel-msg ts-vs-panel-msg--agent"><div class="ts-vs-panel-bubble">检测完成：log4j-core 存在高危漏洞 CVE-2024-xxxx（CVSS 9.8），建议替换为 tlog-safe 3.1.0</div></div>
-              <div class="ts-vs-panel-msg ts-vs-panel-msg--user"><div class="ts-vs-panel-bubble">帮我替换并修复依赖</div></div>
-              <div class="ts-vs-panel-msg ts-vs-panel-msg--agent"><div class="ts-vs-panel-bubble">已替换为 tlog-safe 3.1.0，依赖树已更新，全部检测通过。</div></div>
-            </div>
-            <div class="ts-vs-panel-skills">
-              <span class="ts-vs-skill">许可证检测</span>
-              <span class="ts-vs-skill is-active">漏洞扫描</span>
-              <span class="ts-vs-skill">智能选型</span>
-              <span class="ts-vs-skill">SBOM 导出</span>
-            </div>
-            <div class="ts-vs-panel-input"><span class="ts-vs-input-hint">选择代码或 Skill 进行治理...</span></div>
-          </div>
+        <div class="ts-sec-header">
+          <div class="ts-sec-index">02</div>
+          <h2 class="ts-section-title">在线工具</h2>
+          <span class="ts-section-badge">浏览器即用</span>
+          <p class="ts-section-desc">
+            平台集成实用工具，满足不同场景下的使用需求，无需安装，点击即可直接使用。
+          </p>
         </div>
-        <div class="ts-simple-list">
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><h4>许可证实时检测</h4><p>对项目中使用的开源组件进行实时许可证扫描，第一时间发现 GPL、AGPL 等强传染性许可证，规避合规风险。覆盖 200+ 许可证类型与冲突矩阵。</p></div></div>
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div><h4>AI 智能选型</h4><p>连接平台可信数据库，根据你的技术栈和需求智能推荐经过安全审核的开源组件。多维度对比评分，杜绝盲目引入。已收录 50,000+ 可信组件。</p></div></div>
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div><h4>编码辅助与风险高亮</h4><p>在编写代码时实时高亮依赖风险。鼠标悬停查看漏洞详情、CVSS 评分、修复建议，并智能推荐安全替代组件。支持 20+ 编程语言。</p></div></div>
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div><h4>一键漏洞修复</h4><p>检测项目依赖中的已知漏洞，覆盖 CVE / NVD / CNNVD，自动定位风险代码位置，提供经过验证的修复补丁和版本升级建议。</p></div></div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Notebook -->
-    <section id="sec-notebook" class="ts-section ts-section--alt">
-      <div class="ts-inner">
-        <div class="ts-sec-header"><h2 class="ts-section-title">Notebook</h2><span class="ts-section-badge">交互式环境</span></div>
-        <p class="ts-section-desc">基于 Jupyter 的在线交互式分析环境。编写 Python 脚本调用平台 API，可视化检测结果，一键生成报告——一切在浏览器中完成。</p>
-        <div class="ts-nb-preview-lg">
-          <div class="ts-nb-preview-lg-bar"><span class="ts-dot ts-dot--r" /><span class="ts-dot ts-dot--y" /><span class="ts-dot ts-dot--g" /><span class="ts-nb-preview-title">notebook.ipynb</span></div>
-          <div class="ts-nb-preview-lg-body">
-            <div class="ts-nb-cell ts-nb-cell--md">In [1]: <span class="ts-code-kw">from</span> toss_sdk <span class="ts-code-kw">import</span> <span class="ts-code-fn">Scanner</span></div>
-            <div class="ts-nb-cell ts-nb-cell--md">In [2]: scanner = <span class="ts-code-fn">Scanner</span>(<span class="ts-code-str">"my-project"</span>)</div>
-            <div class="ts-nb-cell ts-nb-cell--md">In [3]: result = scanner.<span class="ts-code-fn">scan_all</span>()</div>
-            <div class="ts-nb-cell ts-nb-cell--out"><span class="ts-nb-out-label">Out [3]:</span> 检测 47 个组件 · 0 高危 · 2 警告</div>
-            <div class="ts-nb-cell ts-nb-cell--md">In [4]: result.<span class="ts-code-fn">to_report</span>(<span class="ts-code-str">"report.pdf"</span>)</div>
-            <div class="ts-nb-cell ts-nb-cell--out"><span class="ts-nb-out-label">Out [4]:</span> 报告已生成</div>
+        <div class="ts-online-grid">
+          <article
+            v-for="tool in ONLINE_TOOLS"
+            :key="tool.key"
+            class="ts-online-card"
+            role="link"
+            tabindex="0"
+            @click="openOnlineTool(tool)"
+            @keydown.enter="openOnlineTool(tool)"
+            @keydown.space.prevent="openOnlineTool(tool)"
+          >
+            <div class="ts-online-hd">
+              <span class="ts-tool-icon ts-tool-icon--online" v-html="tool.icon" />
+              <span class="ts-online-flag">在线</span>
+            </div>
+            <h3 class="ts-online-title">{{ tool.name }}</h3>
+            <p class="ts-online-desc">{{ tool.desc }}</p>
+            <div class="ts-online-foot">
+              <span class="ts-online-tags">
+                <span v-for="tag in tool.tags" :key="tag" class="ts-tag ts-tag--sm">{{ tag }}</span>
+              </span>
+              <span class="ts-online-enter">进入 →</span>
+            </div>
+          </article>
+
+          <!-- 占位：后续在线工具接入 -->
+          <div class="ts-online-card ts-online-card--soon">
+            <span class="ts-soon-icon">+</span>
+            <h3 class="ts-online-title">更多在线工具</h3>
+            <p class="ts-online-desc">在线能力持续接入中，后续将陆续上线更多无需安装的在线工具。</p>
+            <div class="ts-online-foot">
+              <span class="ts-online-tags"><span class="ts-tag ts-tag--sm">敬请期待</span></span>
+            </div>
           </div>
-        </div>
-        <div class="ts-simple-list ts-simple-list--cols">
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></div><div><h4>在线交互式分析</h4><p>基于 Jupyter 内核，支持 Python 3.11 与 SQL，预装 toss_sdk 及常用数据分析库。直接在浏览器中编写和运行代码，调用平台 API 进行组件扫描、漏洞检测与 SBOM 生成。</p></div></div>
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div><h4>交互式可视化</h4><p>内置 Matplotlib、Plotly、ECharts，漏洞分布、许可证占比、依赖关系图实时渲染，支持交互式探索与缩放。</p></div></div>
-          <div class="ts-simple-item"><div class="ts-si-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h4>报告导出与 API 集成</h4><p>一键导出 PDF/HTML/Markdown 格式治理报告，支持自定义模板与中英文双语。Notebook 与平台治理 API 实时互通，数据自动同步。</p></div></div>
         </div>
       </div>
     </section>
@@ -182,7 +172,97 @@
 </template>
 
 <script setup>
-function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+/* ============================================================
+ * 工具下载（安装包类工具）
+ * 新增工具：在 DOWNLOAD_TOOLS 中追加一项即可，卡片自动渲染
+ * ============================================================ */
+const DOWNLOAD_TOOLS = [
+  {
+    key: 'factory',
+    name: '软件超级工厂',
+    subtitle: '桌面端 · Agent 驱动',
+    isNew: false,
+    desc: '将可信开源代码库的全部能力带到你的桌面。智能 Agent 协助你完成组件选型、许可证合规、漏洞修复与 SBOM 生成等全链路治理工作，无需打开浏览器。',
+    platforms: [
+      { os: 'macOS', detail: 'Intel / Apple Silicon' },
+      { os: 'Windows', detail: 'Win 10 / Win 11' },
+      { os: 'Linux', detail: 'AppImage / Deb' },
+    ],
+    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  },
+  {
+    key: 'vscode',
+    name: 'VSCode 插件',
+    subtitle: '编辑器 · 侧边栏',
+    isNew: false,
+    desc: '在 VSCode / Cursor / Windsurf 中直接使用可信开源代码库的全部能力。安装即用，无需切换窗口，让许可证检测、漏洞扫描与智能选型融入日常编码流程。',
+    platforms: [
+      { os: 'VSCode', detail: 'Marketplace 安装' },
+      { os: 'Cursor', detail: '扩展导入' },
+      { os: 'Windsurf', detail: 'Open VSX' },
+    ],
+    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  },
+  {
+    key: 'survey',
+    name: '开源软件摸底工具',
+    subtitle: '桌面端 · 本地盘点 · 联网校验',
+    isNew: true,
+    desc: '扫描本地代码仓库，自动识别正在使用的开源软件及版本，并校验其是否已纳入可信开源代码库管理。支持在线版与离线版，适配不同网络环境。',
+    editions: [
+      {
+        key: 'online',
+        label: '在线版',
+        tag: '需联网',
+        desc: '识别本地软件及版本信息，并通过接口实时比对可信软件库数据。',
+        platforms: [
+          { os: 'Windows', detail: 'Win 10 / Win 11 · x64' },
+          { os: 'macOS', detail: 'Intel / Apple Silicon' },
+        ],
+      },
+      {
+        key: 'offline',
+        label: '离线版',
+        tag: '免联网',
+        desc: '内置软件数据，无需联网即可完成比对与识别，适用于内网隔离、无外网等场景。',
+        platforms: [
+          { os: 'Windows 7', detail: 'Win 7 SP1 · x86 / x64' },
+          { os: 'Windows', detail: 'Win 10 / Win 11 · x64' },
+          { os: 'macOS', detail: 'Intel / Apple Silicon' },
+        ],
+      },
+    ],
+    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/><path d="M7.5 10.5h6"/><path d="M10.5 7.5v6"/></svg>',
+  },
+]
+
+/* ============================================================
+ * 在线工具（浏览器内打开，跳转到工具集下的子页面）
+ * 新增工具：在 ONLINE_TOOLS 中追加一项并补充 route 即可
+ * ============================================================ */
+const ONLINE_TOOLS = [
+  {
+    key: 'sbom',
+    name: '软件物料清单生成',
+    desc: '上传源码包，自动解析依赖关系并生成符合 SPDX / CycloneDX 标准的软件物料清单，支持多格式导出、许可证分析与漏洞查看。',
+    tags: ['SPDX', 'CycloneDX', '多格式导出'],
+    route: { name: 'sbom-generate' },
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>',
+  },
+]
+
+function openOnlineTool(tool) {
+  if (tool.route) router.push(tool.route)
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 </script>
 
 <style scoped>
@@ -194,14 +274,10 @@ function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrol
 .ts-hero-body { position: relative; z-index: 1; }
 .ts-title { font-size: 38px; font-weight: 800; margin: 0 0 14px; color: #fff; letter-spacing: -.02em; line-height: 1.15; }
 .ts-hero-tag { display: inline-block; padding: 4px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); letter-spacing: .06em; margin-bottom: 16px; }
-.ts-subtitle { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.55); margin: 0 0 36px; max-width: 640px; font-weight: 400; }
-.ts-hero-stats { display: flex; gap: 48px; margin-bottom: 44px; }
-.ts-hero-stat { display: flex; flex-direction: column; gap: 4px; }
-.ts-hero-stat-num { font-size: 30px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.ts-hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.45); letter-spacing: .06em; }
+.ts-subtitle { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.55); margin: 0 0 36px; max-width: 680px; font-weight: 400; }
 
 /* Overview cards in hero */
-.ts-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ts-overview { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .ts-card { padding: 24px; border-radius: 10px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.12); cursor: pointer; transition: background .2s, border-color .2s; display: flex; flex-direction: column; }
 .ts-card:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.25); }
 .ts-card-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
@@ -213,121 +289,78 @@ function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrol
 
 /* Sections */
 .ts-section { padding: 56px 0; background: #fafafa; }
-.ts-section--alt { background: #fff; }
 .ts-section--white { background: #fff; }
 .ts-inner { max-width: 1080px; margin: 0 auto; padding: 0 64px; }
-.ts-section-title { font-size: 22px; font-weight: 700; color: #0f0f0f; margin: 0 0 8px; letter-spacing: -.01em; }
-.ts-section-desc { font-size: 14px; line-height: 1.7; color: #888; margin: 0 0 36px; max-width: 600px; font-weight: 400; }
 .ts-sec-header { margin-bottom: 28px; }
+.ts-sec-index { font-size: 12px; font-weight: 700; color: #da203e; letter-spacing: .12em; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.ts-section-title { font-size: 22px; font-weight: 700; color: #0f0f0f; margin: 0 0 8px; letter-spacing: -.01em; }
+.ts-section-desc { font-size: 14px; line-height: 1.7; color: #888; margin: 0; max-width: 640px; font-weight: 400; }
 .ts-section-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #da203e; background: rgba(218,32,62,0.06); margin-bottom: 10px; letter-spacing: .04em; }
-.ts-tags { display: flex; gap: 8px; margin-top: 10px; }
 .ts-tag { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 500; color: #888; background: #f0f0f0; letter-spacing: .03em; }
+.ts-tag--sm { font-size: 10px; padding: 2px 8px; }
 
-/* Chat panel */
-.ts-chat-panel { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-.ts-chat-msg { display: flex; }
-.ts-chat-msg--user { justify-content: flex-end; }
-.ts-chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
-.ts-chat-msg--user .ts-chat-bubble { background: #da203e; color: #fff; border-bottom-right-radius: 4px; }
-.ts-chat-msg--agent .ts-chat-bubble { background: #fff; color: #333; border: 1px solid #eee; border-bottom-left-radius: 4px; }
-.ts-chat-think { color: #999; font-style: italic; font-size: 12px; }
-.ts-chat-checklist { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px 20px; }
-.ts-chat-checklist-hd { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
-.ts-chat-checklist-hd svg { color: #da203e; }
-.ts-chat-task { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12px; color: #666; }
-.ts-chat-task-icon { width: 18px; text-align: center; font-size: 11px; flex-shrink: 0; color: #ccc; }
-.ts-chat-task--done .ts-chat-task-icon { color: #28c840; }
-.ts-chat-task--done span:last-child { color: #aaa; text-decoration: line-through; }
-.ts-chat-task--active .ts-chat-task-icon { color: #da203e; animation: spin 1.5s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.ts-chat-summary-hd { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
-.ts-chat-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.ts-chat-summary-item { text-align: center; padding: 10px 0; }
-.ts-chat-summary-num { display: block; font-size: 22px; font-weight: 700; color: #333; font-variant-numeric: tabular-nums; }
-.ts-chat-summary-num--warn { color: #e5a850; }
-.ts-chat-summary-num--err { color: #e05555; }
-.ts-chat-summary-num--ok { color: #28c840; }
-.ts-chat-summary-label { font-size: 11px; color: #aaa; margin-top: 2px; }
-.ts-chat-input-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px 16px; }
-.ts-chat-input-hint { font-size: 12px; color: #ccc; }
-
-/* Downloads */
-.ts-downloads { margin-top: 8px; padding: 14px 18px; border-radius: 10px; background: #fff; border: 1px solid #eee; }
-.ts-downloads-desc { font-size: 11px; color: #bbb; margin: 0 0 10px; text-align: center; }
-.ts-dl-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-.ts-dl-btn { display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 6px; background: #fafafa; border: 1px solid #e8e8e8; text-decoration: none; transition: border-color .2s, box-shadow .2s; }
-.ts-dl-btn:hover { border-color: #da203e; box-shadow: 0 2px 10px rgba(218,32,62,0.06); }
-.ts-dl-btn svg { color: #da203e; }
-.ts-dl-text { display: flex; flex-direction: column; gap: 1px; }
-.ts-dl-text small { font-size: 10px; color: #aaa; font-weight: 500; letter-spacing: .04em; }
-.ts-dl-text strong { font-size: 12px; color: #1a1a1a; font-weight: 600; }
-
-/* Simple list */
-.ts-simple-list { display: flex; flex-direction: column; gap: 1px; background: #eee; border-radius: 10px; overflow: hidden; border: 1px solid #eee; }
-.ts-simple-list--cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; }
-.ts-simple-item { padding: 20px 24px; background: #fff; display: flex; gap: 14px; align-items: flex-start; }
+/* 工具下载大卡片 */
+.ts-dl-list { display: flex; flex-direction: column; gap: 14px; }
+.ts-dl-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding: 24px 28px; background: #fff; border: 1px solid #eee; border-radius: 10px; transition: border-color .2s, box-shadow .2s; }
+.ts-dl-card:hover { border-color: rgba(218,32,62,0.3); box-shadow: 0 4px 18px rgba(0,0,0,0.05); }
+.ts-dl-main { display: flex; gap: 16px; flex: 1; min-width: 0; }
 .ts-si-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(218,32,62,0.06); color: #da203e; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.ts-simple-item h4 { font-size: 14px; font-weight: 600; color: #0f0f0f; margin: 0 0 6px; letter-spacing: -.01em; }
-.ts-simple-item p { font-size: 12px; line-height: 1.65; color: #999; margin: 0; }
+.ts-si-icon--lg { width: 46px; height: 46px; border-radius: 10px; }
+.ts-dl-info { min-width: 0; }
+.ts-dl-name { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 700; color: #0f0f0f; margin: 0 0 4px; letter-spacing: -.01em; }
+.ts-si-sub { font-size: 11px; color: #b5b5b5; margin: 0 0 8px !important; letter-spacing: .02em; }
+.ts-dl-desc { font-size: 12.5px; line-height: 1.7; color: #999; margin: 0; max-width: 620px; }
+.ts-new-badge { padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; color: #fff; background: #da203e; letter-spacing: .06em; }
 
-/* VSCode preview */
-.ts-vs-preview { display: grid; grid-template-columns: 32px 140px 1fr 260px; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid #333; background: #252526; height: 340px; }
-.ts-vs-activitybar { background: #333; display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px; }
-.ts-vs-activity-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.4); cursor: default; }
-.ts-vs-activity-icon.is-active { color: #fff; }
-.ts-vs-explorer { background: #252526; padding: 8px 0; border-right: 1px solid #333; }
-.ts-vs-explorer-hd { padding: 0 12px 8px; font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .06em; }
-.ts-vs-file { padding: 3px 12px; font-size: 11px; color: #ccc; display: flex; align-items: center; gap: 5px; }
-.ts-vs-file--open { background: #37373d; }
-.ts-vs-file-icon { font-size: 10px; }
-.ts-vs-editor-wrap { background: #1e1e1e; display: flex; flex-direction: column; }
-.ts-vs-tabs { display: flex; background: #252526; border-bottom: 1px solid #333; }
-.ts-vs-tab { padding: 6px 14px; font-size: 10px; color: #999; border-right: 1px solid #333; }
-.ts-vs-tab.is-active { background: #1e1e1e; color: #fff; border-top: 1px solid #da203e; }
-.ts-vs-editor-body { flex: 1; padding: 8px 0; font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace; font-size: 11px; line-height: 1.65; overflow: hidden; }
-.ts-vs-num { display: inline-block; width: 28px; text-align: right; color: rgba(255,255,255,0.2); margin-right: 8px; font-size: 10px; user-select: none; }
-.ts-vs-line { color: rgba(255,255,255,0.6); padding: 0 12px; white-space: nowrap; }
-.ts-vs-line--hl { background: rgba(218,32,62,0.1); border-left: 2px solid #da203e; padding-left: 10px; }
-.ts-vs-warn { color: #e5a850; text-decoration: underline; text-decoration-color: rgba(229,168,80,0.3); }
-.ts-vs-ok { color: #5dc87a; }
-.ts-vs-cmt { color: rgba(255,255,255,0.2); font-style: italic; }
-.ts-vs-panel { background: #1e1e1e; border-left: 1px solid #333; display: flex; flex-direction: column; }
-.ts-vs-panel-hd { padding: 8px 10px 6px; font-size: 10px; font-weight: 600; color: #aaa; border-bottom: 1px solid #333; text-transform: uppercase; letter-spacing: .06em; }
-.ts-vs-panel-chat { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
-.ts-vs-panel-msg { display: flex; }
-.ts-vs-panel-msg--agent { justify-content: flex-start; }
-.ts-vs-panel-msg--user { justify-content: flex-end; }
-.ts-vs-panel-bubble { max-width: 90%; padding: 5px 8px; border-radius: 6px; font-size: 10px; line-height: 1.5; }
-.ts-vs-panel-msg--agent .ts-vs-panel-bubble { background: #333; color: #ccc; }
-.ts-vs-panel-msg--user .ts-vs-panel-bubble { background: #da203e; color: #fff; }
-.ts-vs-panel-skills { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-top: 1px solid #333; }
-.ts-vs-skill { padding: 2px 8px; border-radius: 4px; font-size: 9px; color: #888; background: #333; cursor: default; white-space: nowrap; }
-.ts-vs-skill.is-active { background: rgba(218,32,62,0.15); color: #da203e; }
-.ts-vs-panel-input { padding: 6px 8px; border-top: 1px solid #333; }
-.ts-vs-input-hint { font-size: 9px; color: #555; }
+/* 带在线版/离线版的工具卡片：内容在上，两个版本并排在下 */
+.ts-dl-card--editions { flex-direction: column; align-items: stretch; gap: 0; }
+.ts-dl-editions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; width: 100%; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f4f4f4; }
+.ts-dl-edition { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; background: #fafbfc; border: 1px solid #f0f1f3; border-radius: 8px; }
+.ts-ed-hd { display: flex; align-items: center; gap: 8px; }
+.ts-ed-name { font-size: 13px; font-weight: 700; color: #0f0f0f; }
+.ts-ed-tag { padding: 1px 7px; border-radius: 3px; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; }
+.ts-ed-tag--online { color: #2f9e57; background: rgba(47,158,87,0.1); }
+.ts-ed-tag--offline { color: #c98a2e; background: rgba(229,168,80,0.12); }
+.ts-ed-desc { font-size: 11.5px; line-height: 1.65; color: #9ca3af; margin: 0 0 2px; }
+.ts-dl-edition .ts-dl-btns { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.ts-dl-edition .ts-dl-btn { flex: 1 1 auto; min-width: 150px; background: #fff; }
 
-/* Notebook preview */
-.ts-nb-preview-lg { border-radius: 10px; overflow: hidden; background: #fafafa; border: 1px solid #eee; margin-bottom: 24px; }
-.ts-nb-preview-lg-bar { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: #fff; border-bottom: 1px solid #eee; }
-.ts-nb-preview-lg-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 7px; font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace; font-size: 12px; line-height: 1.7; }
-.ts-dot { width: 8px; height: 8px; border-radius: 50%; }
-.ts-dot--r { background: #ff5f57; }
-.ts-dot--y { background: #febc2e; }
-.ts-dot--g { background: #28c840; }
-.ts-nb-preview-title { margin-left: 6px; font-size: 11px; color: #bbb; }
-.ts-nb-cell { padding: 4px 8px; border-radius: 3px; }
-.ts-nb-cell--md { color: #555; }
-.ts-nb-cell--out { color: #888; padding-left: 24px; }
-.ts-nb-out-label { color: #ccc; margin-right: 6px; }
-.ts-code-kw { color: #c792ea; }
-.ts-code-fn { color: #82aaff; }
-.ts-code-str { color: #c3e88d; }
+/* Download buttons */
+.ts-dl-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.ts-dl-btn { display: inline-flex; align-items: center; gap: 9px; padding: 6px 14px; border-radius: 6px; background: #fafafa; border: 1px solid #ececec; text-decoration: none; transition: border-color .2s, box-shadow .2s, background .2s; min-width: 178px; box-sizing: border-box; }
+.ts-dl-btn:hover { border-color: #da203e; background: #fff; box-shadow: 0 2px 10px rgba(218,32,62,0.08); }
+.ts-dl-btn svg { color: #da203e; flex-shrink: 0; }
+.ts-dl-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ts-dl-text small { font-size: 10px; color: #aaa; font-weight: 500; letter-spacing: .03em; }
+.ts-dl-text strong { font-size: 11.5px; color: #1a1a1a; font-weight: 600; white-space: nowrap; }
+
+/* 在线工具卡片 */
+.ts-online-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ts-online-card { display: flex; flex-direction: column; padding: 22px; border-radius: 10px; background: #fff; border: 1px solid #eee; cursor: pointer; outline: none; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.ts-online-card:hover, .ts-online-card:focus-visible { border-color: rgba(218,32,62,0.4); box-shadow: 0 6px 24px rgba(0,0,0,0.07); transform: translateY(-2px); }
+.ts-online-card:hover .ts-online-enter { color: #da203e; }
+.ts-online-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.ts-tool-icon--online { width: 38px; height: 38px; border-radius: 10px; background: rgba(218,32,62,0.07); color: #da203e; display: flex; align-items: center; justify-content: center; }
+.ts-online-flag { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; color: #2f9e57; background: rgba(47,158,87,0.08); letter-spacing: .04em; }
+.ts-online-title { font-size: 15px; font-weight: 700; color: #0f0f0f; margin: 0 0 8px; letter-spacing: -.01em; }
+.ts-online-desc { font-size: 12px; line-height: 1.7; color: #999; margin: 0 0 auto; }
+.ts-online-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f2f2f2; }
+.ts-online-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.ts-online-enter { font-size: 11px; font-weight: 600; color: #c9c9c9; white-space: nowrap; transition: color .2s; }
+.ts-online-card--soon { cursor: default; border-style: dashed; background: #fcfcfc; }
+.ts-online-card--soon:hover { border-color: #e5e5e5; box-shadow: none; transform: none; }
+.ts-soon-icon { width: 38px; height: 38px; margin-bottom: 14px; border-radius: 10px; background: #f4f4f4; color: #c9c9c9; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 300; }
+.ts-online-card--soon .ts-online-title { color: #b5b5b5; }
+.ts-online-card--soon .ts-online-desc { color: #c9c9c9; }
 
 /* Footer */
 .ts-footer { padding: 36px 0; text-align: center; }
 .ts-footer-text { font-size: 12px; color: #ccc; margin: 0; letter-spacing: .04em; }
 
 /* Responsive */
+@media (max-width: 1100px) {
+  .ts-online-grid { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 1024px) {
   .ts-overview { grid-template-columns: 1fr; }
   .ts-hero { padding: 40px 32px 36px; }
@@ -337,10 +370,13 @@ function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrol
   .ts-hero { padding: 32px 20px 28px; }
   .ts-title { font-size: 26px; }
   .ts-inner { padding: 0 20px; }
-  .ts-hero-stats { gap: 28px; }
-  .ts-hero-stat-num { font-size: 22px; }
-  .ts-overview, .ts-simple-list--cols { grid-template-columns: 1fr; }
-  .ts-dl-btns { flex-direction: column; align-items: center; }
+  .ts-overview, .ts-online-grid { grid-template-columns: 1fr; }
+  .ts-dl-card { flex-direction: column; gap: 16px; }
+  .ts-dl-editions { grid-template-columns: 1fr; }
+  .ts-dl-btns { width: 100%; }
+  .ts-dl-btn { width: 100%; }
+  .ts-dl-edition .ts-dl-btns { flex-direction: column; }
+  .ts-dl-edition .ts-dl-btn { min-width: 0; }
   .ts-section { padding: 40px 0; }
   .ts-section-title { font-size: 19px; }
 }

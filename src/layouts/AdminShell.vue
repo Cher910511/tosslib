@@ -30,7 +30,12 @@
           <span class="nav-ico" aria-hidden="true">◈</span>
           签名验证
         </RouterLink>
-        <RouterLink class="admin-nav-item" to="/software/toolset" active-class="is-active">
+        <RouterLink
+          class="admin-nav-item"
+          to="/software/toolset"
+          active-class="is-active"
+          :class="{ 'is-active': String(route.name || '').startsWith('sbom-') }"
+        >
           <span class="nav-ico" aria-hidden="true">▤</span>
           工具集
         </RouterLink>
@@ -579,6 +584,8 @@ const breadcrumbConfig = {
   'version-train-release': { currentLabel: '版本火车发车' },
   'patch-plan':       { currentLabel: '软件出入库' },
   'openapi-tools':    { currentLabel: 'OpenAPI 工具集' },
+  'sbom-generate':    { parentLabel: '工具集', parentTo: { name: 'toolset' }, currentLabel: 'SBOM 生成' },
+  'sbom-analysis':    { parentLabel: '工具集', parentTo: { name: 'toolset' }, currentLabel: '详情分析' },
   'inbound-request': { currentLabel: '软件入库需求反馈' },
   'feedback-audit': { currentLabel: '反馈与审核' },
   'warehouse-approval': { currentLabel: '审批入库' },
