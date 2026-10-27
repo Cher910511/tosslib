@@ -2,11 +2,25 @@
   <div class="sbom-gen">
     <div class="sbg-page-hd">
       <h1 class="sbg-title">SBOM生成</h1>
-      <p class="sbg-desc">上传源代码压缩包，配置输出标准与文件格式，自动解析依赖并生成软件物料清单。</p>
+      <p class="sbg-desc">上传源代码压缩包或二进制文件，配置输出标准与文件格式，自动解析依赖并生成软件物料清单。</p>
     </div>
 
     <form class="sbg-form" @submit.prevent="handleSubmit">
       <div class="sbg-card">
+        <!-- 上传方式切换 -->
+        <div class="sbg-tabs">
+          <button
+            v-for="m in UPLOAD_MODES"
+            :key="m.value"
+            type="button"
+            class="sbg-tab"
+            :class="{ 'is-active': uploadMode === m.value }"
+            @click="switchMode(m.value)"
+          >
+            {{ m.label }}
+          </button>
+        </div>
+
         <!-- 拖拽上传 -->
         <div
           class="sbg-drop"
@@ -19,16 +33,17 @@
           <input
             ref="fileInputRef"
             type="file"
-            accept=".zip,.tar.gz,.tgz,.tar,.7z,.deb,.rpm,.cpio,.ar"
+            :accept="currentMode.accept"
             hidden
             @change="handleFileChange"
           />
           <template v-if="!fileName">
             <span class="sbg-drop-ico">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <svg v-if="uploadMode === 'source'" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <svg v-else width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
             </span>
-            <p class="sbg-drop-main">将源代码压缩包拖拽到此处，或点击浏览选择文件</p>
-            <p class="sbg-drop-sub">支持 ZIP、TAR.GZ、7z、DEB、RPM、CPIO、AR 等格式</p>
+            <p class="sbg-drop-main">{{ currentMode.placeholder }}</p>
+            <p class="sbg-drop-sub">{{ currentMode.hint }}</p>
           </template>
           <template v-else>
             <span class="sbg-file-ico">
@@ -288,6 +303,29 @@ const FORMATS = [
   { value: 'XLS', label: 'XLS' },
 ]
 
+/* 上传方式：源码包 / 二进制文件 */
+const UPLOAD_MODES = [
+  {
+    value: 'source',
+    label: '源码包上传',
+    accept: '.zip,.tar.gz,.tgz,.tar,.7z,.deb,.rpm,.cpio,.ar',
+    placeholder: '将源代码压缩包拖拽到此处，或点击浏览选择文件',
+    hint: '支持 ZIP、TAR.GZ、7z、DEB、RPM、CPIO、AR 等格式',
+  },
+  {
+    value: 'binary',
+    label: '二进制文件',
+    accept: '.exe,.dll,.so,.dylib,.a,.lib,.bin,.elf,.apk,.jar,.whl,.nupkg,.deb,.rpm',
+    placeholder: '将二进制文件拖拽到此处，或点击浏览选择文件',
+    hint: '支持 EXE、DLL、SO、DYLIB、JAR、APK、DEB、RPM 等格式',
+  },
+]
+
+const uploadMode = ref('source')
+const currentMode = computed(
+  () => UPLOAD_MODES.find((m) => m.value === uploadMode.value) || UPLOAD_MODES[0],
+)
+
 const form = reactive({
   name: '',
   version: '',
@@ -367,6 +405,14 @@ function handleDrop(e) {
 function clearFile() {
   fileName.value = ''
   fileSize.value = ''
+}
+
+/* 切换上传方式时清空已选文件，避免两种来源混用 */
+function switchMode(mode) {
+  if (uploadMode.value === mode) return
+  uploadMode.value = mode
+  clearFile()
+  errorMsg.value = ''
 }
 
 /* 日志自动滚动到底部 */
@@ -490,6 +536,12 @@ onUnmounted(stopTimer)
 /* 表单容器 */
 .sbg-form { display: flex; flex-direction: column; gap: 16px; }
 .sbg-card { display: flex; flex-direction: column; gap: 18px; padding: 24px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+
+/* 上传方式 Tab（下划线形式） */
+.sbg-tabs { display: flex; gap: 4px; margin: -6px 0 2px; border-bottom: 1px solid #e5e7eb; }
+.sbg-tab { padding: 10px 18px; margin-bottom: -1px; font-size: 13px; font-weight: 500; color: #8b919b; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; transition: color .2s, border-color .2s; }
+.sbg-tab:hover { color: #374151; }
+.sbg-tab.is-active { color: #da203e; border-bottom-color: #da203e; font-weight: 600; }
 
 /* 拖拽上传区 */
 .sbg-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 34px 22px; border: 1.5px dashed #d8dce3; border-radius: 9px; background: #fafbfc; cursor: pointer; transition: border-color .2s, background .2s; }

@@ -16,26 +16,21 @@
       <div class="sba-card sba-filter-card">
         <div class="sba-filter-row">
           <input v-model="listFilters.name" type="text" class="sba-f-input" placeholder="项目名称（模糊搜索）" />
-          <input v-model="listFilters.tag" type="text" class="sba-f-input" placeholder="搜索标签" />
           <select v-model="listFilters.sourceType" class="sba-f-select">
-            <option value="">全部</option>
+            <option value="">来源类型：全部</option>
             <option value="upload">文件上传</option>
           </select>
           <select v-model="listFilters.status" class="sba-f-select">
-            <option value="">全部</option>
+            <option value="">状态：全部</option>
             <option value="success">成功</option>
             <option value="processing">PROCESSING</option>
             <option value="failed">失败</option>
           </select>
-          <select v-model="listFilters.aiComponent" class="sba-f-select">
-            <option value="">不限</option>
-            <option value="only">仅含 AI 组件</option>
-            <option value="none">不含 AI 组件</option>
-          </select>
           <div class="sba-f-range">
-            <input v-model="listFilters.dateFrom" type="date" class="sba-f-date" />
+            <span class="sba-f-label">创建时间</span>
+            <input v-model="listFilters.dateFrom" type="date" class="sba-f-date" aria-label="创建时间开始" />
             <span class="sba-f-sep">至</span>
-            <input v-model="listFilters.dateTo" type="date" class="sba-f-date" />
+            <input v-model="listFilters.dateTo" type="date" class="sba-f-date" aria-label="创建时间结束" />
           </div>
           <button type="button" class="sba-f-btn" @click="applyListFilter">查询</button>
           <button type="button" class="sba-f-reset" @click="resetListFilter">重置</button>
@@ -841,10 +836,8 @@ const listPage = ref(1)
 
 const listFilters = reactive({
   name: '',
-  tag: '',
   sourceType: '',
   status: '',
-  aiComponent: '',
   dateFrom: '',
   dateTo: '',
 })
@@ -859,14 +852,10 @@ function sourceTypeLabel(t) {
 const filteredRecords = computed(() => {
   const f = appliedFilters
   const kw = f.name.trim().toLowerCase()
-  const tag = f.tag.trim().toLowerCase()
   return records.value.filter((r) => {
     if (kw && !String(r.name).toLowerCase().includes(kw)) return false
-    if (tag && !(r.tags || []).some((t) => String(t).toLowerCase().includes(tag))) return false
     if (f.sourceType && r.sourceType !== f.sourceType) return false
     if (f.status && r.status !== f.status) return false
-    if (f.aiComponent === 'only' && !(r.aiComponentCount > 0)) return false
-    if (f.aiComponent === 'none' && (r.aiComponentCount > 0)) return false
     const day = String(r.createdAt).slice(0, 10)
     if (f.dateFrom && day < f.dateFrom) return false
     if (f.dateTo && day > f.dateTo) return false
@@ -1345,6 +1334,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 .sba-f-date { padding: 6px 9px; font-size: 12px; color: #4b5563; background: #fff; border: 1px solid #e1e4e8; border-radius: 6px; outline: none; font-family: inherit; }
 .sba-f-date:focus { border-color: #da203e; }
 .sba-f-sep { font-size: 11.5px; color: #b0b5bd; }
+.sba-f-label { font-size: 12px; color: #6b7280; white-space: nowrap; }
 .sba-f-btn { padding: 7px 20px; font-size: 12px; font-weight: 600; color: #fff; background: #da203e; border: 1px solid #da203e; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .2s; }
 .sba-f-btn:hover { background: #c01b36; }
 .sba-f-reset { padding: 7px 12px; font-size: 12px; color: #9ca3af; background: none; border: none; cursor: pointer; font-family: inherit; transition: color .2s; }
