@@ -53,17 +53,19 @@ const NAV_ITEMS = [
   display: grid;
   grid-template-columns: 208px 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  min-height: calc(100vh - 108px);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
-/* 内嵌侧边栏 */
+/* 内嵌侧边栏：与右侧内容等高，撑满可视区域 */
 .sbom-aside {
   position: sticky;
   top: 0;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 108px);
+  height: calc(100vh - 108px);
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -113,11 +115,13 @@ const NAV_ITEMS = [
 .sbom-nav-label small { font-size: 10px; font-weight: 400; color: #b0b5bd; letter-spacing: .01em; }
 .sbom-nav-item.is-active .sbom-nav-label small { color: rgba(218,32,62,0.55); }
 
-.sbom-body { min-width: 0; }
+.sbom-body { min-width: 0; min-height: calc(100vh - 108px); display: flex; flex-direction: column; }
+.sbom-body > * { flex: 1; }
 
 @media (max-width: 900px) {
-  .sbom-tool { grid-template-columns: 1fr; }
-  .sbom-aside { position: static; }
+  .sbom-tool { grid-template-columns: 1fr; min-height: 0; }
+  .sbom-aside { position: static; height: auto; }
+  .sbom-body { min-height: 0; }
   .sbom-nav { flex-direction: row; }
   .sbom-nav-item { flex: 1; }
 }
