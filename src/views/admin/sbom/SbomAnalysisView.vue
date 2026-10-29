@@ -23,7 +23,7 @@
           <select v-model="listFilters.status" class="sba-f-select">
             <option value="">状态：全部</option>
             <option value="success">成功</option>
-            <option value="processing">PROCESSING</option>
+            <option value="processing">分析中</option>
             <option value="failed">失败</option>
           </select>
           <div class="sba-f-range">
@@ -54,7 +54,6 @@
                   <th class="sba-center">状态</th>
                   <th class="sba-center">组件数</th>
                   <th>创建时间</th>
-                  <th class="sba-center">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,20 +66,13 @@
                   <td class="sba-center sba-muted">{{ sourceTypeLabel(r.sourceType) }}</td>
                   <td class="sba-center">
                     <span v-if="r.status === 'processing'" class="sba-status sba-status--processing">
-                      PROCESSING
+                      分析中
                     </span>
                     <span v-else-if="r.status === 'failed'" class="sba-status sba-status--failed">失败</span>
                     <span v-else class="sba-status sba-status--success">成功</span>
                   </td>
                   <td class="sba-center">{{ r.components.length }}</td>
                   <td class="sba-muted sba-nowrap">{{ r.createdAt }}</td>
-                  <td class="sba-center">
-                    <div class="sba-row-actions">
-                      <button type="button" class="sba-reanalyze-btn" @click="reanalyzeRecord(r)">
-                        重新分析
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -135,9 +127,6 @@
 
         <div class="sba-top-actions">
           <button type="button" class="sba-btn sba-btn--ghost" @click="downloadSbom">下载 SBOM</button>
-          <button type="button" class="sba-btn sba-btn--ghost" :disabled="reanalyzing" @click="reanalyze">
-            {{ reanalyzing ? '分析中…' : '重新分析' }}
-          </button>
           <div class="sba-report" ref="reportRef">
             <button type="button" class="sba-btn sba-btn--primary" @click="reportOpen = !reportOpen">
               分析报告
@@ -683,20 +672,32 @@
               <p>{{ licenseInfo.summaryZh }}</p>
             </details>
 
-            <!-- 义务清单 -->
+            <!-- 义务清单：按 可以 / 不可 / 必须 分三列 -->
             <details class="sba-mf-sec" open>
               <summary>义务清单 ({{ licenseInfo.obligations.length }} 条)</summary>
-              <ul class="sba-obligations">
-                <li v-for="(o, i) in licenseInfo.obligations" :key="i" :class="'is-' + o.level">
-                  <span class="sba-ob-icon">
-                    <svg v-if="o.level === 'can'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <svg v-else-if="o.level === 'cannot'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    <span v-else class="sba-ob-must">!</span>
-                  </span>
-                  <span class="sba-ob-prefix">{{ o.level === 'can' ? '可以' : o.level === 'cannot' ? '不可' : '必须' }}:</span>
-                  <span class="sba-ob-text">{{ o.text }}</span>
-                </li>
-              </ul>
+              <div class="sba-ob-groups">
+                <div
+                  v-for="g in obligationGroups"
+                  :key="g.level"
+                  class="sba-ob-group"
+                  :class="'is-' + g.level"
+                >
+                  <div class="sba-ob-group-hd">
+                    <span class="sba-ob-icon">
+                      <svg v-if="g.level === 'can'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg v-else-if="g.level === 'cannot'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      <span v-else class="sba-ob-must">!</span>
+                    </span>
+                    <span class="sba-ob-group-title">{{ g.label }}</span>
+                    <span class="sba-ob-group-count">{{ g.items.length }}</span>
+                  </div>
+                  <ul class="sba-ob-list">
+                    <li v-for="(o, i) in g.items" :key="i">
+                      <span class="sba-ob-text">{{ o.text }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </details>
           </div>
         </div>
@@ -883,10 +884,6 @@ function resetListFilter() {
   listPage.value = 1
 }
 
-function reanalyzeRecord(r) {
-  select(r.id)
-}
-
 /* 分页页码：超过 7 页时中间用省略号折叠 */
 function pageItems(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
@@ -904,8 +901,8 @@ function pageItems(current, total) {
 
 const licenses = computed(() => (selected.value ? licenseSummary(selected.value) : []))
 
-/* 明细切页：原始内容 / 组件 / 漏洞 / 许可证 */
-const tab = ref('components')
+/* 明细切页：原始内容 / 组件 / 漏洞 / 许可证（默认停在第一个 Tab） */
+const tab = ref('raw')
 
 const TABS = computed(() => {
   const r = selected.value
@@ -1021,7 +1018,6 @@ const licenseFilterOptions = computed(() => {
 })
 
 /* ---------- 顶部操作 ---------- */
-const reanalyzing = ref(false)
 const reportOpen = ref(false)
 const reportRef = ref(null)
 
@@ -1077,11 +1073,6 @@ function downloadSbom() {
   a.download = `${selected.value.name}-${selected.value.version}.${currentExt()}`
   a.click()
   URL.revokeObjectURL(url)
-}
-
-function reanalyze() {
-  reanalyzing.value = true
-  window.setTimeout(() => { reanalyzing.value = false }, 1200)
 }
 
 function pickReport(kind) {
@@ -1151,6 +1142,16 @@ function openLicense(name) {
 function closeLicense() {
   licenseInfo.value = null
 }
+
+/* 义务清单分组：可以 / 不可 / 必须 各占一列 */
+const obligationGroups = computed(() => {
+  const list = licenseInfo.value?.obligations || []
+  return [
+    { level: 'can', label: '可以', items: list.filter((o) => o.level === 'can') },
+    { level: 'cannot', label: '不可', items: list.filter((o) => o.level === 'cannot') },
+    { level: 'must', label: '必须', items: list.filter((o) => o.level === 'must') },
+  ]
+})
 
 /* ---------- 许可证关联组件弹窗 ---------- */
 const licCompInfo = ref(null)
@@ -1295,6 +1296,7 @@ function licenseClass(name) {
 /* ---------- 选择 / 返回 ---------- */
 function select(id) {
   currentId.value = id
+  tab.value = 'raw'
   router.replace({ name: 'sbom-analysis', query: { id } })
   window.scrollTo({ top: 0 })
 }
@@ -1348,9 +1350,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 .sba-status--processing { color: #b8860b; background: rgba(229,168,80,0.16); }
 .sba-status--success { color: #2f9e57; background: rgba(47,158,87,0.1); }
 .sba-status--failed { color: #da203e; background: rgba(218,32,62,0.1); }
-.sba-row-actions { display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
-.sba-reanalyze-btn { padding: 0 12px; height: 26px; font-size: 11.5px; font-weight: 600; color: #fff; background: #da203e; border: 1px solid #da203e; border-radius: 5px; cursor: pointer; font-family: inherit; white-space: nowrap; transition: background .2s; }
-.sba-reanalyze-btn:hover { background: #c01b36; }
+
 
 .sba-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
 .sba-card-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #f2f3f5; }
@@ -1536,7 +1536,8 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 /* 许可证名称链接 */
 .sba-lic-link { padding: 0; border: none; background: none; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; font-family: inherit; text-align: left; transition: color .2s; }
 .sba-lic-link:hover { color: #da203e; text-decoration: underline; }
-.sba-lic-link--sm { font-size: 11.5px; }
+.sba-lic-link--sm { font-size: 11.5px; color: #374151; }
+.sba-lic-link--sm:hover { color: #da203e; }
 
 /* ===== 许可证详情弹窗 ===== */
 .sba-modal-mask { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(17,24,39,0.42); backdrop-filter: blur(2px); }
@@ -1571,18 +1572,23 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 .sba-mf-sec:not([open]) summary::before { content: '▸'; }
 .sba-mf-sec p { font-size: 12px; line-height: 1.75; color: #6b7280; margin: 8px 0 0; }
 
-.sba-obligations { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; }
-.sba-obligations li { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; line-height: 1.6; color: #4b5563; min-width: 0; }
+/* 义务清单：可以 / 不可 / 必须 三列 */
+.sba-ob-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; align-items: start; }
+.sba-ob-group { display: flex; flex-direction: column; min-width: 0; padding: 10px 12px; background: #fafbfc; border: 1px solid #f0f1f3; border-radius: 7px; }
+.sba-ob-group-hd { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #eef0f2; }
+.sba-ob-group-title { font-size: 12px; font-weight: 700; }
+.sba-ob-group-count { margin-left: auto; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 8px; font-size: 10px; font-weight: 700; background: #fff; color: #9ca3af; font-variant-numeric: tabular-nums; }
+.sba-ob-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sba-ob-list li { font-size: 12px; line-height: 1.55; color: #4b5563; }
 .sba-ob-text { min-width: 0; overflow-wrap: anywhere; }
-.sba-ob-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
-.sba-obligations li.is-can .sba-ob-icon { color: #2f9e57; }
-.sba-obligations li.is-cannot .sba-ob-icon { color: #da203e; }
-.sba-obligations li.is-must .sba-ob-icon { color: #e08a3c; }
+.sba-ob-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex-shrink: 0; }
 .sba-ob-must { font-size: 11px; font-weight: 700; line-height: 1; }
-.sba-ob-prefix { font-weight: 600; white-space: nowrap; }
-.sba-obligations li.is-can .sba-ob-prefix { color: #2f9e57; }
-.sba-obligations li.is-cannot .sba-ob-prefix { color: #da203e; }
-.sba-obligations li.is-must .sba-ob-prefix { color: #e08a3c; }
+.sba-ob-group.is-can .sba-ob-icon { color: #2f9e57; }
+.sba-ob-group.is-cannot .sba-ob-icon { color: #da203e; }
+.sba-ob-group.is-must .sba-ob-icon { color: #e08a3c; }
+.sba-ob-group.is-can .sba-ob-group-title { color: #2f9e57; }
+.sba-ob-group.is-cannot .sba-ob-group-title { color: #da203e; }
+.sba-ob-group.is-must .sba-ob-group-title { color: #e08a3c; }
 
 .sba-modal-enter-active, .sba-modal-leave-active { transition: opacity .2s; }
 .sba-modal-enter-active .sba-modal, .sba-modal-leave-active .sba-modal { transition: transform .2s; }

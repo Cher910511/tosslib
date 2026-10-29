@@ -21,8 +21,48 @@
           </button>
         </div>
 
-        <!-- 拖拽上传 -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          :accept="currentMode.accept"
+          hidden
+          @change="handleFileChange"
+        />
+
+        <!-- 二进制文件：路径输入 + 上传 -->
+        <div v-if="uploadMode === 'binary'" class="sbg-field">
+          <label class="sbg-label" for="sbg-bin-path">二进制文件路径</label>
+          <input
+            id="sbg-bin-path"
+            v-model="binaryPath"
+            type="text"
+            class="sbg-input"
+            placeholder="/path/to/app.jar 或通过下方上传"
+          />
+          <p class="sbg-hint">支持 JAR、WAR、APK、EXE、DLL、DEB、RPM、Docker 镜像等</p>
+
+          <div
+            class="sbg-bin-drop"
+            :class="{ 'is-drag': dragging }"
+            @dragover.prevent="dragging = true"
+            @dragleave.prevent="dragging = false"
+            @drop.prevent="handleDrop"
+          >
+            <button type="button" class="sbg-bin-add" title="选择文件" @click="fileInputRef?.click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <p class="sbg-bin-tip">或将二进制文件拖拽到此处</p>
+            <div v-if="fileName" class="sbg-bin-file">
+              <span class="sbg-file-name">{{ fileName }}</span>
+              <span class="sbg-file-size">{{ fileSize }}</span>
+              <button type="button" class="sbg-file-del" @click.stop="clearFile">移除</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 源码包：拖拽上传 -->
         <div
+          v-else
           class="sbg-drop"
           :class="{ 'is-drag': dragging, 'has-file': fileName }"
           @dragover.prevent="dragging = true"
@@ -30,17 +70,9 @@
           @drop.prevent="handleDrop"
           @click="fileInputRef?.click()"
         >
-          <input
-            ref="fileInputRef"
-            type="file"
-            :accept="currentMode.accept"
-            hidden
-            @change="handleFileChange"
-          />
           <template v-if="!fileName">
             <span class="sbg-drop-ico">
-              <svg v-if="uploadMode === 'source'" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <svg v-else width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </span>
             <p class="sbg-drop-main">{{ currentMode.placeholder }}</p>
             <p class="sbg-drop-sub">{{ currentMode.hint }}</p>
@@ -287,14 +319,11 @@ import { addSbomRecord } from '../../../data/sbomStore.js'
 
 const router = useRouter()
 
-/* 输出标准：BOM-SW 1.0 为默认选项，AI 类标准单独标注 */
+/* 输出标准：BOM-SW 1.0 为默认选项 */
 const STANDARDS = [
   { value: 'BOM-SW', label: 'BOM-SW 1.0', ai: false },
   { value: 'SPDX', label: 'SPDX', ai: false },
   { value: 'CycloneDX', label: 'CycloneDX', ai: false },
-  { value: 'SWID', label: 'SWID', ai: false },
-  { value: 'CycloneDX-ML', label: 'CycloneDX ML-BOM', ai: true },
-  { value: 'SPDX-3-AI', label: 'SPDX 3.0 AI', ai: true },
 ]
 
 const FORMATS = [
@@ -341,6 +370,7 @@ const form = reactive({
 
 const fileName = ref('')
 const fileSize = ref('')
+const binaryPath = ref('')
 const dragging = ref(false)
 const fileInputRef = ref(null)
 const errorMsg = ref('')
@@ -358,7 +388,11 @@ const task = reactive({
 let timer = null
 
 const generating = computed(() => task.state === 'running')
-const canSubmit = computed(() => !!fileName.value && !generating.value)
+const canSubmit = computed(() =>
+  uploadMode.value === 'binary'
+    ? !!(binaryPath.value.trim() || fileName.value) && !generating.value
+    : !!fileName.value && !generating.value,
+)
 
 /* 语言检测顺序（与日志逐条对应） */
 const LANG_LIST = [
@@ -412,6 +446,7 @@ function switchMode(mode) {
   if (uploadMode.value === mode) return
   uploadMode.value = mode
   clearFile()
+  binaryPath.value = ''
   errorMsg.value = ''
 }
 
@@ -468,7 +503,13 @@ function finishTask() {
 }
 
 function handleSubmit() {
-  if (!fileName.value) {
+  const isBinary = uploadMode.value === 'binary'
+  if (isBinary) {
+    if (!binaryPath.value.trim() && !fileName.value) {
+      errorMsg.value = '请输入二进制文件路径或上传文件'
+      return
+    }
+  } else if (!fileName.value) {
     errorMsg.value = '请先上传源代码压缩包'
     return
   }
@@ -481,8 +522,8 @@ function handleSubmit() {
   task.visible = true
   task.state = 'running'
   task.progress = 0
-  task.hint = '正在解压源代码包...'
-  task.logs = ['开始解析源代码包...']
+  task.hint = isBinary ? '正在解析二进制文件...' : '正在解压源代码包...'
+  task.logs = [isBinary ? '开始解析二进制文件...' : '开始解析源代码包...']
 
   let step = 0
   const langTotal = LANG_LIST.length
@@ -558,12 +599,23 @@ onUnmounted(stopTimer)
 .sbg-file-del { padding: 4px 12px; font-size: 12px; color: #6b7280; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; transition: color .2s, border-color .2s; }
 .sbg-file-del:hover { color: #dc2626; border-color: #fca5a5; }
 
+/* 二进制文件上传区 */
+.sbg-bin-drop { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; padding: 22px 20px; border: 1.5px dashed #d8dce3; border-radius: 9px; background: #fafbfc; transition: border-color .2s, background .2s; }
+.sbg-bin-drop.is-drag { border-color: #da203e; background: rgba(218,32,62,0.025); }
+.sbg-bin-add { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; padding: 0; color: #9ca3af; background: #fff; border: 1px dashed #d8dce3; border-radius: 8px; cursor: pointer; transition: color .2s, border-color .2s; }
+.sbg-bin-add:hover { color: #da203e; border-color: #da203e; }
+.sbg-bin-tip { font-size: 12px; color: #a8aeb8; margin: 0; }
+.sbg-bin-file { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; padding: 10px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 7px; }
+.sbg-bin-file .sbg-file-name { flex: 1; min-width: 0; margin: 0; }
+.sbg-bin-file .sbg-file-size { flex-shrink: 0; }
+
 /* 字段 */
 .sbg-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
 .sbg-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .sbg-field--full { grid-column: 1 / -1; }
 .sbg-label { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #374151; }
 .sbg-opt { font-size: 11px; font-weight: 400; color: #b0b5bd; }
+.sbg-hint { font-size: 11px; color: #a8aeb8; margin: 0; line-height: 1.6; }
 
 /* 带前置图标的输入框 */
 .sbg-input-wrap { position: relative; display: flex; align-items: center; }
@@ -586,9 +638,9 @@ onUnmounted(stopTimer)
 .sbg-chip.is-active { color: #da203e; background: rgba(218,32,62,0.06); border-color: #da203e; font-weight: 600; }
 .sbg-ai-badge { padding: 0 4px; border-radius: 3px; font-size: 9px; font-weight: 700; color: #fff; background: #da203e; letter-spacing: .04em; }
 
-/* 复选框 */
-.sbg-checks { display: flex; flex-direction: column; gap: 10px; }
-.sbg-check { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+/* 复选框：默认一行展示，容器变窄时自动换行 */
+.sbg-checks { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px 28px; }
+.sbg-check { display: flex; align-items: center; gap: 9px; cursor: pointer; white-space: nowrap; }
 .sbg-check-box { width: 15px; height: 15px; flex-shrink: 0; border-radius: 3px; border: 1px solid #d8dce3; color: transparent; font-size: 10px; line-height: 1; display: flex; align-items: center; justify-content: center; background: #fff; transition: background .2s, border-color .2s, color .2s; }
 .sbg-check input:checked + .sbg-check-box { background: #da203e; border-color: #da203e; color: #fff; }
 .sbg-check-text { font-size: 12.5px; color: #4b5563; }
