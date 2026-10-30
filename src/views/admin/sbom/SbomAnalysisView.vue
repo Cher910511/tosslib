@@ -133,10 +133,46 @@
               <span class="sba-caret">▾</span>
             </button>
             <Transition name="sba-fade">
-              <div v-if="reportOpen" class="sba-menu">
-                <button type="button" class="sba-menu-item" @click="pickReport('在线查看')">在线查看报告</button>
-                <button type="button" class="sba-menu-item" @click="pickReport('PDF')">导出 PDF</button>
-                <button type="button" class="sba-menu-item" @click="pickReport('Word')">导出 Word</button>
+              <!-- 菜单内部点击不冒泡到 document，避免选中后元素被移除时被误判为「点击外部」而关闭整个下拉 -->
+              <div v-if="reportOpen" class="sba-menu sba-menu--report" @click.stop>
+                <!-- 视角：默认收起，点击标题行才展开 -->
+                <button
+                  type="button"
+                  class="sba-menu-group"
+                  :class="{ 'is-open': perspectiveOpen }"
+                  :aria-expanded="perspectiveOpen"
+                  @click="perspectiveOpen = !perspectiveOpen"
+                >
+                  <!-- 收起时直接展示当前选中的视角，展开时显示分组标题 -->
+                  <span v-if="perspectiveOpen" class="sba-menu-group-label">选择视角</span>
+                  <span v-else class="sba-menu-group-value">{{ currentPerspectiveLabel }}</span>
+                  <span class="sba-caret">▾</span>
+                </button>
+                <div v-if="perspectiveOpen" class="sba-menu-sub">
+                  <button
+                    v-for="p in REPORT_PERSPECTIVES"
+                    :key="p.key"
+                    type="button"
+                    class="sba-menu-item sba-menu-item--opt"
+                    :class="{ 'is-picked': reportPerspective === p.key }"
+                    @click="pickPerspective(p.key)"
+                  >
+                    <span class="sba-menu-check">{{ reportPerspective === p.key ? '✓' : '' }}</span>
+                    AI 摘要：{{ p.label }}
+                  </button>
+                </div>
+                <div class="sba-menu-sep" />
+                <p class="sba-menu-label">选择文件格式</p>
+                <button
+                  v-for="f in REPORT_FORMATS"
+                  :key="f.key"
+                  type="button"
+                  class="sba-menu-item"
+                  @click="pickReport(f)"
+                >
+                  {{ f.label }}
+                  <span class="sba-menu-ext">{{ f.ext }}</span>
+                </button>
               </div>
             </Transition>
           </div>
@@ -1021,6 +1057,35 @@ const licenseFilterOptions = computed(() => {
 const reportOpen = ref(false)
 const reportRef = ref(null)
 
+/* 分析报告：先选视角，再选文件格式 */
+const REPORT_PERSPECTIVES = [
+  { key: 'general', label: '通用视角' },
+  { key: 'developer', label: '开发者视角' },
+  { key: 'compliance', label: '合规视角' },
+  { key: 'security', label: '安全视角' },
+]
+
+const REPORT_FORMATS = [
+  { key: 'html', label: 'HTML', ext: '.html' },
+  { key: 'md', label: 'Markdown', ext: '.md' },
+  { key: 'docx', label: 'Word', ext: '.docx' },
+  { key: 'pdf', label: 'PDF', ext: '.pdf' },
+]
+
+const reportPerspective = ref('general')
+const reportKind = ref('')
+/** 视角分组默认收起，点击标题行才展开 */
+const perspectiveOpen = ref(false)
+const currentPerspectiveLabel = computed(
+  () => REPORT_PERSPECTIVES.find((p) => p.key === reportPerspective.value)?.label ?? ''
+)
+
+/** 选中视角：收起分组并回到分组标题行 */
+function pickPerspective(key) {
+  reportPerspective.value = key
+  perspectiveOpen.value = false
+}
+
 const fileFormat = ref('spdx-json')
 
 const fileFormats = computed(() => {
@@ -1075,13 +1140,12 @@ function downloadSbom() {
   URL.revokeObjectURL(url)
 }
 
-function pickReport(kind) {
+function pickReport(fmt) {
   reportOpen.value = false
-  // 报告导出能力待接入，先记录所选类型
-  reportKind.value = kind
+  // 报告导出能力待接入，先记录「视角 + 文件格式」
+  const perspective = REPORT_PERSPECTIVES.find((p) => p.key === reportPerspective.value)
+  reportKind.value = `${perspective ? perspective.label : ''}/${fmt.label}`
 }
-
-const reportKind = ref('')
 
 /* ---------- 许可证分析 ---------- */
 const licDetails = computed(() => (selected.value ? licenseDetail(selected.value) : []))
@@ -1308,7 +1372,12 @@ function backToList() {
 
 /* ---------- 点击外部关闭下拉 ---------- */
 function onDocClick(e) {
-  if (reportRef.value && !reportRef.value.contains(e.target)) reportOpen.value = false
+  const el = reportRef.value
+  if (!el) return
+  const target = e.target
+  // 目标已从 DOM 卸载（如菜单内部选项因状态变化被移除）时，不视为点击外部
+  if (target instanceof Node && !target.isConnected) return
+  if (!el.contains(target)) reportOpen.value = false
 }
 onMounted(() => document.addEventListener('click', onDocClick))
 onUnmounted(() => document.removeEventListener('click', onDocClick))
@@ -1440,6 +1509,26 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
 .sba-report { position: relative; }
 .sba-menu { position: absolute; top: calc(100% + 5px); right: 0; z-index: 30; min-width: 148px; padding: 4px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.12); display: flex; flex-direction: column; }
+.sba-menu--report { min-width: 196px; gap: 1px; padding: 5px; }
+.sba-menu-label { margin: 6px 6px 3px; font-size: 10px; font-weight: 600; color: #9ca3af; letter-spacing: .04em; }
+.sba-menu-label:first-child { margin-top: 3px; }
+/* 视角分组：默认收起，整行为可点击标题，右侧显示当前选中视角 */
+.sba-menu-group { display: flex; align-items: center; gap: 6px; width: 100%; padding: 7px 10px; font-size: 12px; font-weight: 500; color: #4b5563; background: none; border: none; border-radius: 5px; cursor: pointer; font-family: inherit; text-align: left; }
+.sba-menu-group:hover { background: #f5f6f7; }
+.sba-menu-group.is-open { color: #da203e; }
+.sba-menu-group-label { flex-shrink: 0; font-size: 10px; font-weight: 600; color: #9ca3af; letter-spacing: .04em; }
+.sba-menu-group.is-open .sba-menu-group-label { color: #da203e; }
+/* 收起时该行只展示当前选中的视角名，作为主文案 */
+.sba-menu-group-value { flex: 1; min-width: 0; font-size: 12px; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sba-menu-group:hover .sba-menu-group-value { color: #da203e; }
+.sba-menu-group .sba-caret { margin-left: auto; flex-shrink: 0; transition: transform .18s; }
+.sba-menu-group.is-open .sba-caret { transform: rotate(180deg); }
+.sba-menu-sub { display: flex; flex-direction: column; gap: 1px; padding-left: 6px; }
+.sba-menu-item--opt { display: flex; align-items: center; gap: 2px; }
+.sba-menu-check { width: 12px; flex-shrink: 0; color: #da203e; font-size: 11px; }
+.sba-menu-item.is-picked { color: #da203e; background: #fdf2f4; font-weight: 600; }
+.sba-menu-sep { height: 1px; margin: 4px 2px; background: #eef0f3; }
+.sba-menu-ext { margin-left: auto; padding-left: 12px; font-size: 10px; color: #b6bcc6; }
 .sba-menu--dark { background: #252b38; border-color: rgba(255,255,255,0.14); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
 .sba-menu-item { padding: 7px 10px; text-align: left; font-size: 12px; color: #4b5563; background: none; border: none; border-radius: 5px; cursor: pointer; font-family: inherit; white-space: nowrap; }
 .sba-menu-item:hover { background: #f5f6f7; color: #da203e; }
