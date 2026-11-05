@@ -261,83 +261,150 @@
 
     <!-- ====== 漏洞信息 Tab ====== -->
     <div v-show="activeTab === 'vuln'" class="tab-panel">
-      <!-- 漏洞状态提示条 -->
-      <div class="vuln-tip" :class="{ 'is-clean': vulnData.total === 0 }">
-        <span class="vuln-tip-ico" aria-hidden="true">{{ vulnData.total === 0 ? '🛡' : '⚠' }}</span>
+      <!-- 漏洞状态提示条：合计口径（供应链静态漏洞 + 0Day） -->
+      <div class="vuln-tip" :class="{ 'is-clean': vulnAll.length === 0 }">
+        <span class="vuln-tip-ico" aria-hidden="true">{{ vulnAll.length === 0 ? '✓' : '▲' }}</span>
         <div class="vuln-tip-body">
           <p class="vuln-tip-title">
-            {{ vulnData.total === 0 ? '未检测到已知漏洞' : `检测到 ${vulnData.total} 个漏洞` }}
+            {{ vulnAll.length === 0 ? '未检测到已知漏洞' : `检测到 ${vulnAll.length} 个漏洞${zerodayList.length ? `（含 0Day ${zerodayList.length} 个）` : ''}` }}
           </p>
-          <p class="vuln-tip-text" v-if="vulnData.total > 0">
-            其中超危 {{ vulnData.critical }} 个、高危 {{ vulnData.high }} 个、中危 {{ vulnData.medium }} 个、低危 {{ vulnData.low }} 个，
-            请重点关注高危及以上漏洞，建议及时升级至修复版本。
+          <p class="vuln-tip-text" v-if="vulnAll.length > 0">
+            其中超危 {{ vulnDataAll.critical }} 个、高危 {{ vulnDataAll.high }} 个、中危 {{ vulnDataAll.medium }} 个、低危 {{ vulnDataAll.low }} 个，
+            <template v-if="zerodayList.length">0Day 漏洞暂无公开补丁，建议优先评估隔离或缓解措施。</template>
+            <template v-else>请重点关注高危及以上漏洞，建议及时升级至修复版本。</template>
           </p>
           <p class="vuln-tip-text" v-else>
             当前版本风险状态良好，可放心使用；如后续发现新漏洞，平台将持续跟进并提示。
           </p>
         </div>
       </div>
+
+      <!-- 漏洞概览：合计口径（含 0Day），单独标注 0Day 条数 -->
+      <div class="info-card-fill info-card-fill--wide vuln-summary">
+        <div class="card-header">
+          <span class="card-header-ico">◉</span>
+          <span class="card-title">漏洞概览</span>
+          <span class="card-badge">共 {{ vulnAll.length }} 个{{ zerodayList.length ? ` · 含 0Day ${zerodayList.length} 个` : '' }}</span>
+        </div>
+        <div class="vuln-summary-body">
+          <!-- 左侧：四统计卡（2x2）+ 趋势条 -->
+          <div class="vuln-summary-stats">
+            <div class="stat-grid-2">
+              <div class="stat-card stat-card--crit"><span class="stat-val">{{ vulnDataAll.critical }}</span><span class="stat-lbl">超危</span></div>
+              <div class="stat-card stat-card--high"><span class="stat-val">{{ vulnDataAll.high }}</span><span class="stat-lbl">高危</span></div>
+              <div class="stat-card stat-card--med"><span class="stat-val">{{ vulnDataAll.medium }}</span><span class="stat-lbl">中危</span></div>
+              <div class="stat-card stat-card--low"><span class="stat-val">{{ vulnDataAll.low }}</span><span class="stat-lbl">低危</span></div>
+            </div>
+            <!-- 趋势微条 -->
+            <div class="vuln-trend-bar">
+              <div class="vuln-trend-seg crit" :style="{ width: vulnTrendPctAll.critical + '%' }"></div>
+              <div class="vuln-trend-seg high" :style="{ width: vulnTrendPctAll.high + '%' }"></div>
+              <div class="vuln-trend-seg med" :style="{ width: vulnTrendPctAll.medium + '%' }"></div>
+              <div class="vuln-trend-seg low" :style="{ width: vulnTrendPctAll.low + '%' }"></div>
+            </div>
+          </div>
+          <!-- 右侧：等级分布扇形图 -->
+          <div class="vuln-summary-chart">
+            <div ref="vulnSevChartRef" class="an-chart-box"></div>
+          </div>
+        </div>
+        <!-- 0Day 警示行：只在该软件存在 0Day 时渲染。
+             放在概览卡内有意的 —— 0Day 没有公开补丁，处置方式与供应链漏洞不同，
+             不能只把条数拼在右上角 badge 里，扫一眼就容易漏。 -->
+        <div v-if="zerodayList.length" class="vuln-zd-notice">
+          <span class="vuln-zd-notice-ico" aria-hidden="true">◆</span>
+          <span class="vuln-zd-notice-text">
+            含 0Day 漏洞 <b>{{ zerodayList.length }}</b> 个，暂无公开补丁，建议优先评估隔离或缓解措施
+          </span>
+        </div>
+      </div>
+
+      <!-- ===== 来源二级切换：供应链静态漏洞 / 0Day 漏洞 ===== -->
+      <div class="vuln-subtabs" role="tablist">
+        <button
+          type="button"
+          class="vuln-subtab"
+          :class="{ 'is-active': vulnSubTab === 'supply' }"
+          role="tab"
+          :aria-selected="vulnSubTab === 'supply'"
+          @click="setVulnSubTab('supply')"
+        >供应链漏洞 ({{ vulnList.length }})</button>
+        <button
+          type="button"
+          class="vuln-subtab"
+          :class="{ 'is-active': vulnSubTab === 'zeroday' }"
+          role="tab"
+          :aria-selected="vulnSubTab === 'zeroday'"
+          @click="setVulnSubTab('zeroday')"
+        >0Day 漏洞 ({{ zerodayList.length }})</button>
+      </div>
+
       <div class="card-grid-2col">
-        <!-- 漏洞概览 + 等级分布（合并卡，全宽） -->
-        <div class="info-card-fill info-card-fill--wide vuln-summary">
-          <div class="card-header">
-            <span class="card-header-ico">◉</span>
-            <span class="card-title">漏洞概览</span>
-            <span class="card-badge">共 {{ vulnData.total }} 个</span>
+        <!-- ===== 子页一：供应链静态漏洞（内容与改造前一致） ===== -->
+        <template v-if="vulnSubTab === 'supply'">
+          <div class="info-card-fill info-card-fill--wide" v-if="vulnList.length">
+            <div class="card-header">
+              <span class="card-header-ico">☰</span>
+              <span class="card-title">供应链漏洞列表</span>
+              <span class="card-badge">点击行查看详情</span>
+            </div>
+            <div class="vuln-list-item" v-for="v in vulnList" :key="v.id" @click="openVulnDetail(v)">
+              <span class="vuln-level" :class="'level--' + v.level">{{ v.levelLabel }}</span>
+              <span class="vuln-id">{{ v.cve_id }}</span>
+              <span class="vuln-desc">{{ v.vuln_name }}</span>
+              <span class="vuln-cvss" v-if="v.cvss_score != null">CVSS {{ v.cvss_score }}</span>
+              <span class="vuln-more">›</span>
+            </div>
           </div>
-          <div class="vuln-summary-body">
-            <!-- 左侧：四统计卡（2x2）+ 趋势条 -->
-            <div class="vuln-summary-stats">
-              <div class="stat-grid-2">
-                <div class="stat-card stat-card--crit"><span class="stat-val">{{ vulnData.critical }}</span><span class="stat-lbl">超危</span></div>
-                <div class="stat-card stat-card--high"><span class="stat-val">{{ vulnData.high }}</span><span class="stat-lbl">高危</span></div>
-                <div class="stat-card stat-card--med"><span class="stat-val">{{ vulnData.medium }}</span><span class="stat-lbl">中危</span></div>
-                <div class="stat-card stat-card--low"><span class="stat-val">{{ vulnData.low }}</span><span class="stat-lbl">低危</span></div>
+          <!-- 无漏洞时的骨架 -->
+          <div class="info-card-fill info-card-fill--wide" v-else>
+            <div class="card-header">
+              <span class="card-header-ico">☰</span>
+              <span class="card-title">供应链漏洞列表</span>
+            </div>
+            <div class="vuln-sk-list">
+              <div class="sk-vuln-row" v-for="i in 4" :key="i">
+                <span class="sk-block sk-block--lvl"></span>
+                <span class="sk-block sk-block--id"></span>
+                <span class="sk-block sk-block--desc"></span>
+                <span class="sk-block sk-block--st"></span>
               </div>
-              <!-- 趋势微条 -->
-              <div class="vuln-trend-bar">
-                <div class="vuln-trend-seg crit" :style="{ width: vulnTrendPct.critical + '%' }"></div>
-                <div class="vuln-trend-seg high" :style="{ width: vulnTrendPct.high + '%' }"></div>
-                <div class="vuln-trend-seg med" :style="{ width: vulnTrendPct.medium + '%' }"></div>
-                <div class="vuln-trend-seg low" :style="{ width: vulnTrendPct.low + '%' }"></div>
-              </div>
-            </div>
-            <!-- 右侧：等级分布扇形图 -->
-            <div class="vuln-summary-chart">
-              <div ref="vulnSevChartRef" class="an-chart-box"></div>
             </div>
           </div>
-        </div>
-        <!-- 漏洞列表 -->
-        <div class="info-card-fill info-card-fill--wide" v-if="vulnList.length">
-          <div class="card-header">
-            <span class="card-header-ico">☰</span>
-            <span class="card-title">漏洞列表</span>
-            <span class="card-badge">点击行查看详情</span>
-          </div>
-          <div class="vuln-list-item" v-for="v in vulnList" :key="v.id" @click="openVulnDetail(v)">
-            <span class="vuln-level" :class="'level--' + v.level">{{ v.levelLabel }}</span>
-            <span class="vuln-id">{{ v.cve_id }}</span>
-            <span class="vuln-desc">{{ v.vuln_name }}</span>
-            <span class="vuln-cvss" v-if="v.cvss_score != null">CVSS {{ v.cvss_score }}</span>
-            <span class="vuln-more">›</span>
-          </div>
-        </div>
-        <!-- 无漏洞时的骨架 -->
-        <div class="info-card-fill info-card-fill--wide" v-else>
-          <div class="card-header">
-            <span class="card-header-ico">☰</span>
-            <span class="card-title">漏洞列表</span>
-          </div>
-          <div class="vuln-sk-list">
-            <div class="sk-vuln-row" v-for="i in 4" :key="i">
-              <span class="sk-block sk-block--lvl"></span>
-              <span class="sk-block sk-block--id"></span>
-              <span class="sk-block sk-block--desc"></span>
-              <span class="sk-block sk-block--st"></span>
+        </template>
+
+        <!-- ===== 子页二：0Day 漏洞 =====
+             布局与供应链列表区分：不设编号列、不设 CVSS 列，
+             主标题用「漏洞类别」（vulnerability_types），副标题用「涉及组件」。 -->
+        <template v-else>
+          <div class="info-card-fill info-card-fill--wide" v-if="zerodayList.length">
+            <div class="card-header">
+              <span class="card-header-ico">◆</span>
+              <span class="card-title">0Day 漏洞情报</span>
+              <span class="card-badge">无公开补丁 · 点击行查看详情</span>
+            </div>
+            <div
+              class="vuln-list-item vuln-list-item--zeroday"
+              v-for="z in zerodayList"
+              :key="z.id"
+              @click="openZerodayDetail(z)"
+            >
+              <span class="vuln-level" :class="'level--' + z.level">{{ z.levelLabel }}</span>
+              <span class="vuln-zd-tag">0Day</span>
+              <span class="vuln-desc">{{ z.vulnerability_types }}</span>
+              <span class="vuln-zd-comp">{{ z.affected_components }}</span>
+              <span class="vuln-more">›</span>
             </div>
           </div>
-        </div>
+          <!-- 无 0Day 情报时：明确是「没有情报」，不是「确认无漏洞」 -->
+          <div class="info-card-fill info-card-fill--wide" v-else>
+            <div class="card-header">
+              <span class="card-header-ico">◆</span>
+              <span class="card-title">0Day 漏洞情报</span>
+            </div>
+            <p class="vuln-zd-empty">暂无该软件的 0Day 漏洞情报</p>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -347,7 +414,7 @@
         <!-- 检测概览 -->
         <div class="info-card-fill">
           <div class="card-header">
-            <span class="card-header-ico">☣</span>
+            <span class="card-header-ico">▣</span>
             <span class="card-title">检测概览</span>
             <span class="card-badge">共 {{ malwareData.total }} 个文件</span>
           </div>
@@ -444,13 +511,13 @@
         <!-- 风险分析（整合漏洞 + 依赖数据，与概览并排） -->
         <div class="info-card-fill">
           <div class="card-header">
-            <span class="card-header-ico">⚠</span>
+            <span class="card-header-ico">▲</span>
             <span class="card-title">风险分析</span>
             <span class="card-badge">漏洞 + 依赖交叉分析</span>
           </div>
           <div class="sbom-risk-grid">
             <div class="sbom-risk-item" :class="{ 'sbom-risk-item--danger': sbomRiskStats.vulnTotal > 0 }">
-              <span class="sbom-risk-ico" :class="sbomRiskStats.vulnTotal > 0 ? 'sbom-risk-ico--crit' : 'sbom-risk-ico--ok'">⚠</span>
+              <span class="sbom-risk-ico" :class="sbomRiskStats.vulnTotal > 0 ? 'sbom-risk-ico--crit' : 'sbom-risk-ico--ok'">▲</span>
               <div class="sbom-risk-main">
                 <span class="sbom-risk-num">{{ sbomRiskStats.vulnTotal }}</span>
                 <span class="sbom-risk-lbl">漏洞总数</span>
@@ -824,7 +891,41 @@
     </div>
   </Teleport>
 
-  <!-- ====== 许可证详情抽屉 ====== -->
+  <!-- ====== 0Day 漏洞详情抽屉 ======
+       字段严格按样例文档六项：类别 / 描述 / 等级 / 涉及组件 / 涉及文件 / 影响。
+       刻意不渲染：修复建议、参考链接、来源、CVSS 属性、验证状态、行号与代码片段。
+       风险评分与发布时间按文档要求显示「—」，不用等级或平台同步时间顶替。 -->
+  <Teleport to="body">
+    <div v-if="zerodayDetail" class="vd-overlay" @click.self="zerodayDetail = null">
+      <div class="vd-drawer">
+        <div class="vd-drawer-hd">
+          <div class="vd-drawer-title">
+            <h3 class="vd-cve">
+              <span class="vuln-zd-tag vuln-zd-tag--lg">0Day</span>
+              <span class="vd-zd-title">{{ zerodayDetail.vulnerability_types || '—' }}</span>
+            </h3>
+            <p class="vd-name">{{ zerodayDetail.affected_components || '—' }}</p>
+          </div>
+          <button type="button" class="vd-drawer-close" @click="zerodayDetail = null">×</button>
+        </div>
+        <div class="vd-drawer-body">
+          <dl class="vd-dl">
+            <div class="vd-dl-row"><dt>漏洞等级</dt><dd><span class="vuln-level" :class="'level--' + zerodayDetailLevel">{{ zerodayDetailLevelLabel }}</span></dd></div>
+            <div class="vd-dl-row"><dt>漏洞类别</dt><dd>{{ zerodayDetail.vulnerability_types || '—' }}</dd></div>
+            <div class="vd-dl-row"><dt>涉及组件</dt><dd>{{ zerodayDetail.affected_components || '—' }}</dd></div>
+            <div class="vd-dl-row"><dt>涉及文件</dt><dd class="mono-text">{{ zerodayDetail.affected_files || '—' }}</dd></div>
+            <!-- 风险评分 / 发布时间：0Day 样例未提供，按文档要求显示「—」，
+                 不用等级、自评向量或平台同步时间替代 -->
+            <div class="vd-dl-row"><dt>风险评分</dt><dd class="vd-muted">—</dd></div>
+            <div class="vd-dl-row"><dt>发布时间</dt><dd class="vd-muted">—</dd></div>
+          </dl>
+          <section class="vd-section"><h4>漏洞描述</h4><p>{{ zerodayDetail.summary || '—' }}</p></section>
+          <section class="vd-section"><h4>漏洞影响</h4><p>{{ zerodayDetail.impact || '—' }}</p></section>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
   <Teleport to="body">
     <div v-if="licDetail" class="ld-overlay" @click.self="closeLicDetail">
       <div class="ld-drawer">
@@ -897,8 +998,17 @@ const router = useRouter()
 
 /* ===== 数据源 ===== */
 import { getComponentMock } from '../../data/componentDetailMocks.js'
+import { getZerodayByComponent } from '../../data/zerodayMocks.js'
 
-const compId = computed(() => route.params.id || 'vertx-web-sstore-cookie')
+// 组件标识：先取路由 param，其次取 ?id=（本页面路由 /software/detail 没有 :id 参数，
+// 需要在软件库里切换查看不同组件时靠 query 传入），都没有则回落默认组件。
+const compId = computed(() => {
+  if (route.params.id) return route.params.id
+  const q = route.query.id
+  const qStr = Array.isArray(q) ? q[0] : q
+  const raw = qStr != null ? String(qStr).trim() : ''
+  return raw || 'vertx-web-sstore-cookie'
+})
 const comp = computed(() => getComponentMock(compId.value))
 
 const displayPkg = computed(() => {
@@ -948,6 +1058,10 @@ onMounted(() => {
   const t = route.query.tab
   const tStr = Array.isArray(t) ? t[0] : t
   if (tStr && allowedTabs.includes(String(tStr))) activeTab.value = String(tStr)
+  // 漏洞来源二级 Tab：支持 ?vsub=zeroday 直达，刷新后不丢位置
+  const s = route.query.vsub
+  const sStr = Array.isArray(s) ? s[0] : s
+  if (sStr === 'zeroday' || sStr === 'supply') vulnSubTab.value = String(sStr)
 })
 
 /* ===== 依赖数据（真实接口结构） ===== */
@@ -1197,39 +1311,69 @@ const SEV_META = {
   LOW: { key: 'low', label: '低危' },
 }
 
-// 概览统计由列表数据派生
-const vulnData = computed(() => {
-  const total = vulnListRaw.length
-  const count = (sev) => vulnListRaw.filter((v) => v.severity === sev).length
+// 供应链口径的统计已并入 vulnDataAll（合计口径），此处不再单独保留一份，
+// 避免出现「概览卡按合计、饼图中心按供应链」这类两套数字打架的情况。
+
+/* ===== 0Day 漏洞（按组件挂载，字段严格对应样例文档六项） ===== */
+// 展示行：补等级字段，与供应链列表共用 SEV_META 等级体系
+const zerodayList = computed(() =>
+  getZerodayByComponent(compId.value).map((z) => {
+    const sev = SEV_META[z.severity] || SEV_META.LOW
+    return { ...z, level: sev.key, levelLabel: sev.label }
+  })
+)
+
+/**
+ * 全部漏洞（供应链 + 0Day）—— 作为「合计口径」的唯一来源。
+ * 概览卡、状态提示条、风险分析卡的漏洞数都必须读它，
+ * 否则三处各算各的，数字必然对不上。
+ */
+const vulnAll = computed(() => [
+  ...vulnListRaw.map((v) => ({ ...v, source: 'supply' })),
+  ...zerodayList.value.map((z) => ({ ...z, source: 'zeroday' })),
+])
+
+// 合计口径的等级分布（含 0Day —— 0Day 也带 severity）
+const vulnDataAll = computed(() => {
+  const count = (sev) => vulnAll.value.filter((v) => v.severity === sev).length
   return {
     critical: count('CRITICAL'),
     high: count('HIGH'),
     medium: count('MEDIUM'),
     low: count('LOW'),
-    total,
+    total: vulnAll.value.length,
   }
 })
-const vulnTrendPct = computed(() => {
-  const t = vulnData.value.total || 1
+const vulnTrendPctAll = computed(() => {
+  const t = vulnDataAll.value.total || 1
   return {
-    critical: (vulnData.value.critical / t) * 100,
-    high: (vulnData.value.high / t) * 100,
-    medium: (vulnData.value.medium / t) * 100,
-    low: (vulnData.value.low / t) * 100,
+    critical: (vulnDataAll.value.critical / t) * 100,
+    high: (vulnDataAll.value.high / t) * 100,
+    medium: (vulnDataAll.value.medium / t) * 100,
+    low: (vulnDataAll.value.low / t) * 100,
   }
 })
+
+/* ===== 漏洞来源二级切换 ===== */
+// 默认停在供应链漏洞，保持改造前的浏览习惯
+const vulnSubTab = ref('supply')
+function setVulnSubTab(key) {
+  vulnSubTab.value = key === 'zeroday' ? 'zeroday' : 'supply'
+  router.replace({ query: { ...route.query, vsub: vulnSubTab.value } })
+}
 
 /* ===== 漏洞分析 ===== */
 // ===== 漏洞图表（echarts，数据全部来自真实列表字段） =====
 const vulnSevChartRef = ref(null)
 let vulnSevChart = null
 
-// 等级分布：按 severity 字段统计
+// 等级分布：按 severity 字段统计。
+// 用合计口径（含 0Day）—— 概览卡本身就是全量视图，饼图若只算供应链会与左侧数字打架。
 const vulnSevData = computed(() =>
   ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
     .map((sev) => ({
       name: SEV_META[sev].label,
-      value: vulnData.value[SEV_META[sev].key] || 0,
+      value: vulnDataAll.value[SEV_META[sev].key] || 0,
     }))
     .filter((d) => d.value > 0)
 )
@@ -1273,7 +1417,7 @@ function renderVulnCharts() {
           type: 'text',
           left: 'center',
           top: '38%',
-          style: { text: String(vulnData.value.total), fontSize: 26, fontWeight: 800, fill: '#111827' },
+          style: { text: String(vulnDataAll.value.total), fontSize: 26, fontWeight: 800, fill: '#111827' },
         }]
       : [],
     series: [{
@@ -1345,6 +1489,23 @@ const vulnDetail = ref(null)
 function openVulnDetail(v) {
   vulnDetail.value = vulnDetailMap[v.id] || null
 }
+
+/* ===== 0Day 详情抽屉 =====
+   与供应链漏洞抽屉**不是同一套字段**，所以独立渲染而不复用 vulnDetail：
+   0Day 没有编号、没有 CVSS、没有发布时间与修复建议，
+   强行套用供应链抽屉会渲染出一堆「—」和空区块，反而误导。 */
+const zerodayDetail = ref(null)
+function openZerodayDetail(z) {
+  zerodayDetail.value = z || null
+}
+const zerodayDetailLevel = computed(() => {
+  const sev = SEV_META[zerodayDetail.value?.severity] || SEV_META.LOW
+  return sev.key
+})
+const zerodayDetailLevelLabel = computed(() => {
+  const sev = SEV_META[zerodayDetail.value?.severity] || SEV_META.LOW
+  return sev.label
+})
 
 /* ===== 漏洞详情抽屉辅助 ===== */
 const detailLevel = computed(() => {
@@ -1428,7 +1589,8 @@ const sbomDirectPct = computed(() => {
 /* ===== SBOM 风险分析（整合漏洞 + 依赖数据） ===== */
 // 统计：漏洞总数 / 未知版本依赖 / 依赖组件总数
 const sbomRiskStats = computed(() => ({
-  vulnTotal: vulnListRaw.length,
+  // 合计口径：供应链静态漏洞 + 0Day，与漏洞 Tab 的概览卡同源，避免两处数字不一致
+  vulnTotal: vulnAll.value.length,
   unknownDeps: depAll.value.filter((d) => d.version === 'UNKNOWN').length,
   depTotal: depAll.value.length,
 }))
@@ -2592,6 +2754,103 @@ const versionHistory = [
   transition: color 0.15s, transform 0.15s;
 }
 .vuln-list-item:hover .vuln-more { color: #da203e; transform: translateX(2px); }
+
+/* ============================================================
+   漏洞来源二级切换（供应链静态漏洞 / 0Day 漏洞）
+   比主 Tab 更轻：胶囊形、无下划线，避免与顶部主 Tab 抢视觉层级
+   ============================================================ */
+.vuln-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.vuln-subtab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vuln-subtab:hover { border-color: #d1d5db; color: #374151; }
+.vuln-subtab.is-active {
+  border-color: rgba(218, 32, 62, 0.35);
+  background: #fef2f2;
+  color: #da203e;
+  font-weight: 600;
+}
+
+/* 0Day 标签：与等级徽标并列，用深色描边区别于普通等级色 */
+.vuln-zd-tag {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border: 1px solid rgba(218, 32, 62, 0.45);
+  border-radius: 4px;
+  background: #fff;
+  color: #da203e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+.vuln-zd-tag--lg { font-size: 12px; padding: 3px 9px; vertical-align: 2px; }
+.vd-zd-title { margin-left: 8px; }
+
+/* 0Day 行：涉及组件作为副标题占位，替代供应链行的漏洞名 */
+.vuln-list-item--zeroday .vuln-desc { color: #374151; font-weight: 500; }
+.vuln-zd-comp {
+  flex-shrink: 0;
+  max-width: 40%;
+  color: #9ca3af;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 无 0Day 情报时的空态：说明「没有情报」，不是「确认安全」 */
+.vuln-zd-empty {
+  margin: 18px 0 8px;
+  padding: 22px 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* 详情抽屉里表示「原文未提供」的占位 */
+.vd-muted { color: #9ca3af; }
+
+/* 概览卡内的 0Day 警示行：仅在存在 0Day 时渲染，
+   与详情页 0Day 标签同色系，但用浅底整行呈现，便于扫视时捕捉 */
+.vuln-zd-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(218, 32, 62, 0.22);
+  border-radius: 8px;
+  background: #fff7f8;
+  font-size: 12.5px;
+  color: #9f1239;
+  line-height: 1.5;
+}
+.vuln-zd-notice-ico {
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+.vuln-zd-notice-text b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ============================================================
    VULN ANALYSIS — 漏洞概览 + 等级分布（合并卡）

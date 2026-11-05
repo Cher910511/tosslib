@@ -115,6 +115,12 @@
                 >
                   {{ row.vulnCount }}
                 </span>
+                <!-- 0Day 标识：与漏洞数同格，紧跟数字，避免只在详情页才能看到 -->
+                <span
+                  v-if="row.hasZeroday"
+                  class="shelf-zd-badge"
+                  title="该软件存在 0Day 漏洞，暂无公开补丁"
+                >0Day</span>
               </td>
               <td class="shelf-dev" :title="row.developer">{{ row.developer }}</td>
               <td><span class="shelf-lang">{{ row.lang }}</span></td>
@@ -278,6 +284,26 @@ const listTitle = computed(() => (activeTab.value === 'software' ? '软件列表
 
 // —— 软件数据 ——
 const SEED_SW = [
+  {
+    // 置顶的 0Day 演示条目：详情页（?id=maxkb）挂有 0Day 漏洞情报。
+    // vulnCount 与详情页合计口径一致（供应链 1 + 0Day 1 = 2），避免列表与详情数字打架。
+    id: 'sw-maxkb',
+    name: 'maxkb',
+    version: '2.10.0',
+    score: 7.9,
+    publishTime: '2026-03-28',
+    industry: '互联网',
+    vulnCount: 2,
+    // 标记：该软件存在 0Day 漏洞，列表行据此显示 0Day 标识
+    hasZeroday: true,
+    developer: 'MaxKB Contributors',
+    lang: 'Python',
+    reviewOpinion: '存在 0Day 漏洞情报，暂无公开补丁，建议评估隔离或缓解措施',
+    shelfStatus: '已入库',
+    reviewHistory: [
+      { action: '入库', operator: 'admin', timestamp: '2026-03-28 09:00', opinion: '版本稳定，准予入库' },
+    ],
+  },
   {
     id: 'sw-1',
     name: 'requests',
@@ -793,7 +819,11 @@ function toggleItem(id) {
 
 
 function onSoftwareClick(row) {
-  router.push({ name: 'software-detail', query: { q: row.name } })
+  // 带上 id 让详情页能定位到具体组件（如 maxkb 承载 0Day 演示数据）；
+  // 同时保留 q（名称）兼容既有行为。
+  const query = { q: row.name }
+  if (row.name) query.id = row.name
+  router.push({ name: 'software-detail', query })
 }
 
 function toggleSort(field) {
@@ -1215,6 +1245,22 @@ function showToast(msg, type = 'info') {
 .shelf-vuln--risk {
   color: #991b1b;
   background: #fef2f2;
+}
+
+/* 0Day 标识：紧跟漏洞数，描边样式与详情页的 0Day 标签保持一致 */
+.shelf-zd-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid rgba(218, 32, 62, 0.45);
+  border-radius: 4px;
+  color: #da203e;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  vertical-align: 1px;
+  cursor: help;
 }
 
 .shelf-lang {

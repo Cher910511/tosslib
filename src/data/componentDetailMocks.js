@@ -228,6 +228,31 @@ const IMGSCALR = {
   packageDownloads: [],
 }
 
+/**
+ * MaxKB：开源知识库问答系统（Python / Django）。
+ * 引入它主要是为了承载 0Day 漏洞演示数据（见 zerodayMocks.js）——
+ * 现有 12 个组件都是基础库，没有可对应的 0Day 样例。
+ */
+const MAXKB = {
+  detailLang: 'python',
+  name: 'maxkb',
+  version: '2.10.0',
+  componentCode: 'py-maxkb-demo',
+  groupId: '',
+  artifactId: 'maxkb',
+  language: 'Python',
+  descriptionEn:
+    'MaxKB is an open-source knowledge base question-answering system based on LLM, supporting RAG pipelines and agent workflows.',
+  descriptionZh:
+    'MaxKB 是基于大模型的开源知识库问答系统，支持 RAG 检索增强与工作流编排，可作为企业知识库与智能客服底座。',
+  parentSoftwares: [],
+  licenses: [{ name: 'GNU General Public License v3.0', code: 'GPL-3.0', version: '2.10.0', type: 'gpl' }],
+  binaryPackages: [],
+  packageDownloads: [
+    { href: 'https://pypi.org/project/maxkb/', label: 'PyPI' },
+  ],
+}
+
 /** @type {Record<string, typeof VERTX & { detailLang: string, goModule?: string }>} */
 export const COMPONENT_MOCKS = {
   'vertx-web-sstore-cookie': VERTX,
@@ -242,6 +267,7 @@ export const COMPONENT_MOCKS = {
   thumbnailator: THUMBNAILATOR,
   'twelvemonkeys-imageio': TWELVEMONKEYS_IMAGEIO,
   imgscalr: IMGSCALR,
+  maxkb: MAXKB,
 }
 
 /** 组件库列表展示顺序（与九种引入语言一一对应演示） */
@@ -258,6 +284,7 @@ export const COMPONENT_LIBRARY_IDS = [
   'thumbnailator',
   'twelvemonkeys-imageio',
   'imgscalr',
+  'maxkb',
 ]
 
 function slugToArtifactId(slug) {
