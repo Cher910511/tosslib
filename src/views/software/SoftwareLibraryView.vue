@@ -293,7 +293,7 @@ const SEED_SW = [
     score: 7.9,
     publishTime: '2026-03-28',
     industry: '互联网',
-    vulnCount: 2,
+    vulnCount: 10,
     // 标记：该软件存在 0Day 漏洞，列表行据此显示 0Day 标识
     hasZeroday: true,
     developer: 'MaxKB Contributors',

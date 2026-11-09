@@ -58,70 +58,224 @@
 
     <!-- ====== 软件介绍 Tab ====== -->
     <div v-show="activeTab === 'intro'" class="tab-panel">
-      <div class="card-grid-2col">
-        <!-- 基本信息卡 -->
-        <div class="info-card-fill">
-          <div class="card-header">
-            <span class="card-header-ico">◈</span>
-            <span class="card-title">基本信息</span>
-          </div>
-          <dl class="info-dl">
-            <div class="info-row"><dt>软件名称</dt><dd>{{ displayPkg.name || '—' }}</dd></div>
-            <div class="info-row"><dt>版本</dt><dd>v{{ displayPkg.version || '—' }}</dd></div>
-            <div class="info-row"><dt>编程语言</dt><dd>{{ displayPkg.language || '—' }}</dd></div>
-            <div class="info-row"><dt>开源许可证</dt><dd><span class="badge badge-lic" v-if="displayPkg.license?.names?.length">{{ displayPkg.license.names.join(', ') }}</span><span v-else class="na-text">—</span></dd></div>
-            <div class="info-row"><dt>评分</dt><dd>{{ displayPkg.score ?? '—' }}</dd></div>
-            <div class="info-row"><dt>行业分类</dt><dd>{{ displayPkg.industry || '—' }}</dd></div>
+      <!-- 只展示需求里给定的字段：
+           ① 描述 | 使用指南（README 两个模块）
+           ② 基本信息(4) | 源码地址(5) | 参考信息(7) -->
+      <div class="sd-page">
+        <!-- 顶部一行条：基本信息四字段（下方基本信息卡保留） -->
+        <section class="sd-factbar">
+          <dl class="sd-factbar-list">
+            <div class="sd-fact-item">
+              <dt>主语言类型</dt>
+              <dd>{{ displayPkg.language || '—' }}</dd>
+            </div>
+            <div class="sd-fact-item">
+              <dt>开发商</dt>
+              <dd>{{ displayPkg.author || '—' }}</dd>
+            </div>
+            <div class="sd-fact-item">
+              <dt>发布日期</dt>
+              <dd>{{ displayPkg.released || '—' }}</dd>
+            </div>
+            <div class="sd-fact-item">
+              <dt>开源许可证</dt>
+              <dd class="sd-license-tags">
+                <template v-if="displayPkg.license?.names?.length">
+                  <span class="badge badge-lic" v-for="lic in displayPkg.license.names" :key="lic">{{ lic }}</span>
+                </template>
+                <span v-else class="na-text">—</span>
+              </dd>
+            </div>
           </dl>
+        </section>
+
+        <!-- ① 软件概览 | 使用指南 -->
+        <div class="sd-row-2">
+          <section class="sd-panel sd-panel--scroll">
+            <div class="sd-card-hd">
+              <span class="sd-card-bar" aria-hidden="true"></span>
+              <h2 class="sd-card-title">软件概览</h2>
+            </div>
+            <div class="sd-panel-body">
+              <template v-if="displayPkg.overviewParagraphs?.length">
+                <p class="sd-readme-p" v-for="(para, i) in displayPkg.overviewParagraphs" :key="i" v-html="renderMd(para)"></p>
+              </template>
+              <p class="sd-readme-p" v-else>{{ displayPkg.description || '—' }}</p>
+              <ul class="sd-feature-list" v-if="displayPkg.features?.length">
+                <li v-for="(f, i) in displayPkg.features" :key="i">{{ f }}</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="sd-panel sd-panel--scroll">
+            <div class="sd-card-hd">
+              <span class="sd-card-bar" aria-hidden="true"></span>
+              <h2 class="sd-card-title">使用指南</h2>
+            </div>
+            <div class="sd-panel-body">
+              <p class="sd-guide-note">
+                <span class="sd-guide-note-label">环境要求</span>
+                <span>{{ displayPkg.envRequirement || '—' }}</span>
+              </p>
+              <div class="sd-guide-grid">
+              <div class="sd-guide-block">
+                <h3 class="sd-guide-label">安装</h3>
+                <div class="sd-code-box" v-if="displayPkg.installCmd">
+                  <pre class="sd-pre"><code>{{ displayPkg.installCmd }}</code></pre>
+                  <button
+                    type="button"
+                    class="sd-copy-btn"
+                    :class="{ 'is-copied': copiedKey === displayPkg.installCmd }"
+                    @click="copyCode(displayPkg.installCmd)"
+                  >{{ copiedKey === displayPkg.installCmd ? '已复制' : '复制' }}</button>
+                </div>
+                <p class="sd-readme-p" v-else>—</p>
+              </div>
+              <div class="sd-guide-block">
+                <h3 class="sd-guide-label">快速开始</h3>
+                <div class="sd-code-box" v-if="displayPkg.quickStart">
+                  <pre class="sd-pre sd-pre--tall"><code>{{ displayPkg.quickStart }}</code></pre>
+                  <button
+                    type="button"
+                    class="sd-copy-btn"
+                    :class="{ 'is-copied': copiedKey === displayPkg.quickStart }"
+                    @click="copyCode(displayPkg.quickStart)"
+                  >{{ copiedKey === displayPkg.quickStart ? '已复制' : '复制' }}</button>
+                </div>
+                <p class="sd-readme-p" v-else>—</p>
+              </div>
+            </div>
+            <div class="sd-guide-block sd-guide-block--structure">
+              <h3 class="sd-guide-label">项目结构</h3>
+              <div class="sd-code-box" v-if="displayPkg.projectStructure">
+                <pre class="sd-pre sd-pre--tall"><code>{{ displayPkg.projectStructure }}</code></pre>
+                <button
+                  type="button"
+                  class="sd-copy-btn"
+                  :class="{ 'is-copied': copiedKey === displayPkg.projectStructure }"
+                  @click="copyCode(displayPkg.projectStructure)"
+                >{{ copiedKey === displayPkg.projectStructure ? '已复制' : '复制' }}</button>
+              </div>
+              <p class="sd-readme-p" v-else>—</p>
+            </div>
+            </div>
+          </section>
         </div>
-        <!-- 开发者信息卡 -->
-        <div class="info-card-fill">
-          <div class="card-header">
-            <span class="card-header-ico">♢</span>
-            <span class="card-title">开发者信息</span>
-          </div>
-          <dl class="info-dl">
-            <div class="info-row"><dt>开发商</dt><dd>{{ displayPkg.author || '—' }}</dd></div>
-            <div class="info-row"><dt>发布日期</dt><dd>{{ displayPkg.released || '—' }}</dd></div>
-            <div class="info-row"><dt>漏洞数</dt><dd>{{ displayPkg.vulnCount ?? '—' }}</dd></div>
-            <div class="info-row"><dt>最后更新</dt><dd>{{ displayPkg.lastUpdated || displayPkg.released || '—' }}</dd></div>
-          </dl>
-        </div>
-        <!-- 相关链接卡 -->
-        <div class="info-card-fill">
-          <div class="card-header">
-            <span class="card-header-ico">⇱</span>
-            <span class="card-title">相关链接</span>
-          </div>
-          <dl class="info-dl">
-            <div class="info-row"><dt>源码地址</dt><dd><a v-if="displayPkg.links?.source" :href="displayPkg.links.source" target="_blank" class="link-text">{{ displayPkg.links.sourceText || '查看' }}</a><span v-else class="na-text">—</span></dd></div>
-            <div class="info-row"><dt>官网</dt><dd><a v-if="displayPkg.links?.website" :href="displayPkg.links.website" target="_blank" class="link-text">{{ displayPkg.links.websiteText || '查看' }}</a><span v-else class="na-text">—</span></dd></div>
-            <div class="info-row"><dt>文档</dt><dd><a v-if="displayPkg.links?.docs" :href="displayPkg.links.docs" target="_blank" class="link-text">{{ displayPkg.links.docsText || '查看' }}</a><span v-else class="na-text">—</span></dd></div>
-          </dl>
-        </div>
-        <!-- 标签卡 -->
-        <div class="info-card-fill">
-          <div class="card-header">
-            <span class="card-header-ico">✦</span>
-            <span class="card-title">标签</span>
-          </div>
-          <div class="tag-cloud" v-if="displayPkg.tags?.length">
-            <span class="tag-pill" v-for="t in displayPkg.tags" :key="t">{{ t }}</span>
-          </div>
-          <div class="tag-cloud tag-cloud--sk" v-else>
-            <span class="sk-pill" v-for="i in 6" :key="i"></span>
-          </div>
-        </div>
-        <!-- 描述卡 (全宽) -->
-        <div class="info-card-fill info-card-fill--wide">
-          <div class="card-header">
-            <span class="card-header-ico">❡</span>
-            <span class="card-title">描述</span>
-          </div>
-          <p class="desc-text">{{ displayPkg.description || '暂无描述信息' }}</p>
-          <div class="desc-skeleton" v-if="!displayPkg.description">
-            <div class="sk-line" v-for="i in 3" :key="i"></div>
-          </div>
+
+        <!-- ② 基本信息(4) | 源码地址(5) | 参考信息(7) -->
+        <div class="sd-row-3">
+          <!-- 基本信息 -->
+          <section class="sd-panel">
+            <div class="sd-card-hd">
+              <span class="sd-card-bar" aria-hidden="true"></span>
+              <h2 class="sd-card-title">基本信息</h2>
+            </div>
+            <dl class="sd-meta-dl">
+              <div class="sd-meta-row"><dt>主语言类型</dt><dd>{{ displayPkg.language || '—' }}</dd></div>
+              <div class="sd-meta-row"><dt>开发商</dt><dd>{{ displayPkg.author || '—' }}</dd></div>
+              <div class="sd-meta-row"><dt>发布日期</dt><dd>{{ displayPkg.released || '—' }}</dd></div>
+              <div class="sd-meta-row">
+                <dt>开源许可证</dt>
+                <dd class="sd-license-tags">
+                  <template v-if="displayPkg.license?.names?.length">
+                    <span class="badge badge-lic" v-for="lic in displayPkg.license.names" :key="lic">{{ lic }}</span>
+                  </template>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- 源码地址 -->
+          <section class="sd-panel">
+            <div class="sd-card-hd">
+              <span class="sd-card-bar" aria-hidden="true"></span>
+              <h2 class="sd-card-title">源码地址</h2>
+            </div>
+            <dl class="sd-meta-dl">
+              <div class="sd-meta-row">
+                <dt>源码仓库</dt>
+                <dd>
+                  <a v-if="displayPkg.scm" :href="displayPkg.scm" target="_blank" rel="noopener noreferrer" class="link-text sd-ellipsis" :title="displayPkg.scm">{{ displayPkg.scm }}</a>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+              <div class="sd-meta-row">
+                <dt>源码包下载</dt>
+                <dd class="sd-meta-links">
+                  <template v-if="displayPkg.sourcePkgList?.length">
+                    <a
+                      v-for="p in displayPkg.sourcePkgList"
+                      :key="p.href"
+                      :href="p.href"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="sd-chip-link"
+                    >{{ p.label }}</a>
+                  </template>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+              <div class="sd-meta-row">
+                <dt>签名</dt>
+                <dd>
+                  <a v-if="displayPkg.signUrl" :href="displayPkg.signUrl" target="_blank" rel="noopener noreferrer" class="link-text">下载签名</a>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+              <div class="sd-meta-row">
+                <dt>来源地址</dt>
+                <dd>
+                  <a v-if="displayPkg.sourceUrl" :href="displayPkg.sourceUrl" target="_blank" rel="noopener noreferrer" class="link-text sd-ellipsis" :title="displayPkg.sourceUrl">{{ displayPkg.sourceUrl }}</a>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+              <div class="sd-meta-row">
+                <dt>版权报告</dt>
+                <dd>
+                  <a v-if="displayPkg.copyrightUrl" :href="displayPkg.copyrightUrl" target="_blank" rel="noopener noreferrer" class="link-text">{{ displayPkg.name }} {{ displayPkg.version }} 版权报告</a>
+                  <span v-else class="na-text">—</span>
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- 参考信息 -->
+          <section class="sd-panel">
+            <div class="sd-card-hd">
+              <span class="sd-card-bar" aria-hidden="true"></span>
+              <h2 class="sd-card-title">参考信息</h2>
+            </div>
+            <dl class="sd-meta-dl">
+              <div class="sd-meta-row"><dt>代码量</dt><dd>{{ displayPkg.codeLines != null ? displayPkg.codeLines + ' KL' : '—' }}</dd></div>
+              <div class="sd-meta-row">
+                <dt>漏洞数</dt>
+                <dd>
+                  <!-- 与「供应链漏洞 / 0Day 漏洞」两个页签同源，避免同页两套数字 -->
+                  <span
+                    class="sd-val"
+                    :class="vulnAll.length > 0 ? 'sd-val--risk' : 'sd-val--ok'"
+                  >{{ vulnAll.length }}</span>
+                </dd>
+              </div>
+              <div class="sd-meta-row"><dt>软件生命力</dt><dd>{{ displayPkg.vitality || '—' }}</dd></div>
+              <div class="sd-meta-row"><dt>社区EOL日期</dt><dd>{{ displayPkg.eolDate || '—' }}</dd></div>
+              <div class="sd-meta-row"><dt>行业</dt><dd>{{ displayPkg.industry || '—' }}</dd></div>
+              <div class="sd-meta-row"><dt>版本描述</dt><dd>{{ displayPkg.versionDesc || '—' }}</dd></div>
+              <div class="sd-meta-row">
+                <dt>集成风险</dt>
+                <dd>
+                  <span
+                    class="sd-val"
+                    :class="{
+                      'sd-val--risk': displayPkg.integrationRisk === '高',
+                      'sd-val--warn': displayPkg.integrationRisk === '中',
+                    }"
+                  >{{ displayPkg.integrationRisk || '—' }}</span>
+                </dd>
+              </div>
+            </dl>
+          </section>
         </div>
       </div>
     </div>
@@ -261,46 +415,45 @@
 
     <!-- ====== 漏洞信息 Tab ====== -->
     <div v-show="activeTab === 'vuln'" class="tab-panel">
-      <!-- 漏洞状态提示条：合计口径（供应链静态漏洞 + 0Day） -->
-      <div class="vuln-tip" :class="{ 'is-clean': vulnAll.length === 0 }">
-        <span class="vuln-tip-ico" aria-hidden="true">{{ vulnAll.length === 0 ? '✓' : '▲' }}</span>
+      <!-- 供应链漏洞状态提示条（仅供应链口径；0Day 已独立成页签） -->
+      <div class="vuln-tip" :class="{ 'is-clean': vulnList.length === 0 }">
+        <span class="vuln-tip-ico" aria-hidden="true">{{ vulnList.length === 0 ? '✓' : '▲' }}</span>
         <div class="vuln-tip-body">
           <p class="vuln-tip-title">
-            {{ vulnAll.length === 0 ? '未检测到已知漏洞' : `检测到 ${vulnAll.length} 个漏洞${zerodayList.length ? `（含 0Day ${zerodayList.length} 个）` : ''}` }}
+            {{ vulnList.length === 0 ? '未检测到供应链漏洞' : `检测到 ${vulnList.length} 个供应链漏洞` }}
           </p>
-          <p class="vuln-tip-text" v-if="vulnAll.length > 0">
-            其中超危 {{ vulnDataAll.critical }} 个、高危 {{ vulnDataAll.high }} 个、中危 {{ vulnDataAll.medium }} 个、低危 {{ vulnDataAll.low }} 个，
-            <template v-if="zerodayList.length">0Day 漏洞暂无公开补丁，建议优先评估隔离或缓解措施。</template>
-            <template v-else>请重点关注高危及以上漏洞，建议及时升级至修复版本。</template>
+          <p class="vuln-tip-text" v-if="vulnList.length > 0">
+            其中超危 {{ vulnDataSupply.critical }} 个、高危 {{ vulnDataSupply.high }} 个、中危 {{ vulnDataSupply.medium }} 个、低危 {{ vulnDataSupply.low }} 个，
+            请重点关注高危及以上漏洞，建议及时升级至修复版本。
           </p>
           <p class="vuln-tip-text" v-else>
-            当前版本风险状态良好，可放心使用；如后续发现新漏洞，平台将持续跟进并提示。
+            当前版本未检测到供应链已知漏洞；0Day 情报请查看「0Day 漏洞」页签。
           </p>
         </div>
       </div>
 
-      <!-- 漏洞概览：合计口径（含 0Day），单独标注 0Day 条数 -->
+      <!-- 漏洞概览：供应链口径 -->
       <div class="info-card-fill info-card-fill--wide vuln-summary">
         <div class="card-header">
           <span class="card-header-ico">◉</span>
           <span class="card-title">漏洞概览</span>
-          <span class="card-badge">共 {{ vulnAll.length }} 个{{ zerodayList.length ? ` · 含 0Day ${zerodayList.length} 个` : '' }}</span>
+          <span class="card-badge">共 {{ vulnList.length }} 个</span>
         </div>
         <div class="vuln-summary-body">
           <!-- 左侧：四统计卡（2x2）+ 趋势条 -->
           <div class="vuln-summary-stats">
             <div class="stat-grid-2">
-              <div class="stat-card stat-card--crit"><span class="stat-val">{{ vulnDataAll.critical }}</span><span class="stat-lbl">超危</span></div>
-              <div class="stat-card stat-card--high"><span class="stat-val">{{ vulnDataAll.high }}</span><span class="stat-lbl">高危</span></div>
-              <div class="stat-card stat-card--med"><span class="stat-val">{{ vulnDataAll.medium }}</span><span class="stat-lbl">中危</span></div>
-              <div class="stat-card stat-card--low"><span class="stat-val">{{ vulnDataAll.low }}</span><span class="stat-lbl">低危</span></div>
+              <div class="stat-card stat-card--crit"><span class="stat-val">{{ vulnDataSupply.critical }}</span><span class="stat-lbl">超危</span></div>
+              <div class="stat-card stat-card--high"><span class="stat-val">{{ vulnDataSupply.high }}</span><span class="stat-lbl">高危</span></div>
+              <div class="stat-card stat-card--med"><span class="stat-val">{{ vulnDataSupply.medium }}</span><span class="stat-lbl">中危</span></div>
+              <div class="stat-card stat-card--low"><span class="stat-val">{{ vulnDataSupply.low }}</span><span class="stat-lbl">低危</span></div>
             </div>
             <!-- 趋势微条 -->
             <div class="vuln-trend-bar">
-              <div class="vuln-trend-seg crit" :style="{ width: vulnTrendPctAll.critical + '%' }"></div>
-              <div class="vuln-trend-seg high" :style="{ width: vulnTrendPctAll.high + '%' }"></div>
-              <div class="vuln-trend-seg med" :style="{ width: vulnTrendPctAll.medium + '%' }"></div>
-              <div class="vuln-trend-seg low" :style="{ width: vulnTrendPctAll.low + '%' }"></div>
+              <div class="vuln-trend-seg crit" :style="{ width: vulnTrendPctSupply.critical + '%' }"></div>
+              <div class="vuln-trend-seg high" :style="{ width: vulnTrendPctSupply.high + '%' }"></div>
+              <div class="vuln-trend-seg med" :style="{ width: vulnTrendPctSupply.medium + '%' }"></div>
+              <div class="vuln-trend-seg low" :style="{ width: vulnTrendPctSupply.low + '%' }"></div>
             </div>
           </div>
           <!-- 右侧：等级分布扇形图 -->
@@ -308,103 +461,125 @@
             <div ref="vulnSevChartRef" class="an-chart-box"></div>
           </div>
         </div>
-        <!-- 0Day 警示行：只在该软件存在 0Day 时渲染。
-             放在概览卡内有意的 —— 0Day 没有公开补丁，处置方式与供应链漏洞不同，
-             不能只把条数拼在右上角 badge 里，扫一眼就容易漏。 -->
-        <div v-if="zerodayList.length" class="vuln-zd-notice">
-          <span class="vuln-zd-notice-ico" aria-hidden="true">◆</span>
-          <span class="vuln-zd-notice-text">
-            含 0Day 漏洞 <b>{{ zerodayList.length }}</b> 个，暂无公开补丁，建议优先评估隔离或缓解措施
-          </span>
-        </div>
-      </div>
-
-      <!-- ===== 来源二级切换：供应链静态漏洞 / 0Day 漏洞 ===== -->
-      <div class="vuln-subtabs" role="tablist">
-        <button
-          type="button"
-          class="vuln-subtab"
-          :class="{ 'is-active': vulnSubTab === 'supply' }"
-          role="tab"
-          :aria-selected="vulnSubTab === 'supply'"
-          @click="setVulnSubTab('supply')"
-        >供应链漏洞 ({{ vulnList.length }})</button>
-        <button
-          type="button"
-          class="vuln-subtab"
-          :class="{ 'is-active': vulnSubTab === 'zeroday' }"
-          role="tab"
-          :aria-selected="vulnSubTab === 'zeroday'"
-          @click="setVulnSubTab('zeroday')"
-        >0Day 漏洞 ({{ zerodayList.length }})</button>
       </div>
 
       <div class="card-grid-2col">
-        <!-- ===== 子页一：供应链静态漏洞（内容与改造前一致） ===== -->
-        <template v-if="vulnSubTab === 'supply'">
-          <div class="info-card-fill info-card-fill--wide" v-if="vulnList.length">
-            <div class="card-header">
-              <span class="card-header-ico">☰</span>
-              <span class="card-title">供应链漏洞列表</span>
-              <span class="card-badge">点击行查看详情</span>
-            </div>
-            <div class="vuln-list-item" v-for="v in vulnList" :key="v.id" @click="openVulnDetail(v)">
-              <span class="vuln-level" :class="'level--' + v.level">{{ v.levelLabel }}</span>
-              <span class="vuln-id">{{ v.cve_id }}</span>
-              <span class="vuln-desc">{{ v.vuln_name }}</span>
-              <span class="vuln-cvss" v-if="v.cvss_score != null">CVSS {{ v.cvss_score }}</span>
-              <span class="vuln-more">›</span>
+        <div class="info-card-fill info-card-fill--wide" v-if="vulnList.length">
+          <div class="card-header">
+            <span class="card-header-ico">☰</span>
+            <span class="card-title">供应链漏洞列表</span>
+            <span class="card-badge">点击行查看详情</span>
+          </div>
+          <div class="vuln-list-item" v-for="v in vulnList" :key="v.id" @click="openVulnDetail(v)">
+            <span class="vuln-level" :class="'level--' + v.level">{{ v.levelLabel }}</span>
+            <span class="vuln-id">{{ v.cve_id }}</span>
+            <span class="vuln-desc">{{ v.vuln_name }}</span>
+            <span class="vuln-cvss" v-if="v.cvss_score != null">CVSS {{ v.cvss_score }}</span>
+            <span class="vuln-more">›</span>
+          </div>
+        </div>
+        <!-- 无漏洞时的骨架 -->
+        <div class="info-card-fill info-card-fill--wide" v-else>
+          <div class="card-header">
+            <span class="card-header-ico">☰</span>
+            <span class="card-title">供应链漏洞列表</span>
+          </div>
+          <div class="vuln-sk-list">
+            <div class="sk-vuln-row" v-for="i in 4" :key="i">
+              <span class="sk-block sk-block--lvl"></span>
+              <span class="sk-block sk-block--id"></span>
+              <span class="sk-block sk-block--desc"></span>
+              <span class="sk-block sk-block--st"></span>
             </div>
           </div>
-          <!-- 无漏洞时的骨架 -->
-          <div class="info-card-fill info-card-fill--wide" v-else>
-            <div class="card-header">
-              <span class="card-header-ico">☰</span>
-              <span class="card-title">供应链漏洞列表</span>
-            </div>
-            <div class="vuln-sk-list">
-              <div class="sk-vuln-row" v-for="i in 4" :key="i">
-                <span class="sk-block sk-block--lvl"></span>
-                <span class="sk-block sk-block--id"></span>
-                <span class="sk-block sk-block--desc"></span>
-                <span class="sk-block sk-block--st"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 0Day 漏洞 Tab ======
+         独立成顶层页签：0Day 无公开补丁，处置动作与供应链漏洞不同，
+         放在同一个页签里只能当二级切换，容易与「可升级修复的漏洞」混为一谈。 -->
+    <div v-show="activeTab === 'zeroday'" class="tab-panel">
+      <!-- 无补丁警示行：有 0Day 才渲染 -->
+      <div v-if="zerodayList.length" class="vuln-zd-notice">
+        <span class="vuln-zd-notice-ico" aria-hidden="true">◆</span>
+        <span class="vuln-zd-notice-text">
+          含 0Day 漏洞 <b>{{ zerodayList.length }}</b> 个，暂无公开补丁，建议优先评估隔离或缓解措施
+        </span>
+      </div>
+
+      <!-- 0Day 概览：等级分布（无 0Day 时整组不渲染） -->
+      <template v-if="zerodayList.length">
+        <div class="info-card-fill info-card-fill--wide vuln-summary">
+          <div class="card-header">
+            <span class="card-header-ico">◉</span>
+            <span class="card-title">0Day 概览</span>
+            <span class="card-badge">共 {{ zerodayList.length }} 个</span>
+          </div>
+          <div class="vuln-summary-body">
+            <div class="vuln-summary-stats">
+              <div class="stat-grid-2">
+                <div class="stat-card stat-card--crit"><span class="stat-val">{{ zerodayData.critical }}</span><span class="stat-lbl">超危</span></div>
+                <div class="stat-card stat-card--high"><span class="stat-val">{{ zerodayData.high }}</span><span class="stat-lbl">高危</span></div>
+                <div class="stat-card stat-card--med"><span class="stat-val">{{ zerodayData.medium }}</span><span class="stat-lbl">中危</span></div>
+                <div class="stat-card stat-card--low"><span class="stat-val">{{ zerodayData.low }}</span><span class="stat-lbl">低危</span></div>
+              </div>
+              <div class="vuln-trend-bar">
+                <div class="vuln-trend-seg crit" :style="{ width: zerodayTrendPct.critical + '%' }"></div>
+                <div class="vuln-trend-seg high" :style="{ width: zerodayTrendPct.high + '%' }"></div>
+                <div class="vuln-trend-seg med" :style="{ width: zerodayTrendPct.medium + '%' }"></div>
+                <div class="vuln-trend-seg low" :style="{ width: zerodayTrendPct.low + '%' }"></div>
               </div>
             </div>
-          </div>
-        </template>
-
-        <!-- ===== 子页二：0Day 漏洞 =====
-             布局与供应链列表区分：不设编号列、不设 CVSS 列，
-             主标题用「漏洞类别」（vulnerability_types），副标题用「涉及组件」。 -->
-        <template v-else>
-          <div class="info-card-fill info-card-fill--wide" v-if="zerodayList.length">
-            <div class="card-header">
-              <span class="card-header-ico">◆</span>
-              <span class="card-title">0Day 漏洞情报</span>
-              <span class="card-badge">无公开补丁 · 点击行查看详情</span>
+            <div class="vuln-summary-chart">
+              <div ref="zerodaySevChartRef" class="an-chart-box"></div>
             </div>
-            <div
-              class="vuln-list-item vuln-list-item--zeroday"
-              v-for="z in zerodayList"
-              :key="z.id"
-              @click="openZerodayDetail(z)"
-            >
+          </div>
+        </div>
+      </template>
+
+      <!-- 0Day 列表：卡片式栅格。
+           刻意不与供应链共用行式列表 —— 0Day 没有漏洞编号、没有 CVSS，
+           硬套行式表格会剩下成排空白列，也无法体现「无补丁、需人工缓解」的特点。 -->
+      <div v-if="zerodayList.length" class="zd-section">
+        <div class="zd-section-hd">
+          <span class="zd-section-title">0Day 漏洞情报</span>
+          <span class="zd-section-hint">无公开补丁 · 点击卡片查看详情</span>
+        </div>
+        <div class="zd-card-grid">
+          <button
+            type="button"
+            class="zd-card"
+            v-for="z in zerodayList"
+            :key="z.id"
+            @click="openZerodayDetail(z)"
+          >
+            <div class="zd-card-hd">
               <span class="vuln-level" :class="'level--' + z.level">{{ z.levelLabel }}</span>
               <span class="vuln-zd-tag">0Day</span>
-              <span class="vuln-desc">{{ z.vulnerability_types }}</span>
-              <span class="vuln-zd-comp">{{ z.affected_components }}</span>
-              <span class="vuln-more">›</span>
+              <span class="zd-card-more">›</span>
             </div>
-          </div>
-          <!-- 无 0Day 情报时：明确是「没有情报」，不是「确认无漏洞」 -->
-          <div class="info-card-fill info-card-fill--wide" v-else>
-            <div class="card-header">
-              <span class="card-header-ico">◆</span>
-              <span class="card-title">0Day 漏洞情报</span>
-            </div>
-            <p class="vuln-zd-empty">暂无该软件的 0Day 漏洞情报</p>
-          </div>
-        </template>
+            <p class="zd-card-title">{{ z.vulnerability_types }}</p>
+            <dl class="zd-card-meta">
+              <div class="zd-card-meta-row">
+                <dt>涉及组件</dt>
+                <dd>{{ z.affected_components || '—' }}</dd>
+              </div>
+              <div class="zd-card-meta-row">
+                <dt>涉及文件</dt>
+                <dd class="mono-text">{{ z.affected_files || '—' }}</dd>
+              </div>
+            </dl>
+          </button>
+        </div>
+      </div>
+      <!-- 无 0Day 情报时：明确是「没有情报」，不是「确认无漏洞」 -->
+      <div class="info-card-fill info-card-fill--wide" v-else>
+        <div class="card-header">
+          <span class="card-header-ico">◆</span>
+          <span class="card-title">0Day 漏洞情报</span>
+        </div>
+        <p class="vuln-zd-empty">暂无该软件的 0Day 漏洞情报</p>
       </div>
     </div>
 
@@ -1028,6 +1203,25 @@ const displayPkg = computed(() => {
     license: c.license || null,
     links: c.links || null,
     tags: c.tags || [],
+    // 模板化介绍区（固定六块）字段
+    versionDesc: c.versionDesc || '',
+    overviewParagraphs: c.overviewParagraphs || [],
+    envRequirement: c.envRequirement || '',
+    installCmd: c.installCmd || '',
+    quickStart: c.quickStart || '',
+    projectStructure: c.projectStructure || '',
+    features: c.features || [],
+    // 右栏：源码地址
+    scm: c.scm || '',
+    sourcePkgList: c.sourcePkgList || [],
+    signUrl: c.signUrl || '',
+    sourceUrl: c.sourceUrl || '',
+    copyrightUrl: c.copyrightUrl || '',
+    // 右栏：参考信息
+    codeLines: c.codeLines ?? null,
+    vitality: c.vitality || '',
+    eolDate: c.eolDate || '',
+    integrationRisk: c.integrationRisk || '',
   }
 })
 
@@ -1036,7 +1230,9 @@ const displayPkg = computed(() => {
 const tabs = computed(() => [
   { key: 'intro', label: '版本信息' },
   { key: 'deps', label: '依赖关系' },
-  { key: 'vuln', label: '漏洞信息' },
+  // 原「漏洞信息」→「供应链漏洞」；0Day 独立成页签（无补丁，处置动作不同）
+  { key: 'vuln', label: `供应链漏洞 (${vulnList.value.length})` },
+  { key: 'zeroday', label: `0Day 漏洞 (${zerodayList.value.length})` },
   { key: 'malware', label: '恶意代码' },
   { key: 'sbom', label: '软件物料清单' },
   { key: 'contrib', label: '贡献者信息' },
@@ -1044,7 +1240,7 @@ const tabs = computed(() => [
   { key: 'versions', label: `软件版本 (${versionHistory.length})` },
 ])
 const activeTab = ref('intro')
-const allowedTabs = ['intro', 'deps', 'vuln', 'malware', 'sbom', 'contrib', 'license', 'versions']
+const allowedTabs = ['intro', 'deps', 'vuln', 'zeroday', 'malware', 'sbom', 'contrib', 'license', 'versions']
 
 function setTab(key) {
   activeTab.value = key
@@ -1054,14 +1250,58 @@ function goToVersionIntro(row) {
   router.push({ name: 'software-detail', query: { tab: 'intro', v: row.version } })
 }
 
+/**
+ * 轻量 Markdown 渲染（仅支持 **加粗** 与 `行内代码`）。
+ * 先整体 HTML 转义，再做替换，避免文案里的尖括号被当成标签执行。
+ */
+function renderMd(text) {
+  if (!text) return ''
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="sd-inline-code">$1</code>')
+}
+
+/**
+ * 复制安装命令 / 示例代码。
+ * 失败时静默处理（不伪造「已复制」提示），把结果如实写回按钮文案。
+ */
+const copiedKey = ref('')
+async function copyCode(text) {
+  if (!text) return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    copiedKey.value = text
+    setTimeout(() => {
+      if (copiedKey.value === text) copiedKey.value = ''
+    }, 1500)
+  } catch (e) {
+    copiedKey.value = ''
+  }
+}
+
 onMounted(() => {
   const t = route.query.tab
   const tStr = Array.isArray(t) ? t[0] : t
   if (tStr && allowedTabs.includes(String(tStr))) activeTab.value = String(tStr)
-  // 漏洞来源二级 Tab：支持 ?vsub=zeroday 直达，刷新后不丢位置
+  // 兼容旧链接：0Day 原先是漏洞 Tab 内的二级切换（?vsub=zeroday），
+  // 现已是独立顶层页签，这里把老链接平滑映射过去，避免停留在一个不存在的位置。
   const s = route.query.vsub
   const sStr = Array.isArray(s) ? s[0] : s
-  if (sStr === 'zeroday' || sStr === 'supply') vulnSubTab.value = String(sStr)
+  if (sStr === 'zeroday') activeTab.value = 'zeroday'
 })
 
 /* ===== 依赖数据（真实接口结构） ===== */
@@ -1251,6 +1491,7 @@ function disposeDepCharts() {
 watch(activeTab, (t) => {
   if (t === 'deps') {
     disposeVulnCharts()
+    disposeZerodayCharts()
     disposeLicAttrChart()
     requestAnimationFrame(() => {
       nextTick(() => {
@@ -1261,6 +1502,7 @@ watch(activeTab, (t) => {
   }
   if (t === 'vuln') {
     disposeDepCharts()
+    disposeZerodayCharts()
     disposeLicAttrChart()
     requestAnimationFrame(() => {
       nextTick(() => {
@@ -1269,9 +1511,21 @@ watch(activeTab, (t) => {
     })
     return
   }
+  if (t === 'zeroday') {
+    disposeDepCharts()
+    disposeVulnCharts()
+    disposeLicAttrChart()
+    requestAnimationFrame(() => {
+      nextTick(() => {
+        initZerodayCharts()
+      })
+    })
+    return
+  }
   if (t === 'license') {
     disposeDepCharts()
     disposeVulnCharts()
+    disposeZerodayCharts()
     requestAnimationFrame(() => {
       nextTick(() => {
         initLicAttrChart()
@@ -1281,6 +1535,7 @@ watch(activeTab, (t) => {
   }
   disposeDepCharts()
   disposeVulnCharts()
+  disposeZerodayCharts()
   disposeLicAttrChart()
 })
 
@@ -1301,6 +1556,58 @@ const vulnListRaw = [
     patch_version: '2.11.7',
     publish_date: '2024-04-16',
   },
+  {
+    id: 3082,
+    cve_id: 'CVE-2024-6345',
+    vuln_name: 'Remote code execution in setuptools package_index',
+    severity: 'CRITICAL',
+    cwe_id: 'CWE-94',
+    cvss_score: 9.8,
+    affected_version: '68.0.0',
+    fixed_version: '70.0.0',
+    repair_status: 0,
+    patch_version: '70.0.0',
+    publish_date: '2024-07-15',
+  },
+  {
+    id: 3091,
+    cve_id: 'CVE-2024-24762',
+    vuln_name: 'ReDoS in python-multipart Content-Type header parsing',
+    severity: 'HIGH',
+    cwe_id: 'CWE-1333',
+    cvss_score: 7.5,
+    affected_version: '0.0.6',
+    fixed_version: '0.0.7',
+    repair_status: 1,
+    patch_version: '0.0.7',
+    publish_date: '2024-02-19',
+  },
+  {
+    id: 3104,
+    cve_id: 'CVE-2024-37891',
+    vuln_name: 'Proxy-Authorization header leaked on cross-origin redirect in urllib3',
+    severity: 'MEDIUM',
+    cwe_id: 'CWE-200',
+    cvss_score: 6.5,
+    affected_version: '2.2.1',
+    fixed_version: '2.2.2',
+    repair_status: 0,
+    patch_version: '2.2.2',
+    publish_date: '2024-06-17',
+  },
+  {
+    id: 3118,
+    cve_id: 'CVE-2023-45803',
+    vuln_name: 'Request body not stripped when following 303 redirect in urllib3',
+    severity: 'HIGH',
+    cwe_id: 'CWE-200',
+    cvss_score: 8.1,
+    affected_version: '2.0.7',
+    fixed_version: '2.0.7',
+    repair_status: 1,
+    patch_version: '2.0.7',
+    publish_date: '2023-10-19',
+  },
 ]
 
 // 严重等级展示映射
@@ -1311,8 +1618,26 @@ const SEV_META = {
   LOW: { key: 'low', label: '低危' },
 }
 
-// 供应链口径的统计已并入 vulnDataAll（合计口径），此处不再单独保留一份，
-// 避免出现「概览卡按合计、饼图中心按供应链」这类两套数字打架的情况。
+// 供应链口径的等级分布（「供应链漏洞」页签的提示条与概览卡都读它）
+const vulnDataSupply = computed(() => {
+  const count = (sev) => vulnListRaw.filter((v) => v.severity === sev).length
+  return {
+    critical: count('CRITICAL'),
+    high: count('HIGH'),
+    medium: count('MEDIUM'),
+    low: count('LOW'),
+    total: vulnListRaw.length,
+  }
+})
+const vulnTrendPctSupply = computed(() => {
+  const t = vulnDataSupply.value.total || 1
+  return {
+    critical: (vulnDataSupply.value.critical / t) * 100,
+    high: (vulnDataSupply.value.high / t) * 100,
+    medium: (vulnDataSupply.value.medium / t) * 100,
+    low: (vulnDataSupply.value.low / t) * 100,
+  }
+})
 
 /* ===== 0Day 漏洞（按组件挂载，字段严格对应样例文档六项） ===== */
 // 展示行：补等级字段，与供应链列表共用 SEV_META 等级体系
@@ -1324,56 +1649,27 @@ const zerodayList = computed(() =>
 )
 
 /**
- * 全部漏洞（供应链 + 0Day）—— 作为「合计口径」的唯一来源。
- * 概览卡、状态提示条、风险分析卡的漏洞数都必须读它，
- * 否则三处各算各的，数字必然对不上。
+ * 全部漏洞（供应链 + 0Day）。
+ * 两个漏洞页签各自只展示自己那一类，但**跨页签的汇总位**（如风险分析卡的
+ * 「漏洞总数」）必须读这个合计值，否则会把 0Day 漏在外。
  */
 const vulnAll = computed(() => [
   ...vulnListRaw.map((v) => ({ ...v, source: 'supply' })),
   ...zerodayList.value.map((z) => ({ ...z, source: 'zeroday' })),
 ])
 
-// 合计口径的等级分布（含 0Day —— 0Day 也带 severity）
-const vulnDataAll = computed(() => {
-  const count = (sev) => vulnAll.value.filter((v) => v.severity === sev).length
-  return {
-    critical: count('CRITICAL'),
-    high: count('HIGH'),
-    medium: count('MEDIUM'),
-    low: count('LOW'),
-    total: vulnAll.value.length,
-  }
-})
-const vulnTrendPctAll = computed(() => {
-  const t = vulnDataAll.value.total || 1
-  return {
-    critical: (vulnDataAll.value.critical / t) * 100,
-    high: (vulnDataAll.value.high / t) * 100,
-    medium: (vulnDataAll.value.medium / t) * 100,
-    low: (vulnDataAll.value.low / t) * 100,
-  }
-})
-
-/* ===== 漏洞来源二级切换 ===== */
-// 默认停在供应链漏洞，保持改造前的浏览习惯
-const vulnSubTab = ref('supply')
-function setVulnSubTab(key) {
-  vulnSubTab.value = key === 'zeroday' ? 'zeroday' : 'supply'
-  router.replace({ query: { ...route.query, vsub: vulnSubTab.value } })
-}
-
 /* ===== 漏洞分析 ===== */
 // ===== 漏洞图表（echarts，数据全部来自真实列表字段） =====
 const vulnSevChartRef = ref(null)
 let vulnSevChart = null
 
-// 等级分布：按 severity 字段统计。
-// 用合计口径（含 0Day）—— 概览卡本身就是全量视图，饼图若只算供应链会与左侧数字打架。
+// 等级分布：按 severity 字段统计，口径=供应链（0Day 已独立成顶层页签，
+// 它没有 CVSS 也没有修复版本，混进同一张饼图会让处置预期失真）。
 const vulnSevData = computed(() =>
   ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
     .map((sev) => ({
       name: SEV_META[sev].label,
-      value: vulnDataAll.value[SEV_META[sev].key] || 0,
+      value: vulnDataSupply.value[SEV_META[sev].key] || 0,
     }))
     .filter((d) => d.value > 0)
 )
@@ -1417,7 +1713,7 @@ function renderVulnCharts() {
           type: 'text',
           left: 'center',
           top: '38%',
-          style: { text: String(vulnDataAll.value.total), fontSize: 26, fontWeight: 800, fill: '#111827' },
+          style: { text: String(vulnDataSupply.value.total), fontSize: 26, fontWeight: 800, fill: '#111827' },
         }]
       : [],
     series: [{
@@ -1447,6 +1743,91 @@ function resizeVulnCharts() {
 function disposeVulnCharts() {
   vulnSevChart?.dispose()
   vulnSevChart = null
+}
+
+/* ===== 0Day 图表：等级分布（环图） ===== */
+const zerodayData = computed(() => {
+  const count = (sev) => zerodayList.value.filter((z) => z.severity === sev).length
+  return {
+    critical: count('CRITICAL'),
+    high: count('HIGH'),
+    medium: count('MEDIUM'),
+    low: count('LOW'),
+    total: zerodayList.value.length,
+  }
+})
+const zerodayTrendPct = computed(() => {
+  const t = zerodayData.value.total || 1
+  return {
+    critical: (zerodayData.value.critical / t) * 100,
+    high: (zerodayData.value.high / t) * 100,
+    medium: (zerodayData.value.medium / t) * 100,
+    low: (zerodayData.value.low / t) * 100,
+  }
+})
+const zerodaySevData = computed(() =>
+  ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+    .map((sev) => ({ name: SEV_META[sev].label, value: zerodayData.value[SEV_META[sev].key] || 0 }))
+    .filter((d) => d.value > 0)
+)
+
+const zerodaySevChartRef = ref(null)
+let zerodaySevChart = null
+
+function renderZerodayCharts() {
+  if (zerodaySevChart) {
+    const data = zerodaySevData.value
+    const total = zerodayData.value.total
+    zerodaySevChart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      legend: {
+        orient: 'vertical',
+        right: 4,
+        top: 'middle',
+        icon: 'circle',
+        itemWidth: 9,
+        itemHeight: 9,
+        itemGap: 12,
+        textStyle: { color: '#6b7280', fontSize: 12 },
+        formatter: (name) => {
+          const item = data.find((d) => d.name === name)
+          const t = data.reduce((s, d) => s + d.value, 0)
+          const pct = t && item ? Math.round((item.value / t) * 100) : 0
+          return `${name}  ${pct}%`
+        },
+      },
+      color: ['#dc2626', '#d97706', '#2563eb', '#9ca3af'],
+      graphic: data.length
+        ? [{ type: 'text', left: 'center', top: '38%', style: { text: String(total), fontSize: 26, fontWeight: 800, fill: '#111827' } }]
+        : [],
+      series: [{
+        type: 'pie',
+        radius: ['42%', '66%'],
+        center: ['50%', '44%'],
+        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { scale: true },
+        animationDuration: 600,
+        data,
+      }],
+    })
+  }
+}
+
+function initZerodayCharts() {
+  if (zerodaySevChartRef.value && !zerodaySevChart) zerodaySevChart = echarts.init(zerodaySevChartRef.value)
+  renderZerodayCharts()
+  resizeZerodayCharts()
+}
+
+function resizeZerodayCharts() {
+  zerodaySevChart?.resize()
+}
+
+function disposeZerodayCharts() {
+  zerodaySevChart?.dispose()
+  zerodaySevChart = null
 }
 
 // 列表展示行：附带展示用的等级字段
@@ -1483,6 +1864,90 @@ const vulnDetailMap = {
     component_name: 'Pydantic/Pydantic',
     ref_url: '[https://github.com/pydantic/pydantic/pull/7360, https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/6JBZLMSH4GAZOVBMT2JUO2LXHY7M2ALI/]',
     source_ref: 'https://pre-huake.tosslib.com/gateway/api/v1/supply-chain/scans/136036/issues/9563',
+  },
+  3082: {
+    id: 3082,
+    cve_id: 'CVE-2024-6345',
+    vuln_level: 'CRITICAL',
+    cwe_id: 'CWE-94',
+    cvss_score: 9.8,
+    publish_time: '2024-07-15T09:12:41',
+    vuln_name: 'Remote code execution in setuptools package_index',
+    summary: 'setuptools 的 package_index 模块在下载并解析远程包索引时会执行其中携带的 Python 代码，攻击者可通过投递恶意的包索引在安装阶段实现远程代码执行。',
+    affected_version: '68.0.0',
+    fixed_version: '70.0.0',
+    patch_version: '70.0.0',
+    repair_status: 0,
+    attack_vector: 'NETWORK',
+    attack_complexity: 'LOW',
+    user_interaction: 'REQUIRED',
+    privileges_required: 'NONE',
+    component_name: 'setuptools/setuptools',
+    ref_url: '[https://github.com/pypa/setuptools/pull/4332]',
+    source_ref: 'https://pre-huake.tosslib.com/gateway/api/v1/supply-chain/scans/136036/issues/9571',
+  },
+  3091: {
+    id: 3091,
+    cve_id: 'CVE-2024-24762',
+    vuln_level: 'HIGH',
+    cwe_id: 'CWE-1333',
+    cvss_score: 7.5,
+    publish_time: '2024-02-19T03:15:09',
+    vuln_name: 'ReDoS in python-multipart Content-Type header parsing',
+    summary: 'python-multipart 在解析 Content-Type 头部的 boundary 参数时使用了存在灾难性回溯的正则表达式，攻击者可通过构造超长头部造成拒绝服务。',
+    affected_version: '0.0.6',
+    fixed_version: '0.0.7',
+    patch_version: '0.0.7',
+    repair_status: 1,
+    attack_vector: 'NETWORK',
+    attack_complexity: 'LOW',
+    user_interaction: 'NONE',
+    privileges_required: 'NONE',
+    component_name: 'python-multipart/python-multipart',
+    ref_url: '[https://github.com/kludex/python-multipart/pull/57]',
+    source_ref: 'https://pre-huake.tosslib.com/gateway/api/v1/supply-chain/scans/136036/issues/9588',
+  },
+  3104: {
+    id: 3104,
+    cve_id: 'CVE-2024-37891',
+    vuln_level: 'MEDIUM',
+    cwe_id: 'CWE-200',
+    cvss_score: 6.5,
+    publish_time: '2024-06-17T11:40:00',
+    vuln_name: 'Proxy-Authorization header leaked on cross-origin redirect in urllib3',
+    summary: 'urllib3 在跟随跨域重定向时未剥离 Proxy-Authorization 请求头，可能导致代理凭据被泄露给目标站点的第三方主机。',
+    affected_version: '2.2.1',
+    fixed_version: '2.2.2',
+    patch_version: '2.2.2',
+    repair_status: 0,
+    attack_vector: 'NETWORK',
+    attack_complexity: 'HIGH',
+    user_interaction: 'NONE',
+    privileges_required: 'NONE',
+    component_name: 'urllib3/urllib3',
+    ref_url: '[https://github.com/urllib3/urllib3/pull/3404]',
+    source_ref: 'https://pre-huake.tosslib.com/gateway/api/v1/supply-chain/scans/136036/issues/9602',
+  },
+  3118: {
+    id: 3118,
+    cve_id: 'CVE-2023-45803',
+    vuln_level: 'HIGH',
+    cwe_id: 'CWE-200',
+    cvss_score: 8.1,
+    publish_time: '2023-10-19T21:15:00',
+    vuln_name: 'Request body not stripped when following 303 redirect in urllib3',
+    summary: 'urllib3 在收到 303 See Other 重定向时会保留原始请求体并转发到新位置，可能把包含凭据或敏感数据的请求体泄露给目标主机。',
+    affected_version: '2.0.7',
+    fixed_version: '2.0.7',
+    patch_version: '2.0.7',
+    repair_status: 1,
+    attack_vector: 'NETWORK',
+    attack_complexity: 'HIGH',
+    user_interaction: 'NONE',
+    privileges_required: 'LOW',
+    component_name: 'urllib3/urllib3',
+    ref_url: '[https://github.com/urllib3/urllib3/pull/3137]',
+    source_ref: 'https://pre-huake.tosslib.com/gateway/api/v1/supply-chain/scans/136036/issues/9615',
   },
 }
 const vulnDetail = ref(null)
@@ -2023,6 +2488,310 @@ const versionHistory = [
 /* ============================================================
    DEPS LAYOUT — 依赖关系 Tab：左侧依赖树 + 右侧三卡竖排
    ============================================================ */
+/* ============================================================
+   软件介绍 单列布局
+   README 只保留两个模块（描述 / 使用指南）；
+   基本信息、源码地址、参考信息依次堆叠在下方，不做左右分栏。
+   ============================================================ */
+.sd-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* ② 描述 | 使用指南 */
+.sd-row-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  /* 两张卡等高：行内拉伸，卡片自己撑满 */
+  align-items: stretch;
+}
+/* 顶部一行条：基本信息四字段横排（键值同行，整体加宽留白） */
+.sd-factbar {
+  background: #fff;
+  border: 1px solid #edf0f3;
+  border-radius: 10px;
+  padding: 16px 26px;
+}
+.sd-factbar-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.sd-fact-item {
+  flex: 1 1 190px;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 2px 26px;
+  border-left: 1px solid #f1f3f5;
+}
+.sd-fact-item:first-child { padding-left: 0; border-left: none; }
+.sd-fact-item dt {
+  flex: none;
+  font-size: 13.5px;
+  color: #9ca3af;
+}
+.sd-fact-item dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 13.5px;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-row-2 > .sd-panel { height: 300px; display: flex; flex-direction: column; }
+/* 卡片头部固定，正文区内部滚动 */
+.sd-row-2 .sd-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #d8dde3 transparent;
+}
+.sd-row-2 .sd-panel-body::-webkit-scrollbar { width: 6px; }
+.sd-row-2 .sd-panel-body::-webkit-scrollbar-thumb {
+  background: #d8dde3;
+  border-radius: 3px;
+}
+.sd-row-2 .sd-panel-body::-webkit-scrollbar-track { background: transparent; }
+/* 概览 / 指南：内边距放大，正文与代码块收紧，整体更耐看 */
+.sd-row-2 .sd-panel { padding: 16px 18px 14px; }
+.sd-row-2 .sd-card-title { font-size: 14px; }
+.sd-row-2 .sd-card-hd { margin-bottom: 10px; }
+.sd-row-2 .sd-readme-p { font-size: 12.5px; line-height: 1.62; margin-bottom: 8px; }
+.sd-row-2 .sd-readme-p:last-child { margin-bottom: 0; }
+.sd-row-2 .sd-feature-list { gap: 5px; padding-left: 16px; margin-top: 10px; }
+.sd-row-2 .sd-feature-list li { font-size: 12.5px; line-height: 1.55; }
+.sd-row-2 .sd-guide-note { font-size: 12px; margin-bottom: 10px; }
+.sd-row-2 .sd-guide-label { font-size: 12px; margin-bottom: 5px; }
+.sd-row-2 .sd-guide-grid { gap: 10px; }
+.sd-row-2 .sd-pre {
+  max-height: 84px;
+  padding: 8px 58px 8px 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.sd-row-2 .sd-copy-btn { top: 5px; right: 5px; padding: 2px 7px; font-size: 11px; }
+
+/* Markdown 片段样式（加粗 / 行内代码） */
+.sd-readme-p strong { color: #111827; font-weight: 700; }
+.sd-inline-code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #da203e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+@media (max-width: 1080px) {
+  .sd-row-2 { grid-template-columns: 1fr; }
+  /* 单列时不再等高，避免短卡被拉出大片空白 */
+  .sd-row-2 > .sd-panel { height: auto; }
+}
+
+/* ③ 获取与验证 | 健康度 | 维护信息 */
+.sd-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  /* 同一行内三张卡等高 */
+  align-items: stretch;
+}
+.sd-row-3 > .sd-panel { height: 100%; }
+@media (max-width: 1180px) {
+  .sd-row-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .sd-row-3 { grid-template-columns: 1fr; }
+  .sd-row-3 > .sd-panel { height: auto; }
+}
+
+/* 开源许可证可能有多个：逐个胶囊，允许换行 */
+.sd-license-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.sd-panel {
+  background: #fff;
+  border: 1px solid #edf0f3;
+  border-radius: 10px;
+  padding: 16px 18px 12px;
+}
+
+/* 健康度数值强调：风险项给颜色，正常项保持中性 */
+.sd-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sd-val--risk { color: #da203e; }
+.sd-val--warn { color: #d97706; }
+.sd-val--ok { color: #111827; }
+.sd-readme-p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.65;
+}
+.sd-readme-p:last-child { margin-bottom: 0; }
+
+/* 面板标题：红条 + 标题，左右两列共用一套 */
+.sd-card-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sd-card-bar {
+  flex: none;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: #da203e;
+}
+.sd-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+
+/* 使用指南：环境要求一行 + 安装 / 快速开始两段 */
+.sd-guide-note {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+.sd-guide-note-label { flex: none; color: #9ca3af; }
+/* 使用指南本身只占半宽，安装 / 快速开始改为上下堆叠，保证代码可读宽度 */
+.sd-guide-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.sd-guide-block { margin-bottom: 0; }
+.sd-guide-block:last-child { margin-bottom: 0; }
+.sd-guide-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 字段表 */
+.sd-meta-dl { margin: 0; }
+/* 三张信息卡并排：宽屏三列，中屏两列，窄屏单列 */
+.sd-meta-row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+}
+.sd-meta-row:last-child { border-bottom: none; }
+.sd-meta-row dt { color: #9ca3af; font-weight: 500; }
+.sd-meta-row dd {
+  margin: 0;
+  color: #111827;
+  min-width: 0;
+  word-break: break-word;
+}
+/* 代码块（安装命令 / 快速开始） */
+.sd-code-box {
+  position: relative;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  background: #fafbfc;
+  overflow: hidden;
+}
+.sd-pre {
+  margin: 0;
+  padding: 14px 72px 14px 16px;
+  overflow-x: auto;
+  /* 限高 + 内部滚动：代码再长也不会把整页拉高 */
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sd-pre--tall { max-height: 180px; overflow-y: auto; }
+.sd-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sd-copy-btn:hover { border-color: #d1d5db; color: #374151; }
+.sd-copy-btn.is-copied {
+  border-color: rgba(22, 163, 74, 0.35);
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+/* 核心特性列表 */
+.sd-feature-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sd-feature-list li {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+.sd-feature-list li::marker { color: #da203e; }
+
+/* 右栏：多链接 / 省略 */
+.sd-meta-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sd-chip-link {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid #e8eaed;
+  border-radius: 5px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+  text-decoration: none;
+}
+.sd-chip-link:hover { border-color: rgba(218, 32, 62, 0.35); color: #da203e; }
+.sd-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .deps-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -2232,7 +3001,6 @@ const versionHistory = [
 .sk-line:nth-child(2) { width: 68%; }
 .sk-line:nth-child(3) { width: 76%; }
 
-.desc-skeleton { margin-top: 12px; }
 .dep-skeleton-note {
   margin-top: 12px;
   text-align: center;
@@ -2755,37 +3523,6 @@ const versionHistory = [
 }
 .vuln-list-item:hover .vuln-more { color: #da203e; transform: translateX(2px); }
 
-/* ============================================================
-   漏洞来源二级切换（供应链静态漏洞 / 0Day 漏洞）
-   比主 Tab 更轻：胶囊形、无下划线，避免与顶部主 Tab 抢视觉层级
-   ============================================================ */
-.vuln-subtabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 4px 0 14px;
-}
-.vuln-subtab {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #fff;
-  color: #6b7280;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.vuln-subtab:hover { border-color: #d1d5db; color: #374151; }
-.vuln-subtab.is-active {
-  border-color: rgba(218, 32, 62, 0.35);
-  background: #fef2f2;
-  color: #da203e;
-  font-weight: 600;
-}
-
 /* 0Day 标签：与等级徽标并列，用深色描边区别于普通等级色 */
 .vuln-zd-tag {
   display: inline-block;
@@ -2803,16 +3540,102 @@ const versionHistory = [
 .vuln-zd-tag--lg { font-size: 12px; padding: 3px 9px; vertical-align: 2px; }
 .vd-zd-title { margin-left: 8px; }
 
-/* 0Day 行：涉及组件作为副标题占位，替代供应链行的漏洞名 */
-.vuln-list-item--zeroday .vuln-desc { color: #374151; font-weight: 500; }
-.vuln-zd-comp {
-  flex-shrink: 0;
-  max-width: 40%;
-  color: #9ca3af;
+/* ============================================================
+   0Day 漏洞卡片列表
+   与供应链的行式列表刻意区分：0Day 没有编号与 CVSS，用卡片承载
+   「类别 + 涉及组件 + 涉及文件」，并在顶部固定 0Day 标签与等级。
+   ============================================================ */
+.zd-section { margin-bottom: 4px; }
+.zd-section-hd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 10px;
+}
+.zd-section-title { font-size: 13.5px; font-weight: 600; color: #111827; }
+.zd-section-hint { font-size: 12px; color: #9ca3af; }
+
+.zd-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 1000px) {
+  .zd-card-grid { grid-template-columns: 1fr; }
+}
+
+.zd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px 13px;
+  border: 1px solid #edf0f3;
+  border-left: 3px solid rgba(218, 32, 62, 0.55);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.zd-card:hover {
+  border-color: rgba(218, 32, 62, 0.35);
+  border-left-color: #da203e;
+  box-shadow: 0 2px 10px rgba(218, 32, 62, 0.08);
+}
+.zd-card:focus-visible {
+  outline: 2px solid rgba(218, 32, 62, 0.4);
+  outline-offset: 2px;
+}
+.zd-card-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.zd-card-more {
+  margin-left: auto;
+  color: #d1d5db;
+  font-size: 15px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
+.zd-card:hover .zd-card-more { color: #da203e; transform: translateX(2px); }
+
+.zd-card-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.45;
+}
+
+.zd-card-meta {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zd-card-meta-row {
+  display: flex;
+  gap: 8px;
   font-size: 12px;
-  white-space: nowrap;
+  line-height: 1.5;
+  min-width: 0;
+}
+.zd-card-meta-row dt {
+  flex: none;
+  width: 56px;
+  color: #9ca3af;
+}
+.zd-card-meta-row dd {
+  margin: 0;
+  min-width: 0;
+  color: #4b5563;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 无 0Day 情报时的空态：说明「没有情报」，不是「确认安全」 */
@@ -2834,6 +3657,8 @@ const versionHistory = [
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+  /* 与下方卡片区拉开距离：栅格本身只有内部 gap，没有上外边距 */
+  margin-bottom: 16px;
   padding: 9px 12px;
   border: 1px solid rgba(218, 32, 62, 0.22);
   border-radius: 8px;
@@ -2855,6 +3680,11 @@ const versionHistory = [
 /* ============================================================
    VULN ANALYSIS — 漏洞概览 + 等级分布（合并卡）
    ============================================================ */
+.vuln-summary {
+  /* 概览卡与下方列表栅格之间补间距：栅格自身只有内部 gap，没有上外边距，
+     不补这一条两者会贴在一起。 */
+  margin-bottom: 16px;
+}
 .vuln-summary-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -65,6 +65,59 @@ const REQUESTS = {
   packageDownloads: [
     { href: 'https://files.pythonhosted.org/packages/demo/requests-2.31.0-py3-none-any.whl', label: '.whl' },
   ],
+
+  // —— 模板化介绍区 ——
+  versionDesc: '一个简单而优雅的 HTTP 库，支持发送 HTTP/1.1 请求。',
+  overviewParagraphs: [
+    '**requests** 是一个用 Python 编写的 HTTP 客户端库，把发请求这件事收敛成一行调用：不需要手工拼接 URL 查询串、不需要自己处理编码、也不需要为表单与 JSON 分别写序列化逻辑。',
+    '它建立在 `urllib3` 之上，默认开启**连接复用（Keep-Alive）**与连接池，因此在批量调用场景下比裸 `urllib` 更省握手开销；同时保留完整的会话对象，可跨请求保持 Cookie 与认证头。',
+    '项目的设计目标是最小惊讶：接口贴近自然语言，异常体系统一（连接错误、超时、HTTP 状态错误各有明确类型），并对外提供**流式上传下载**与国际化域名、URL 的透明处理。',
+    '在工程实践中，它通常作为服务间调用的默认客户端：配合 `Session` 做连接池复用，配合 `timeout` 做超时兜底，配合 `raise_for_status()` 把异常交给上层统一处理，避免把状态判断散落在业务代码里。',
+  ],
+  envRequirement: 'Python 3.10 及以上（官方支持 3.10+）',
+  installCmd: 'python -m pip install requests',
+  quickStart: `import requests
+
+# 发送 GET 请求
+resp = requests.get(
+    'https://api.github.com/repos/psf/requests',
+    params={'page': 1},
+    timeout=10,
+)
+resp.raise_for_status()
+print(resp.status_code, resp.json()['full_name'])`,
+  projectStructure: `requests/
+├── requests/
+│   ├── __init__.py       # 对外 API 入口
+│   ├── api.py            # get/post/put/delete 等
+│   ├── sessions.py       # Session 与连接池
+│   ├── models.py         # Request/Response
+│   ├── adapters.py       # HTTPAdapter
+│   ├── cookies.py        # Cookie 持久化
+│   └── structures.py     # 数据结构
+└── tests/                # 测试用例`,
+  features: [
+    '极简的 HTTP/1.1 请求发送，无需手动拼接 URL 查询字符串',
+    '连接复用（Keep-Alive）与连接池，默认开启',
+    '国际化域名与 URL 自动处理',
+    '会话对象支持 Cookie 持久化',
+    '自动内容解码、流式上传与下载',
+  ],
+
+  // —— 右栏：源码地址 ——
+  sourcePkgList: [
+    { label: '.zip', href: 'https://files.pythonhosted.org/packages/demo/requests-2.31.0.zip' },
+    { label: '.tar.gz', href: 'https://files.pythonhosted.org/packages/demo/requests-2.31.0.tar.gz' },
+  ],
+  signUrl: 'https://files.pythonhosted.org/packages/demo/requests-2.31.0.asc',
+  copyrightUrl: 'https://github.com/psf/requests/blob/main/LICENSE',
+
+  // —— 右栏：参考信息 ——
+  codeLines: 12,
+  vitality: '成熟期',
+  eolDate: '',
+  integrationRisk: '低',
+  industry: '通信,工业',
 }
 
 const OPENSSL = {
@@ -246,11 +299,57 @@ const MAXKB = {
   descriptionZh:
     'MaxKB 是基于大模型的开源知识库问答系统，支持 RAG 检索增强与工作流编排，可作为企业知识库与智能客服底座。',
   parentSoftwares: [],
-  licenses: [{ name: 'GNU General Public License v3.0', code: 'GPL-3.0', version: '2.10.0', type: 'gpl' }],
+  licenses: [
+    { name: 'GNU General Public License v3.0', code: 'GPL-3.0', version: '2.10.0', type: 'gpl' },
+    // 演示「同一组件存在多个许可证」的场景
+    { name: '商业授权', code: 'Commercial', version: '2.10.0', type: 'other' },
+  ],
   binaryPackages: [],
   packageDownloads: [
     { href: 'https://pypi.org/project/maxkb/', label: 'PyPI' },
   ],
+
+  // —— 模板化介绍区 ——
+  versionDesc: '基于大模型的开源知识库问答系统，支持 RAG 检索增强与工作流编排。',
+  overviewParagraphs: [
+    '**MaxKB** 是一套开箱即用的企业级知识库问答系统，把「文档进、答案出」的完整链路封装在同一个控制台里：上传文档、自动解析与向量化、检索增强、模型回答，步骤之间不需要自己写胶水代码。',
+    '检索侧支持多种**分段策略**与重排，回答会附带原文出处，便于核对；应用侧可把知识库发布为独立访问页面或标准 API，由业务系统直接调用。',
+    '它还提供**工作流编排**能力，可把知识检索、大模型调用与函数节点串成一条流程，用于客服、内部知识助手等场景。',
+    '部署上支持容器化交付，数据库与向量库可独立部署；`ToolExecutor` 负责执行用户自定义函数，因此生产环境需要额外评估沙箱隔离与网络出站策略。',
+  ],
+  envRequirement: 'Python 3.10 及以上；推荐 4C8G 以上并单独部署向量库',
+  installCmd: 'docker run -d --name=maxkb -p 8080:8080 registry.fit2cloud.com/maxkb/maxkb',
+  quickStart: `# 1. 启动服务后访问 http://localhost:8080
+# 2. 首次登录使用默认管理员账号创建知识库
+# 3. 上传文档并等待向量化完成
+# 4. 创建应用，选择模型与知识库即可对话`,
+  projectStructure: `maxkb/
+├── apps/
+│   ├── application/      # 应用与对话
+│   ├── knowledge/        # 知识库与文档解析
+│   ├── models_provider/  # 模型接入
+│   └── common/           # 工具沙箱、异常处理
+├── ui/                   # 前端工程
+└── installer/            # 部署脚本`,
+  features: [
+    '支持文档上传后自动解析与向量化，构建企业知识库',
+    'RAG 检索增强，回答附带原文出处',
+    '工作流编排，可串联检索、模型与函数节点',
+    '多模型接入，兼容主流大模型 API',
+    '应用对外发布为独立访问页面或 API',
+  ],
+
+  // —— 右栏：源码地址 ——
+  sourcePkgList: [{ label: '.tar.gz', href: 'https://github.com/1Panel-dev/MaxKB/archive/refs/tags/v2.10.0.tar.gz' }],
+  signUrl: '',
+  copyrightUrl: 'https://github.com/1Panel-dev/MaxKB/blob/main/LICENSE',
+
+  // —— 右栏：参考信息 ——
+  codeLines: 186,
+  vitality: '成长期',
+  eolDate: '',
+  integrationRisk: '中',
+  industry: '互联网',
 }
 
 /** @type {Record<string, typeof VERTX & { detailLang: string, goModule?: string }>} */
@@ -326,10 +425,21 @@ function enrichExtras(row) {
   const name = String(row.name || 'component')
   const lang = row.language || 'Java'
   const v = String(row.version || '1.0.0')
-  const year = v.split('.')[0] || '2024'
+  // 版本号首段常是 1~2 位（如 2.31.0 → '2'），不能直接当年份，否则会拼出「2-01-15」
+  const firstSeg = v.split('.')[0] || ''
+  const year = /^\d{4}$/.test(firstSeg) ? firstSeg : '2024'
   const licenseCodes = Array.isArray(row.licenses)
     ? row.licenses.map((l) => l && l.code).filter(Boolean)
     : []
+  // links 先算出来，后面的 scm / sourceUrl 要复用它（原来引用 row.links 时还没生成，回退永远落空）
+  const links = row.links || {
+    source: `https://github.com/demo/${name}`,
+    sourceText: 'GitHub',
+    website: `https://${name}.example.com`,
+    websiteText: '官网',
+    docs: `https://docs.${name}.example.com`,
+    docsText: '文档',
+  }
   return {
     ...row,
     author: row.author || '开源社区维护',
@@ -341,15 +451,32 @@ function enrichExtras(row) {
     stars: row.stars ?? 12800,
     downloads: row.downloads || '2.4M',
     license: row.license || { names: licenseCodes.length ? licenseCodes : ['MIT'] },
-    links: row.links || {
-      source: `https://github.com/demo/${name}`,
-      sourceText: 'GitHub',
-      website: `https://${name}.example.com`,
-      websiteText: '官网',
-      docs: `https://docs.${name}.example.com`,
-      docsText: '文档',
-    },
+    links,
     tags: row.tags && row.tags.length ? row.tags : [lang, '开源', '稳定', '流行'],
+
+    /* ===== 模板化介绍区（固定六块）所需字段 =====
+       上游 README 排版不固定，这里只取结构化字段，
+       缺什么就留空，由前端统一显示「—」，不伪造内容。 */
+    versionDesc: row.versionDesc || row.descriptionZh || '',
+    overviewParagraphs: row.overviewParagraphs || [],
+    envRequirement: row.envRequirement || '',
+    installCmd: row.installCmd || '',
+    quickStart: row.quickStart || '',
+    projectStructure: row.projectStructure || '',
+    features: row.features || [],
+
+    /* ===== 右栏「源码地址」 ===== */
+    scm: row.scm || links.source || '',
+    sourcePkgList: row.sourcePkgList || [],
+    signUrl: row.signUrl || '',
+    sourceUrl: row.sourceUrl || links.website || '',
+    copyrightUrl: row.copyrightUrl || '',
+
+    /* ===== 右栏「参考信息」 ===== */
+    codeLines: row.codeLines ?? null,
+    vitality: row.vitality || '',
+    eolDate: row.eolDate || '',
+    integrationRisk: row.integrationRisk || '',
   }
 }
 
