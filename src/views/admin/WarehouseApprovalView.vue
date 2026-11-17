@@ -113,6 +113,8 @@
                   <button type="button" class="wav-op wav-op--approve" @click="askApprove(item)">审核入库</button>
                   <span class="wav-sep">|</span>
                   <button type="button" class="wav-op wav-op--danger" @click="askReject(item)">拒绝</button>
+                  <span class="wav-sep">|</span>
+                  <button type="button" class="wav-op" @click="askReturn(item)">退回治理</button>
                 </template>
                 <template v-else-if="item.warehouseStatus === '已拒绝'">
                   <button type="button" class="wav-op wav-op--approve" @click="askReapprove(item)">重新审核入库</button>
@@ -158,7 +160,8 @@
       <div class="wav-modal wav-modal--sm" role="dialog" aria-modal="true" aria-labelledby="wav-confirm-title">
         <header class="wav-modal-hd">
           <h3 id="wav-confirm-title" class="wav-modal-title">
-            {{ confirmTarget.action === 'approve' ? (confirmTarget.batch ? '批量审核入库' : '确认审核入库') : (confirmTarget.batch ? '批量拒绝' : '确认拒绝') }}
+            {{ confirmTarget.action === 'approve' ? (confirmTarget.batch ? '批量审核入库' : '确认审核入库')
+              : confirmTarget.action === 'return' ? '退回治理' : (confirmTarget.batch ? '批量拒绝' : '确认拒绝') }}
           </h3>
           <button type="button" class="wav-modal-close" aria-label="关闭" @click="cancelConfirm">✕</button>
         </header>
@@ -171,10 +174,24 @@
             <p class="wav-confirm-sub">{{ confirmTarget.items.map((i) => i.name).join('、') }}</p>
           </template>
           <p v-else class="wav-confirm-text">
-            确定要<strong>{{ confirmTarget.action === 'approve' ? '审核入库' : '拒绝' }}</strong>软件
+            确定要<strong>{{ confirmTarget.action === 'approve' ? '审核入库' : confirmTarget.action === 'return' ? '退回治理' : '拒绝' }}</strong>软件
             <strong>{{ confirmTarget.items[0].name }} v{{ confirmTarget.items[0].version }}</strong> 吗？
           </p>
-          <p v-if="confirmTarget.action === 'approve'" class="wav-confirm-hint">
+          <template v-if="confirmTarget.action === 'return'">
+            <p class="wav-confirm-hint">
+              退回后该软件回到「待提交审批」，对应入库需求清单解除锁定，治理负责人可修正回传数据后重新提交审核。
+            </p>
+            <div class="wav-field wav-confirm-reason">
+              <label class="wav-label">退回原因</label>
+              <textarea
+                v-model.trim="rejectReasonInput"
+                class="wav-input wav-textarea"
+                rows="3"
+                placeholder="请填写退回原因（选填），将记入治理日志"
+              ></textarea>
+            </div>
+          </template>
+          <p v-else-if="confirmTarget.action === 'approve'" class="wav-confirm-hint">
             审核通过后软件将正式入库，并回写对应入库需求清单状态。
           </p>
           <template v-else>
@@ -202,7 +219,7 @@
             :class="confirmTarget.action === 'approve' ? 'wav-btn--primary' : 'wav-btn--danger'"
             :disabled="confirmTarget.action === 'reject' && !rejectReasonInput.trim()"
             @click="confirmAction"
-          >{{ confirmTarget.action === 'approve' ? '确认入库' : '确认拒绝' }}</button>
+          >{{ confirmTarget.action === 'approve' ? '确认入库' : confirmTarget.action === 'return' ? '确认退回' : '确认拒绝' }}</button>
           <button type="button" class="wav-btn wav-btn--outline" @click="cancelConfirm">取消</button>
         </footer>
       </div>
@@ -214,7 +231,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { softwareList, approveWarehouse, rejectWarehouse } from '../../data/governanceStore.js'
-import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
+import { getInboundRequests, updateInboundStatus, lockInboundReview, unlockInboundReview } from '../../data/inboundRequests.js'
 import { sendMessage } from '../../data/messagesStore.js'
 import { USERS } from '../../data/orgData.js'
 import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
@@ -353,6 +370,7 @@ function messageRecipientsOf(item) {
 
 /** 审核入库：待审批 → 已入库，并回写入库需求清单状态，同时发送站内信 */
 function approveItem(item) {
+  lockInboundOf(item)
   approveWarehouse(item)
   syncInboundStatus(item)
   messageRecipientsOf(item).forEach((id) => sendMessage(id, 'approved', item.name))
@@ -360,9 +378,43 @@ function approveItem(item) {
 
 /** 拒绝：待审批 → 已拒绝（记录原因）；高危漏洞软件加入黑名单，否则答疑联系管理员 */
 function rejectItem(item, reason) {
+  lockInboundOf(item)
   rejectWarehouse(item, reason)
   const type = (item.vulnCount || 0) > 0 ? 'blacklisted' : 'question'
   messageRecipientsOf(item).forEach((id) => sendMessage(id, type, item.name))
+}
+
+/**
+ * 退回治理：把已进入审核的软件退回治理负责人，解除清单锁定以便重新回传。
+ * 用于「回传后发现数据有误」但审批已开始的场景。
+ */
+function returnToGovernance(item, reason) {
+  unlockInboundOf(item, reason)
+  item.warehouseStatus = '待提交审批'
+  item.rejectReason = ''
+  if (!item.logs) item.logs = []
+  item.logs.push({
+    time: new Date().toLocaleString('zh-CN'),
+    level: 'warn',
+    msg: `平台管理员退回治理${reason ? `，原因：${reason}` : ''}`,
+  })
+  messageRecipientsOf(item).forEach((id) => sendMessage(id, 'question', item.name))
+}
+
+/** 命中该软件的所有入库需求清单（按软件名匹配，与回写入库状态同口径） */
+function inboundListsOf(item) {
+  const name = (item.name || '').toLowerCase()
+  return getInboundRequests().filter((r) => (r.items || []).some((x) => x.name && x.name.toLowerCase() === name))
+}
+
+/** 审批动作发生即锁定清单，治理负责人不能再覆盖回传 */
+function lockInboundOf(item) {
+  inboundListsOf(item).forEach((r) => lockInboundReview(r.id, '平台管理员'))
+}
+
+/** 退回治理：解锁清单，允许治理负责人重新回传 */
+function unlockInboundOf(item, reason) {
+  inboundListsOf(item).forEach((r) => unlockInboundReview(r.id, { by: '平台管理员', reason }))
 }
 
 /* —— 二次确认（审核入库 / 拒绝） —— */
@@ -379,6 +431,11 @@ function askReject(item) {
 /** 拒绝后重新审核入库：走审核通过流程 */
 function askReapprove(item) {
   confirmTarget.value = { items: [item], action: 'approve', batch: false }
+}
+/** 退回治理：退回后解除清单锁定，治理负责人可修正回传数据后再次提交 */
+function askReturn(item) {
+  rejectReasonInput.value = ''
+  confirmTarget.value = { items: [item], action: 'return', batch: false }
 }
 /** 批量审核入库 */
 function askBatchApprove() {
@@ -401,6 +458,7 @@ function confirmAction() {
   const { items, action } = confirmTarget.value
   if (action === 'reject' && !rejectReasonInput.value.trim()) return
   if (action === 'approve') items.forEach((item) => approveItem(item))
+  else if (action === 'return') items.forEach((item) => returnToGovernance(item, rejectReasonInput.value.trim()))
   else items.forEach((item) => rejectItem(item, rejectReasonInput.value.trim()))
   confirmTarget.value = null
   rejectReasonInput.value = ''

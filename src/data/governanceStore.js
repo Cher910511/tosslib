@@ -210,8 +210,54 @@ export function rejectWarehouse(item, reason = '') {
   return item
 }
 
-/** 作废软件：从软件治理列表移除（审核入库不再可见），记录原因供「我的治理清单」展示，不可恢复 */
-export function voidSoftware(item, reason = '') {
+/**
+ * 治理环节名称：与软件条目 currentStep 对应，用于「继续治理」日志与提示
+ */
+const STEP_LABELS = { 1: '源码备份', 2: '软件评分', 3: '治理成果评估', 4: '提交入库' }
+
+/**
+ * 继续治理：数据异常中断后，从当前环节接着走，不让特定版本卡死在中间态。
+ * 顺带修复中断可能留下的空状态（缺备份/评估/评审/入库状态时补回待处理），
+ * 保证该版本始终有一条通往「提交入库」的路径。
+ */
+export function resumeGovernance(item, { by = '' } = {}) {
+  if (!item) return null
+  const now = new Date().toLocaleString('zh-CN')
+  const step = item.currentStep || 1
+  const repaired = []
+  if (step === 1 && !item.backupStatus) {
+    item.backupStatus = '待备份'
+    repaired.push('备份状态')
+  }
+  if (step === 2 && !item.assessStatus) {
+    item.assessStatus = '待评估'
+    repaired.push('评估状态')
+  }
+  if (step === 3 && !item.reviewStatus) {
+    item.reviewStatus = '待评审'
+    repaired.push('评审状态')
+  }
+  if (step === 4 && !item.warehouseStatus) {
+    item.warehouseStatus = '待提交审批'
+    repaired.push('入库状态')
+  }
+  if (!item.logs) item.logs = []
+  item.logs.push({
+    time: now,
+    level: 'info',
+    msg: `继续治理：由 ${by || '治理负责人'} 从「${STEP_LABELS[step] || '软件获取'}」环节继续${repaired.length ? `，已修复中断残留（${repaired.join('、')}）` : ''}`,
+  })
+  return { step, label: STEP_LABELS[step] || '软件获取' }
+}
+
+/**
+ * 作废软件：从治理列表移除，记录原因供「我的治理清单」展示。
+ * voidType 区分两类作废：
+ *  - 'reopenable'（默认）：选型/技术评估不满意、数据异常中断等，允许「重新发起治理」开新一轮；
+ *  - 'permanent'：审批驳回并拉黑，永久不可再入库。
+ * 原作废记录本身保持终态、不可恢复。
+ */
+export function voidSoftware(item, reason = '', voidType = 'reopenable') {
   const now = new Date().toLocaleString('zh-CN')
   const record = {
     id: item.id,
@@ -227,6 +273,9 @@ export function voidSoftware(item, reason = '') {
     createdAt: item.createdAt,
     warehouseStatus: '已作废',
     voidReason: reason || '未填写',
+    voidType: voidType === 'permanent' ? 'permanent' : 'reopenable',
+    round: item.round || 1,
+    originId: item.originId || item.id,
     warehouseTime: now,
     logs: [...(item.logs || []), { time: now, level: 'warn', msg: `作废软件：${item.name} v${item.version}，原因：${reason || '未填写'}` }],
   }
@@ -234,6 +283,50 @@ export function voidSoftware(item, reason = '') {
   const idx = softwareList.value.indexOf(item)
   if (idx !== -1) softwareList.value.splice(idx, 1)
   return record
+}
+
+/**
+ * 重新发起治理：基于一条已作废记录开新一轮治理任务（round+1）。
+ * 旧记录保持终态可追溯，新记录重新走 获取 → 备份 → 扫描 → 评估 → 验收 → 入库。
+ */
+export function reopenGovernance(record, { reason = '', by = '' } = {}) {
+  if (!record) return null
+  const now = new Date().toLocaleString('zh-CN')
+  const round = (record.round || 1) + 1
+  const item = {
+    id: genId(),
+    name: record.name,
+    version: record.version,
+    repoUrl: record.repoUrl || '',
+    lang: record.lang || '—',
+    license: record.license || '—',
+    govOwner: record.govOwner || '—',
+    govOrg: record.govOrg || '—',
+    submitter: record.submitter || '—',
+    submitOrg: record.submitOrg || '—',
+    round,
+    originId: record.originId || record.id,
+    reopenedFrom: record.id,
+    currentStep: 1,
+    selected: false,
+    createdAt: now,
+    // 重治从「获取」环节重新开始，回传成果按惯例需重新确认
+    backupStatus: '待备份',
+    assessStatus: '待评估',
+    reviewStatus: '待评审',
+    warehouseStatus: '待提交审批',
+    riskLevel: record.riskLevel || null,
+    vulnCount: record.vulnCount || 0,
+    logs: [{
+      time: now,
+      level: 'info',
+      msg: `由 ${by || '治理负责人'} 重新发起治理（第 ${round} 轮）${reason ? `，原因：${reason}` : ''}`,
+    }],
+  }
+  item.indicatorScores = makeIndicatorScores()
+  item.nationalScore = calcNationalScore(item.indicatorScores)
+  softwareList.value.unshift(item)
+  return item
 }
 
 /**
@@ -322,9 +415,22 @@ export function importFromInbound(entries, inbound) {
       if (mwInd) item.indicatorScores[mwInd.id] = { score: 1, params: {} }
     }
     item.nationalScore = calcNationalScore(item.indicatorScores)
+
+    // 覆盖导入：同一「名称 + 版本」已存在时更新既有记录，
+    // 避免治理负责人重新回传后产生重复的治理任务（问题：回传不可更正）
+    const existing = softwareList.value.find(
+      (i) => i.name && e.name
+        && String(i.name).toLowerCase() === String(e.name).toLowerCase()
+        && String(i.version) === String(e.version),
+    )
+    if (existing) {
+      Object.assign(existing, item, { id: existing.id, createdAt: existing.createdAt })
+      existing.logs = [...(existing.logs || []), { time: now, level: 'info', msg: '治理结果已按最新一次回传覆盖更新' }]
+      return existing
+    }
+    softwareList.value.push(item)
     return item
   })
-  softwareList.value.push(...created)
   return created
 }
 

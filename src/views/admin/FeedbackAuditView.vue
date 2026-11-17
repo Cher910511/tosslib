@@ -113,7 +113,13 @@
             </thead>
             <tbody>
               <tr v-for="r in paginatedList" :key="r.id">
-                <td class="fa-name">{{ r.org || '—' }}</td>
+                <td class="fa-name">
+                  <template v-if="r.orgs && r.orgs.length">
+                    <span class="fa-org-lead" :title="r.orgs.join('\n')">{{ r.orgs[0] }}</span>
+                    <span class="fa-org-more" :title="r.orgs.join('\n')">+{{ r.orgs.length - 1 }}</span>
+                  </template>
+                  <template v-else>{{ r.org || '—' }}</template>
+                </td>
                 <td>{{ r.reporter || '—' }}</td>
                 <td class="fa-file-name" :title="r.fileName">{{ r.fileName }}</td>
                 <td>{{ r.itemCount }} 条</td>
@@ -223,8 +229,23 @@
           <button type="button" class="fa-modal-close" aria-label="关闭" @click="closeAssign">✕</button>
         </header>
         <div class="fa-modal-meta">
-          <span>清单：{{ assignTarget.org }}（{{ assignTarget.itemCount }} 条）</span>
+          <!-- 标签、组织名称、「展开」全部同一行：名称占满剩余宽度并在末尾截断 -->
+          <span class="fa-org-line">
+            <span class="fa-org-label">清单所属组织：{{ assignTarget.org }}（{{ assignTarget.orgs && assignTarget.orgs.length ? `${assignTarget.orgs.length} 个组织` : `${assignTarget.itemCount} 条` }}）</span>
+            <span
+              v-if="assignTarget.orgs && assignTarget.orgs.length"
+              class="fa-org-names"
+              :class="{ 'is-collapsed': !assignOrgExpanded }"
+            >{{ assignTarget.orgs.join('、') }}</span>
+            <button
+              v-if="assignTarget.orgs && assignTarget.orgs.length"
+              type="button"
+              class="fa-org-toggle"
+              @click="assignOrgExpanded = !assignOrgExpanded"
+            >{{ assignOrgExpanded ? '收起' : '展开' }}</button>
+          </span>
           <span>提交人：{{ assignTarget.reporter }}</span>
+          <span>软件条数：{{ assignTarget.itemCount }} 条</span>
           <span>提交时间：{{ assignTarget.createdAt }}</span>
         </div>
         <div class="fa-assign-body">
@@ -323,6 +344,7 @@ const inboundList = computed(() => getInboundRequests())
 const certFilters = reactive({ name: '', status: '' })
 const inboundFilters = reactive({ org: '', reporter: '' })
 
+/** 所属组织 hover 卡片：列表里只显示截断文案，悬浮时用浮层展示全部组织名 */
 /* —— 筛选结果 —— */
 function filterCert() {
   let list = certList.value
@@ -399,6 +421,8 @@ function auditCert(id, status) {
 /* —— 入库清单分配（平台管理员） —— */
 const assignTarget = ref(null)
 const selectedAssignUser = ref(null)
+/** 分配弹窗内「所属组织」名称是否展开（默认隐藏，点「展开」才显示） */
+const assignOrgExpanded = ref(false)
 const assignSearch = ref('')
 const assignDropdownOpen = ref(false)
 const assignSearchInput = ref(null)
@@ -795,6 +819,68 @@ function downloadDetail(r) {
   color: #111827;
   font-weight: 500;
 }
+
+/* 清单所属组织：表格内只给主组织 + 「+N」徽标，全量走浏览器原生 title */
+.fa-org-lead {
+  display: inline-block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  color: #111827;
+  font-weight: 500;
+}
+.fa-org-more {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: #f1f3f5;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  vertical-align: bottom;
+  cursor: default;
+}
+
+/* 分配弹窗信息行：标签 + 组织名称 + 「展开」挤在一行 */
+.fa-org-line {
+  flex: 1 1 100%;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+}
+.fa-org-label { flex: none; }
+.fa-org-names {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 132px;
+  overflow-y: auto;
+  line-height: 1.7;
+  color: #6b7280;
+}
+/* 收起时固定一行，超出部分截断显示省略号 */
+.fa-org-names.is-collapsed {
+  max-height: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fa-org-toggle {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #da203e;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.fa-org-toggle:hover { text-decoration: underline; }
 
 /* 治理负责人 */
 .fa-owner-name {

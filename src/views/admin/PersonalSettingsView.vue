@@ -145,6 +145,7 @@
                 <th>入库时间</th>
                 <th>审核状态</th>
                 <th>原因</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -167,9 +168,18 @@
                 <td>{{ item.warehouseTime || '—' }}</td>
                 <td><span class="mg-status" :class="'mg-status--' + item.warehouseStatus">{{ item.warehouseStatus }}</span></td>
                 <td class="mg-reject-reason" :title="reasonOf(item)">{{ reasonOf(item) }}</td>
+                <td>
+                  <button
+                    v-if="canReopen(item)"
+                    type="button"
+                    class="mg-op-link"
+                    @click="openReopen(item)"
+                  >重新发起治理</button>
+                  <span v-else class="mg-muted">—</span>
+                </td>
               </tr>
               <tr v-if="!govPaginated.length">
-                <td colspan="8" class="mg-empty">暂无治理清单数据</td>
+                <td colspan="9" class="mg-empty">暂无治理清单数据</td>
               </tr>
             </tbody>
           </table>
@@ -191,6 +201,30 @@
             </label>
           </div>
         </footer>
+      </div>
+
+      <!-- ========== 重新发起治理确认 ========== -->
+      <div v-if="reopenTarget" class="mg-dialog-mask" @click.self="cancelReopen">
+        <div class="mg-dialog" role="dialog" aria-modal="true" aria-labelledby="mg-reopen-title">
+          <h3 id="mg-reopen-title" class="mg-dialog-title">重新发起治理</h3>
+          <p class="mg-dialog-text">
+            将为 <strong>{{ reopenTarget.name }} v{{ reopenTarget.version }}</strong>
+            发起新一轮治理（第 {{ (reopenTarget.round || 1) + 1 }} 轮）。原已作废记录保持不可恢复，作为历史保留可查。
+          </p>
+          <div class="mg-dialog-field">
+            <label class="mg-dialog-label">重新治理原因</label>
+            <textarea
+              v-model="reopenReason"
+              class="mg-dialog-textarea"
+              rows="3"
+              placeholder="请说明重新发起治理的原因（选填），将记入治理日志"
+            />
+          </div>
+          <div class="mg-dialog-ft">
+            <button type="button" class="mg-dialog-btn" @click="cancelReopen">取消</button>
+            <button type="button" class="mg-dialog-btn mg-dialog-btn--primary" @click="confirmReopen">确认发起</button>
+          </div>
+        </div>
       </div>
 
       <!-- ========== 订阅列表 ========== -->
@@ -215,7 +249,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getInboundRequests } from '../../data/inboundRequests.js'
-import { softwareList, voidedList } from '../../data/governanceStore.js'
+import { softwareList, voidedList, reopenGovernance } from '../../data/governanceStore.js'
 import { USERS } from '../../data/orgData.js'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 
@@ -321,6 +355,39 @@ function reasonOf(item) {
 /** 已入库软件版本点击 → 软件详情 */
 function goSoftwareDetail(item) {
   router.push({ name: 'software-detail', query: { name: item.name, version: item.version } })
+}
+
+/* ===== 重新发起治理：原作废记录保持终态，另起一轮新治理 ===== */
+const reopenTarget = ref(null)
+const reopenReason = ref('')
+const reopenDone = ref(null)
+
+/** 可重新发起：已作废且作废类型不是「永久拉黑」 */
+function canReopen(item) {
+  return item && item.warehouseStatus === '已作废' && item.voidType !== 'permanent'
+}
+
+function openReopen(item) {
+  reopenTarget.value = item
+  reopenReason.value = ''
+  reopenDone.value = null
+}
+
+function cancelReopen() {
+  reopenTarget.value = null
+  reopenReason.value = ''
+}
+
+function confirmReopen() {
+  const record = reopenTarget.value
+  if (!record) return
+  const created = reopenGovernance(record, {
+    reason: reopenReason.value.trim(),
+    by: currentUser.value?.name || '',
+  })
+  reopenDone.value = created ? `已发起第 ${created.round} 轮治理，可在「软件治理」中继续处理` : null
+  reopenTarget.value = null
+  reopenReason.value = ''
 }
 
 /* —— 分页 —— */
@@ -723,6 +790,88 @@ watch(govPageSize, () => { govPage.value = 1 })
   color: #111827;
   font-weight: 500;
 }
+
+/* 重新发起治理入口 + 确认弹窗 */
+.mg-op-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #da203e;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.mg-op-link:hover { text-decoration: underline; }
+.mg-muted { color: #b8bec7; }
+.mg-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.45);
+}
+.mg-dialog {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 22px 16px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+}
+.mg-dialog-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.mg-dialog-text {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+}
+.mg-dialog-field { margin-bottom: 14px; }
+.mg-dialog-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+.mg-dialog-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.mg-dialog-textarea:focus {
+  outline: none;
+  border-color: #da203e;
+}
+.mg-dialog-ft {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.mg-dialog-btn {
+  padding: 7px 16px;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mg-dialog-btn--primary {
+  background: #da203e;
+  border-color: #da203e;
+  color: #fff;
+}
+.mg-dialog-btn--primary:hover { background: #c01b36; }
 .mg-url {
   max-width: 220px;
   overflow: hidden;

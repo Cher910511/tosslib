@@ -67,6 +67,7 @@
                   :class="returnStatusClass(r)"
                 >{{ returnStatusOf(r) }}</span>
                 <span v-else class="mgt-muted">—</span>
+                <span v-if="r.returnRevision" class="mgt-rev" :title="`已回传 ${r.returnRevision} 次，最近一次 ${r.returnedAt || '—'}`">v{{ r.returnRevision }}</span>
               </td>
               <td>{{ r.returnOkCount != null ? `${r.returnOkCount} 条` : '—' }}</td>
               <td>
@@ -84,10 +85,20 @@
                 <button type="button" class="mgt-op" @click="openDetail(r)">查看详情</button>
                 <span class="mgt-sep">|</span>
                 <button type="button" class="mgt-op" @click="downloadList(r)">下载清单</button>
-                <template v-if="r.status === '已分配'">
-                  <span class="mgt-sep">|</span>
-                  <button type="button" class="mgt-op mgt-op--strong" @click="openReturn(r)">回传清单</button>
-                </template>
+                <span class="mgt-sep">|</span>
+                <button
+                  v-if="canReReturn(r)"
+                  type="button"
+                  class="mgt-op mgt-op--strong"
+                  @click="openReturn(r)"
+                >{{ r.returnRevision ? '重新回传' : '回传清单' }}</button>
+                <button
+                  v-else
+                  type="button"
+                  class="mgt-op mgt-op--disabled"
+                  :title="reReturnBlockedReason(r)"
+                  aria-disabled="true"
+                >回传清单</button>
               </td>
             </tr>
             <tr v-if="!paginatedList.length">
@@ -226,7 +237,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getInboundRequests } from '../../data/inboundRequests.js'
+import { getInboundRequests, canReReturn, reReturnBlockedReason } from '../../data/inboundRequests.js'
 import { writePrefilledTemplate, writeSampleTemplate } from '../../data/governanceTemplate.js'
 import { USERS } from '../../data/orgData.js'
 import GovernanceUploadDialog from '../../components/gov/GovernanceUploadDialog.vue'
@@ -720,6 +731,26 @@ function onUploadImported() {
   color: #b45309;
   background: #fef3c7;
   border-color: #fde68a;
+}
+
+/* 回传版本号（v1 / v2 …），表示已覆盖回传的次数 */
+.mgt-rev {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+/* 不可回传：置灰但保留按钮位置，hover 由 title 说明原因 */
+.mgt-op--disabled,
+.mgt-op--disabled:hover {
+  color: #b8bec7;
+  background: transparent;
+  border-color: transparent;
+  cursor: not-allowed;
 }
 
 /* 失败条数：可点击查看回传校验结果 */

@@ -14,6 +14,9 @@
             <p class="upload-done-hint">
               「{{ importedLabel }}」的 {{ importedCount }} 条软件已导入源码备份列表，该清单状态已置为「已回传，待审批」，系统已按治理结果自动完成国标评分。
             </p>
+            <p class="upload-done-hint upload-done-hint--tip">
+              如发现回传数据有误（例如 AtomGit 地址、开源社区地址填错），可在平台管理员开始审核前，回到「我的待治理清单」重新回传覆盖，无需重新发起流程。
+            </p>
           </div>
         </div>
 
@@ -260,7 +263,7 @@ async function confirmImport() {
     const created = importFromInbound(passedRows.value, t)
     if (t.status === '已分配') updateInboundStatus(t.id, '待审核')
     // 回传结果回写清单：整份校验通过才可导入，故成功条数=本次导入条数、失败条数 0
-    updateInboundReturn(t.id, { status: '成功', okCount: created.length, failCount: 0 })
+    updateInboundReturn(t.id, { status: '成功', okCount: created.length, failCount: 0, fileName: t.fileName })
     importedCount.value = created.length
     importedLabel.value = t.org || t.fileName || '该清单'
     emit('imported', { count: created.length, label: importedLabel.value, targetId: t.id })

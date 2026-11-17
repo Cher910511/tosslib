@@ -21,7 +21,7 @@ const MAX_ITEMS = 200
  * （例如旧数据没有 returnFailures / 「回传中」状态，会让失败原因点不开）。
  * 用户真实提交的清单不受影响，始终保留。
  */
-const SEED_VERSION = 2
+const SEED_VERSION = 3
 
 // 演示用开源软件清单池：种子清单的解析明细从这里取，保证查看详情有足够数据
 const DEMO_ITEMS = [
@@ -63,6 +63,16 @@ const SEED_REQUESTS = [
   {
     id: 'ir-seed-1',
     org: '阿里巴巴集团',
+    // 清单所属组织（多组织场景）：20 个下属组织，列表支持展开/收起
+    orgs: [
+      '阿里巴巴集团控股有限公司', '淘宝（中国）软件有限公司', '浙江天猫技术有限公司', '阿里云计算有限公司',
+      '蚂蚁科技集团股份有限公司', '支付宝（中国）网络技术有限公司', '钉钉（中国）信息技术有限公司',
+      '高德软件有限公司', '北京大麦文化传媒发展有限公司', '优酷信息技术（北京）有限公司',
+      '阿里影业（北京）有限公司', '上海盒马网络科技有限公司', '菜鸟网络科技有限公司',
+      '浙江菜鸟供应链管理有限公司', '阿里巴巴（中国）有限公司', '阿里巴巴通信技术（北京）有限公司',
+      '阿里健康信息技术有限公司', '饿了么（上海）信息技术有限公司', '飞猪（杭州）网络技术有限公司',
+      '阿里巴巴达摩院（杭州）科技有限公司',
+    ],
     reporter: '陈晓峰',
     contact: '13800000004',
     fileName: '阿里-入库需求清单-0901.xlsx',
@@ -73,6 +83,13 @@ const SEED_REQUESTS = [
   {
     id: 'ir-seed-2',
     org: '中国工商银行',
+    orgs: [
+      '中国工商银行股份有限公司', '工商银行北京分行', '工商银行上海分行', '工商银行广东分行',
+      '工商银行江苏分行', '工商银行浙江分行', '工商银行山东分行', '工商银行四川分行',
+      '工商银行湖北分行', '工商银行河南分行', '工商银行福建分行', '工商银行湖南分行',
+      '工商银行安徽分行', '工商银行河北分行', '工商银行陕西分行', '工商银行辽宁分行',
+      '工银科技有限公司', '工银理财有限责任公司', '工银金融租赁有限公司', '工银瑞信基金管理有限公司',
+    ],
     reporter: '张建国',
     contact: '13800000001',
     fileName: '工行-软件入库需求反馈.xlsx',
@@ -295,20 +312,123 @@ export function updateInboundStatus(id, status) {
   }
 }
 
-/** 回写清单的回传结果：回传状态（回传中/成功/失败）、成功条数、失败条数、失败明细与回传时间 */
-export function updateInboundReturn(id, { status, okCount = 0, failCount = 0, failures = null }) {
+/** 回写清单的回传结果：回传状态、成功/失败条数、失败明细、回传时间，并累计回传版本 */
+export function updateInboundReturn(id, { status, okCount = 0, failCount = 0, failures = null, fileName = '', by = '' }) {
   const list = load()
   const idx = list.findIndex((r) => r.id === id)
   if (idx !== -1) {
+    const row = list[idx]
     const now = new Date()
     const pad = (n) => String(n).padStart(2, '0')
-    list[idx].returnStatus = status
-    list[idx].returnOkCount = okCount
-    list[idx].returnFailCount = failCount
+    row.returnStatus = status
+    row.returnOkCount = okCount
+    row.returnFailCount = failCount
     // 失败明细：校验未通过时记录逐行原因，供列表「失败条数」点击查看
-    if (failures) list[idx].returnFailures = failures
-    else if (status === '成功') delete list[idx].returnFailures
-    list[idx].returnedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+    if (failures) row.returnFailures = failures
+    else if (status === '成功') delete row.returnFailures
+    row.returnedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+    // 回传版本：每成功回传一次 +1，历史留痕，供「回传 v2」展示与追溯
+    if (status === '成功') {
+      row.returnRevision = (row.returnRevision || 0) + 1
+      if (!Array.isArray(row.returnHistory)) row.returnHistory = []
+      row.returnHistory.unshift({
+        revision: row.returnRevision,
+        fileName: fileName || row.fileName,
+        okCount,
+        at: row.returnedAt,
+        by: by || '',
+      })
+    }
     persist(list)
   }
+}
+
+/* ==================== 审批锁定 / 重新治理 ==================== */
+
+/**
+ * 回传是否可以再次进行。
+ * 审批前（未锁定）随时可覆盖回传，解决「一次性窗口、填错地址无法更正」的问题；
+ * 平台管理员开始审核后锁定，需由管理员「退回治理」解锁。
+ */
+export function canReReturn(r) {
+  if (!r) return false
+  if (r.reviewLocked) return false
+  if (r.status === '已入库' || r.status === '已作废') return false
+  return r.status === '已分配' || r.status === '治理中' || r.status === '待审核'
+}
+
+/** 不可回传时的原因文案（按钮置灰时给用户看） */
+export function reReturnBlockedReason(r) {
+  if (!r) return ''
+  if (r.status === '已入库') return '软件已入库，无需再次回传'
+  if (r.status === '已作废') return '清单已作废，请重新发起治理'
+  if (r.status === '待分配') return '清单尚未分配给治理负责人'
+  if (r.reviewLocked) return `已进入平台审核（${r.reviewLockedBy || '管理员'}），如需修改请联系管理员退回治理`
+  if (r.status === '已审核') return '审查已通过，如需修改请联系管理员退回治理'
+  return ''
+}
+
+/** 审批锁定：平台管理员开始审核后，清单数据只读 */
+export function lockInboundReview(id, by = '') {
+  const list = load()
+  const idx = list.findIndex((r) => r.id === id)
+  if (idx !== -1) {
+    list[idx].reviewLocked = true
+    list[idx].reviewLockedBy = by
+    list[idx].reviewLockedAt = new Date().toLocaleString('zh-CN')
+    persist(list)
+  }
+}
+
+/** 退回治理：解除锁定，治理负责人可继续修正并重新回传 */
+export function unlockInboundReview(id, { by = '', reason = '' } = {}) {
+  const list = load()
+  const idx = list.findIndex((r) => r.id === id)
+  if (idx !== -1) {
+    const row = list[idx]
+    row.reviewLocked = false
+    delete row.reviewLockedBy
+    delete row.reviewLockedAt
+    row.reviewReturnedAt = new Date().toLocaleString('zh-CN')
+    row.reviewReturnedBy = by
+    row.reviewReturnReason = reason || ''
+    if (row.status === '待审核') row.status = '治理中'
+    persist(list)
+  }
+}
+
+/**
+ * 重新发起治理：原作废记录保持终态不可恢复，另起一轮新清单（round+1）。
+ * 这样既满足「作废后可再次治理」，也不违反需求文档「已作废不可恢复」。
+ */
+export function reopenInboundRequest(id, { reason = '', by = '' } = {}) {
+  const list = load()
+  const src = list.find((r) => r.id === id)
+  if (!src) return null
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const record = {
+    id: `ir-${now.getTime()}`,
+    originId: src.originId || src.id,
+    round: (src.round || 1) + 1,
+    opinion: src.opinion || '',
+    org: src.org || '',
+    reporter: src.reporter || '',
+    contact: src.contact || '',
+    fileName: src.fileName,
+    itemCount: (src.items || []).length,
+    createdAt: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    status: src.assignedOrgId ? '已分配' : '待分配',
+    assignedOrgId: src.assignedOrgId || '',
+    assignedOrgName: src.assignedOrgName || '',
+    assignedTo: src.assignedTo || '',
+    assignedAt: src.assignedAt || '',
+    items: src.items || [],
+    reopenReason: reason || '',
+    reopenedBy: by || '',
+    reopenedFrom: src.id,
+  }
+  list.unshift(record)
+  persist(list)
+  return record
 }

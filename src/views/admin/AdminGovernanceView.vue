@@ -351,9 +351,9 @@
               </td>
               <td class="col-op">
                 <button type="button" class="gov-link-sub" @click="viewLog(item)">日志</button>
-                <template v-if="activeStep === 1">
+                <template v-if="canResume(item)">
                   <span class="gov-sep">|</span>
-                  <button type="button" class="gov-link-sub" @click="goDetail(item)">详情</button>
+                  <button type="button" class="gov-link-sub" @click="resumeItem(item)">继续治理</button>
                 </template>
                 <template v-if="!(activeStep === 4 && item.warehouseStatus === '已入库')">
                   <span class="gov-sep">|</span>
@@ -731,8 +731,23 @@ Commit：{{ detailItem.commitId || '--' }}
           </div>
           <div class="review-modal-body">
             <p class="review-modal-desc">
-              确定作废 <strong>{{ removeConfirmItem.name }} v{{ removeConfirmItem.version }}</strong> 吗？作废后将从治理流程中移除，且<strong>不可恢复</strong>。
+              确定作废 <strong>{{ removeConfirmItem.name }} v{{ removeConfirmItem.version }}</strong> 吗？作废后将从治理流程中移除，该记录本身<strong>不可恢复</strong>。
             </p>
+            <div class="review-field">
+              <label class="review-field-label">作废类型 <span style="color:#da203e;">*</span></label>
+              <div class="void-type-group">
+                <label class="void-type-item" :class="{ 'is-active': removeVoidType === 'reopenable' }">
+                  <input v-model="removeVoidType" type="radio" value="reopenable" />
+                  <span class="void-type-title">可重新治理</span>
+                  <span class="void-type-desc">选型不满意、技术评估不通过、数据异常中断等；后续可对同一软件版本「重新发起治理」开新一轮</span>
+                </label>
+                <label class="void-type-item" :class="{ 'is-active': removeVoidType === 'permanent' }">
+                  <input v-model="removeVoidType" type="radio" value="permanent" />
+                  <span class="void-type-title">永久作废（拉黑）</span>
+                  <span class="void-type-desc">该软件名称与版本此后不允许再次入库，不可重新发起治理</span>
+                </label>
+              </div>
+            </div>
             <div class="review-field">
               <label class="review-field-label">作废原因 <span style="color:#da203e;">*</span></label>
               <textarea v-model="removeReason" class="review-textarea" rows="3" placeholder="请填写作废原因" />
@@ -890,7 +905,7 @@ function stepLabel(step) {
 }
 
 // ===== 数据模型：使用共享 store（审批入库页复用同一份软件列表） =====
-import { softwareList, genId, voidSoftware } from '../../data/governanceStore.js'
+import { softwareList, genId, voidSoftware, resumeGovernance } from '../../data/governanceStore.js'
 
 // 当前步骤的列表
 const stepList = computed(() => {
@@ -1343,6 +1358,20 @@ function goDetail(item) {
   }
 }
 
+/** 未入库且未作废的条目都必须有继续推进的入口，避免异常中断后卡死 */
+function canResume(item) {
+  return !!item && item.warehouseStatus !== '已入库' && item.warehouseStatus !== '已作废'
+}
+
+/**
+ * 继续治理：先修复中断残留状态并记日志，再打开该条目的处理入口。
+ * 对应测试反馈的「数据异常中断后缺少再次治理流程」。
+ */
+function resumeItem(item) {
+  resumeGovernance(item, { by: '治理负责人' })
+  goDetail(item)
+}
+
 // 详情页
 const detailTab = ref('intro')
 const detailTabs = [
@@ -1381,33 +1410,39 @@ function detailTimeline(item) {
 // ===== 作废软件（二次确认 + 必填原因 + 审计记录，不可逆） =====
 const removeConfirmItem = ref(null)
 const removeReason = ref('')
+/** 作废类型：reopenable=可重新治理（默认），permanent=永久拉黑 */
+const removeVoidType = ref('reopenable')
 
 function openRemoveConfirm(item) {
   removeConfirmItem.value = item
   removeReason.value = ''
+  removeVoidType.value = 'reopenable'
 }
 
 function cancelRemove() {
   removeConfirmItem.value = null
   removeReason.value = ''
+  removeVoidType.value = 'reopenable'
 }
 
 function confirmRemove() {
   const item = removeConfirmItem.value
   const reason = removeReason.value.trim()
   if (!item || !reason) return
+  const voidType = removeVoidType.value
   // 作废：从软件治理列表移除，记录到已作废清单（审核入库不再可见，原因保留展示）
-  voidSoftware(item, reason)
+  voidSoftware(item, reason, voidType)
   const now = fmtNow()
   removedAudit.value.unshift({
     time: now,
     name: item.name,
     version: item.version,
-    action: '作废',
+    action: voidType === 'permanent' ? '作废（永久拉黑）' : '作废（可重新治理）',
     reason,
   })
   removeConfirmItem.value = null
   removeReason.value = ''
+  removeVoidType.value = 'reopenable'
 }
 
 /** 审计记录列表（仅本次会话，前端演示） */
@@ -2563,6 +2598,45 @@ select.gov-filter-input {
 }
 .review-textarea:focus { border-color: #da203e; }
 .review-textarea::placeholder { color: #9ca3af; }
+
+/* 作废类型选择（可重新治理 / 永久拉黑） */
+.void-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.void-type-item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.void-type-item:hover { border-color: #f3c2cb; }
+.void-type-item.is-active {
+  border-color: #da203e;
+  background: #fff7f8;
+}
+.void-type-item input {
+  grid-row: 1 / span 2;
+  margin-top: 3px;
+  accent-color: #da203e;
+}
+.void-type-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.void-type-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b7280;
+}
 
 /* 不通过填充按钮 */
 .gov-btn--danger-fill {
