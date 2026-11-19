@@ -4,6 +4,12 @@
 
 import { ref } from 'vue'
 import { INDICATORS, calcNationalScore } from './govIndicators.js'
+import {
+  BASELINE_IDS,
+  INDICATOR_CAPABILITY,
+  DEFAULT_SCAN_CONFIG,
+  engineOfConfig,
+} from './scanEngines.js'
 
 export const softwareList = ref([])
 
@@ -14,6 +20,149 @@ let nextId = 1
 
 export function genId() {
   return nextId++
+}
+
+/* ==================== 扫描引擎与基线判定（五步版使用；四步版仍走国标评分） ==================== */
+
+/** 三类扫描的默认引擎配置 */
+export function defaultScanConfig() {
+  return { ...DEFAULT_SCAN_CONFIG }
+}
+
+/** 设置某类扫描的引擎 */
+export function setScanConfig(item, type, engineId) {
+  if (!item) return
+  if (!item.scanConfig) item.scanConfig = defaultScanConfig()
+  item.scanConfig[type] = engineId
+}
+
+/** 取某类扫描当前使用的引擎 */
+export function scanEngineOf(item, type) {
+  return engineOfConfig(item?.scanConfig, type)
+}
+
+/** 初始化 15 项基线判定 */
+export function initBaseline(item, { allPass = false, scanned = false } = {}) {
+  const checks = {}
+  BASELINE_IDS.forEach((id) => {
+    const cap = INDICATOR_CAPABILITY[id]
+    const auto = !!cap?.auto
+    let result = 'pending'
+    if (allPass) result = 'pass'
+    else if (auto && scanned) result = 'pass'
+    checks[id] = {
+      result,
+      source: auto ? 'auto' : 'manual',
+      engine: auto ? DEFAULT_SCAN_CONFIG[cap.type] : '',
+      note: '',
+      by: '',
+      at: '',
+    }
+  })
+  item.baselineChecks = checks
+  return checks
+}
+
+/** 取基线判定（缺失时按条目状态懒初始化） */
+/**
+ * 取基线判定（缺失时懒初始化）。
+ * 默认全部「待判定」——不允许按评估状态直接置为合格；
+ * 自动项只有真正跑过扫描、由 applyScanAutoResults 依据扫描结论回填后才有结论。
+ */
+export function baselineChecksOf(item) {
+  if (!item) return {}
+  if (!item.baselineChecks) initBaseline(item)
+  return item.baselineChecks
+}
+
+/** 基线统计 */
+export function baselineStats(item) {
+  const checks = baselineChecksOf(item)
+  const total = BASELINE_IDS.length
+  let pass = 0
+  let fail = 0
+  BASELINE_IDS.forEach((id) => {
+    const r = checks[id]?.result
+    if (r === 'pass') pass += 1
+    else if (r === 'fail') fail += 1
+  })
+  return { total, pass, fail, pending: total - pass - fail }
+}
+
+/** 基线是否全部合格（入库硬门禁） */
+export function isBaselinePassed(item) {
+  const { total, pass } = baselineStats(item)
+  return pass === total
+}
+
+/** 未通过时的阻断原因 */
+export function baselineBlockReason(item) {
+  const { total, pass, fail, pending } = baselineStats(item)
+  if (pass === total) return ''
+  const parts = []
+  if (fail) parts.push(`${fail} 项不合格`)
+  if (pending) parts.push(`${pending} 项待判定`)
+  return `基线指标未全部合格（${pass}/${total}），${parts.join('、')}，需处理后再提交入库`
+}
+
+/** 写入单项判定 */
+export function setBaselineResult(item, id, { result, note = '', by = '', edited } = {}) {
+  if (!item) return
+  const checks = baselineChecksOf(item)
+  const prev = checks[id] || {}
+  checks[id] = {
+    ...prev,
+    result,
+    note: note !== undefined ? note : prev.note || '',
+    by: by || prev.by || '',
+    at: new Date().toLocaleString('zh-CN'),
+    // 自动项被人工改判时保留标记，供审批方识别「结论来自人工覆盖」
+    edited: edited !== undefined ? !!edited : !!prev.edited,
+  }
+}
+
+/** 扫描完成 → 自动回填可自动化项的判定 */
+export function applyScanAutoResults(item) {
+  if (!item) return
+  const checks = baselineChecksOf(item)
+  const vulnCount = item.vulnCount || 0
+  const malwareCount = item.malwareCount || 0
+  const now = new Date().toLocaleString('zh-CN')
+  const judge = {
+    'bl-01': { pass: vulnCount === 0, note: `扫描检出漏洞 ${vulnCount} 个` },
+    'bl-06': { pass: vulnCount === 0, note: `依赖项漏洞 ${vulnCount} 个` },
+    'bl-05': { pass: malwareCount === 0, note: `检出恶意代码 ${malwareCount} 处` },
+    'bl-07': { pass: malwareCount === 0, note: '敏感信息扫描完成' },
+    'bl-09': { pass: !!item.license, note: item.license ? `识别到许可证 ${item.license}` : '未识别到许可证' },
+    'bl-13': { pass: !!(item.repoUrl || item.mirrorUrl), note: '源码托管地址可访问' },
+  }
+  Object.entries(judge).forEach(([id, v]) => {
+    const cap = INDICATOR_CAPABILITY[id]
+    if (!cap?.auto) return
+    const engine = engineOfConfig(item.scanConfig, cap.type)
+    checks[id] = {
+      result: v.pass ? 'pass' : 'fail',
+      source: 'auto',
+      engine: engine?.id || '',
+      note: `${engine?.name || '扫描'}：${v.note}`,
+      by: '系统自动判定',
+      at: now,
+    }
+  })
+}
+
+/** 记录一次扫描的引擎与时间（可追溯） */
+export function recordScan(item, type, { startedAt, finishedAt } = {}) {
+  if (!item) return
+  const engine = engineOfConfig(item.scanConfig, type)
+  if (!item.scanResults) item.scanResults = {}
+  item.scanResults[type] = {
+    engine: engine?.id || '',
+    engineName: engine?.name || '',
+    engineVersion: engine?.version || '',
+    startedAt: startedAt || new Date().toLocaleString('zh-CN'),
+    finishedAt: finishedAt || new Date().toLocaleString('zh-CN'),
+  }
 }
 
 // ===== 演示种子数据：为每个治理步骤预置不同状态的软件 =====
@@ -84,6 +233,22 @@ function seedItem(opts) {
   if (opts.lastSync) item.lastSync = opts.lastSync
   if (opts.rejectReason) item.rejectReason = opts.rejectReason
   if (opts.voidReason) item.voidReason = opts.voidReason
+  // 扫描引擎配置（供五步版扫描使用；四步版不读该字段）
+  item.scanConfig = { ...DEFAULT_SCAN_CONFIG }
+  // 基线默认全部待判定：已完成扫描的种子仅回填「可自动化项」（依据扫描结论），人工项仍需逐项判定
+  initBaseline(item)
+  if ((opts.currentStep || 0) >= 4) {
+    // 已进入「治理成果验收 / 入库」的条目必然已通过技术评估 → 基线全部合格（历史治理结论）
+    Object.keys(item.baselineChecks).forEach((id) => {
+      const c = item.baselineChecks[id]
+      c.result = 'pass'
+      c.note = c.note || '已通过软件技术评估'
+      c.by = '技术评估（已完成）'
+      c.at = opts.createdAt || item.createdAt
+    })
+  } else if ((item.scanProgress || 0) >= 100 || item.assessStatus === '评估完成') {
+    applyScanAutoResults(item)
+  }
   return item
 }
 

@@ -26,6 +26,7 @@ import ComponentLibraryView from '../views/component-lib/ComponentLibraryView.vu
 import ComponentDetailView from '../views/component-lib/ComponentDetailView.vue'
 import CodeAssistantView from '../views/assistant/CodeAssistantView.vue'
 import AdminGovernanceView from '../views/admin/AdminGovernanceView.vue'
+import AdminGovernanceStepsView from '../views/admin/AdminGovernanceStepsView.vue'
 import AdminGovernanceDetail from '../views/admin/AdminGovernanceDetail.vue'
 import MyGovernanceTasksView from '../views/admin/MyGovernanceTasksView.vue'
 import WarehouseApprovalView from '../views/admin/WarehouseApprovalView.vue'
@@ -317,6 +318,13 @@ const routes = [
         name: 'admin-gov-detail',
         component: AdminGovernanceDetail,
         meta: { adminTitle: '软件详情' },
+      },
+      // 软件治理（历史五步版：软件获取 / 引入选型 / 软件技术评估 / 治理成果验收 / 软件入库）
+      {
+        path: 'admin-flow-steps',
+        name: 'admin-gov-steps',
+        component: AdminGovernanceStepsView,
+        meta: { adminTitle: '软件治理（五步版）' },
       },
       // 审批入库（平台管理员审核库主提交的软件）
       {

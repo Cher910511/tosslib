@@ -69,7 +69,7 @@
               <th>开源许可证</th>
               <th>治理负责人</th>
               <th>漏洞数</th>
-              <th>国标评分</th>
+              <th>基线指标</th>
               <th>提交时间</th>
               <th>入库时间</th>
               <th>审核状态</th>
@@ -101,8 +101,14 @@
                 <span class="wav-vuln" :class="(item.vulnCount || 0) > 0 ? 'wav-vuln--risk' : 'wav-vuln--none'">{{ item.vulnCount ?? 0 }}</span>
               </td>
               <td>
-                <button type="button" class="wav-score wav-score--link" :class="scoreTone(item)" @click="openScore(item)">
-                  {{ item.nationalScore == null ? '未评分' : item.nationalScore.toFixed(1) }}
+                <button
+                  type="button"
+                  class="wav-score wav-score--link"
+                  :class="scoreTone(item)"
+                  :title="baselineBlockReason(item) || '基线指标全部合格'"
+                  @click="openScore(item)"
+                >
+                  {{ baselineStatusText(item) }}
                 </button>
               </td>
               <td>{{ item.createdAt || '—' }}</td>
@@ -147,8 +153,8 @@
       </footer>
     </section>
 
-    <!-- 只读评分弹窗 -->
-    <IndicatorScoreDialog
+    <!-- 只读基线核查弹窗：查看 15 项基线是否全部合格 -->
+    <BaselineCheckDialog
       :visible="!!scoreViewItem"
       :item="scoreViewItem"
       readonly
@@ -230,11 +236,11 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { softwareList, approveWarehouse, rejectWarehouse } from '../../data/governanceStore.js'
+import { softwareList, approveWarehouse, rejectWarehouse, baselineStats, isBaselinePassed, baselineBlockReason } from '../../data/governanceStore.js'
 import { getInboundRequests, updateInboundStatus, lockInboundReview, unlockInboundReview } from '../../data/inboundRequests.js'
 import { sendMessage } from '../../data/messagesStore.js'
 import { USERS } from '../../data/orgData.js'
-import IndicatorScoreDialog from '../../components/gov/IndicatorScoreDialog.vue'
+import BaselineCheckDialog from '../../components/gov/BaselineCheckDialog.vue'
 import SearchSelect from '../../components/common/SearchSelect.vue'
 
 /* —— 筛选 —— */
@@ -307,13 +313,23 @@ watch(pageSize, () => {
   page.value = 1
 })
 
-/** 国标评分列色调 */
+/** 基线列色调：全合格绿 / 有不合格红 / 未完成灰 */
 function scoreTone(item) {
-  if (item.nationalScore == null) return 'wav-score--empty'
-  return item.nationalScore >= 60 ? 'wav-score--ok' : 'wav-score--bad'
+  const s = baselineStats(item)
+  if (s.fail) return 'wav-score--bad'
+  if (s.pass === s.total) return 'wav-score--ok'
+  return 'wav-score--empty'
 }
 
-/* —— 只读评分弹窗：点击评分列查看 —— */
+/** 基线状态文案：不合格 > 待核查 > 合格（列表只显示结论，不显示计数） */
+function baselineStatusText(item) {
+  const s = baselineStats(item)
+  if (s.fail) return '不合格'
+  if (s.pass === s.total) return '合格'
+  return '待核查'
+}
+
+/* —— 只读基线核查弹窗：点击基线列查看 15 项结论 —— */
 const scoreViewItem = ref(null)
 function openScore(item) {
   scoreViewItem.value = item

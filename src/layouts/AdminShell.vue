@@ -126,6 +126,16 @@
           <span class="nav-ico" aria-hidden="true">⚖️</span>
           软件治理
         </RouterLink>
+        <!-- 软件治理（五步版，历史版本页面） -->
+        <RouterLink
+          v-if="isOwner || isSuperAdmin"
+          class="admin-nav-item"
+          to="/software/admin-flow-steps"
+          active-class="is-active"
+        >
+          <span class="nav-ico" aria-hidden="true">⌗</span>
+          软件治理（五步版）
+        </RouterLink>
         <!-- 我的待治理清单（一级菜单，库主可用） -->
         <RouterLink
           v-if="isOwner || isSuperAdmin"
@@ -593,6 +603,7 @@ const breadcrumbConfig = {
   'personal-settings': { currentLabel: '个人设置' },
   'standard-build':   { currentLabel: '指标配置' },
   'admin-gov':        { currentLabel: '软件治理' },
+  'admin-gov-steps':  { currentLabel: '软件治理（五步版）' },
   'my-governance-tasks': { currentLabel: '我的待治理清单' },
   'software-detail':  { parentLabel: '软件库', parentTo: { name: 'software-library' }, currentLabel: '软件详情' },
   'admin-gov-detail': { parentLabel: '软件治理', parentTo: { name: 'admin-gov' }, currentLabel: '软件详情' },
