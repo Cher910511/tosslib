@@ -526,13 +526,6 @@
                     <span class="gov-sep">|</span>
                     <button type="button" class="gov-link-sub" @click="openReviewModal(item)">审核</button>
                   </template>
-                  <template v-if="activeStep === 3">
-                    <span class="gov-sep">|</span>
-                    <label class="gov-row-upload">
-                      <input type="file" accept=".xlsx,.xls,.csv,.zip,.pdf" hidden @change="handleToolReportUpload($event, item)" />
-                      <span class="gov-link-sub">上传治理成果</span>
-                    </label>
-                  </template>
                 </template>
               </td>
             </tr>
@@ -1052,7 +1045,7 @@ Commit：{{ detailItem.commitId || '--' }}
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import BaselineCheckDialog from '../../components/gov/BaselineCheckDialog.vue'
 import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
@@ -1066,6 +1059,7 @@ import {
   setBaselineResult,
   applyScanAutoResults,
   recordScan,
+  fmtNow,
 } from '../../data/governanceStore.js'
 
 const logItem = ref(null)
@@ -1332,7 +1326,7 @@ const emptyText = computed(() => {
 // ===== 徽标映射 =====
 const statusBadgeMap = {
   '待备份': 'warn', '备份中': 'run', '备份成功': 'ok', '备份失败': 'fail',
-  '待评估': 'warn', '评估中': 'run', '评估完成': 'ok', '评估失败': 'fail',
+  '待评估': 'warn', '评估中': 'run', '评估完成': 'ok', '评估失败': 'fail', '待整改': 'warn',
   '待评审': 'warn', '评审通过': 'ok', '评审不通过': 'fail', '有条件通过': 'warn',
   '待处理': 'warn', '已处理': 'ok',
   '待审批': 'warn', '已入库': 'ok', '已拒绝': 'fail', '已作废': 'fail', '待发布': 'ok', '不通过': 'fail',
@@ -1340,12 +1334,6 @@ const statusBadgeMap = {
 
 function badgeClass(status) {
   return 'badge--' + (statusBadgeMap[status] || 'pending')
-}
-
-function fmtNow() {
-  const d = new Date()
-  const pad = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 // 筛选变化时重置分页
@@ -1357,6 +1345,17 @@ watch([
   s4Name, s4Version, s4Date, s4Warehouse,
 ], () => {
   page.value = 1
+  clearSelection()
+})
+
+/** 清空选中态：切换步骤/改筛选后，避免已隐藏的行仍处于选中并被批量操作影响 */
+function clearSelection() {
+  softwareList.value.forEach((i) => { i.selected = false })
+}
+
+// 切换步骤时同样清空选中
+watch(activeStep, () => {
+  clearSelection()
 })
 
 
@@ -1365,7 +1364,7 @@ function handleVersionUpload(e) {
   const file = e.target.files?.[0]
   e.target.value = ''
   if (!file) return
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const name = file.name.toLowerCase()
   if (name.endsWith('.zip')) {
     // zip 包：作为治理成果附件，记录到当前列表全部条目
@@ -1443,7 +1442,7 @@ function handleToolReportUpload(e, item) {
   const file = e.target.files?.[0]
   e.target.value = ''
   if (!file || !item) return
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   if (!item.toolReports) item.toolReports = []
   item.toolReports.push({ fileName: file.name, time: now })
   item.logs.push({ time: now, level: 'info', msg: `治理负责人上传其他工具治理成果：${file.name}` })
@@ -1454,7 +1453,7 @@ function handleToolReportUpload(e, item) {
 // 步骤2：发起源码备份（只改状态，不推进）
 function startBackup() {
   const selected = stepList.value.filter(i => i.selected && i.backupStatus === '待备份')
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   selected.forEach(item => {
     item.selected = false
     item.backupStatus = '备份中'
@@ -1462,7 +1461,7 @@ function startBackup() {
     setTimeout(() => {
       item.backupStatus = '备份成功'
       item.mirrorUrl = 'https://gitcode.com/mirror/' + item.name.toLowerCase().replace(/\s+/g, '-')
-      item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '源码备份完成，镜像仓已建立' })
+      item.logs.push({ time: fmtNow(), level: 'ok', msg: '源码备份完成，镜像仓已建立' })
     }, 2000)
   })
 }
@@ -1495,7 +1494,7 @@ function openScanConfig(item, mode = 'scan') {
 function confirmScanConfig() {
   const dlg = scanConfigDialog.value
   if (!dlg) return
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   dlg.items.forEach((i) => {
     i.scanConfig = { ...dlg.config }
     if (dlg.mode === 'config') {
@@ -1515,15 +1514,32 @@ function engineSummary(config) {
   }).join('，')
 }
 
+/** 扫描定时器登记：item -> 定时器集合，便于重复扫描或离开页面时统一清理 */
+const scanTimers = new Map()
+
+function clearScanTimers(item) {
+  const ids = scanTimers.get(item)
+  if (!ids) return
+  ids.forEach((id) => clearInterval(id))
+  scanTimers.delete(item)
+}
+
+onUnmounted(() => {
+  scanTimers.forEach((ids) => ids.forEach((id) => clearInterval(id)))
+  scanTimers.clear()
+})
+
 function runScan(items) {
   const selected = items
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
 
   // 先关闭所有展开行
   softwareList.value.forEach(i => { i._scanOpen = false })
 
   // 选中1条 → 展开该条进度条；选中多条 → 只展开最上方一条
   selected.forEach((item, idx) => {
+    // 重新扫描前先清掉该条目上一轮未跑完的定时器，避免进度被两个循环同时写
+    clearScanTimers(item)
     item.selected = false
     item.assessStatus = '评估中'
     item.scaProgress = 0
@@ -1561,24 +1577,26 @@ function runScan(items) {
     // 监听全部完成后更新状态
     const checkDone = setInterval(() => {
       if ((item.scaProgress || 0) >= 100 && (item.copyrightProgress || 0) >= 100 && (item.malwareProgress || 0) >= 100) {
-        clearInterval(checkDone)
-        intervals.forEach(i => clearInterval(i))
+        clearScanTimers(item)
         setTimeout(() => {
           item.assessStatus = '评估完成'
           // 记录本次扫描使用的引擎与时间（可追溯），再自动判定可自动化基线项
           SCAN_TYPES.forEach((t) => recordScan(item, t.key))
           applyAutoScores(item)
-          item.logs.push({ time: new Date().toLocaleString('zh-CN'), level: 'ok', msg: '评估完成，生成治理报告' })
+          item.logs.push({ time: fmtNow(), level: 'ok', msg: '评估完成，生成治理报告' })
         }, 500)
       }
     }, 200)
+
+    // 登记本轮定时器，供重复扫描 / 离开页面时统一清理
+    scanTimers.set(item, [...intervals, checkDone])
   })
 }
 
 // 步骤4：提交评审（只改状态，不推进）
 function submitReview() {
   const selected = stepList.value.filter(i => i.selected && i.reviewStatus === '待评审')
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   selected.forEach(item => {
     item.selected = false
     item.reviewStatus = '评审通过'
@@ -1734,7 +1752,8 @@ function saveBaseline(checks) {
     setBaselineResult(item, id, { result: v.result, note: v.note, by: '治理负责人' })
   })
   const stats = baselineStats(item)
-  item.assessStatus = '评估完成'
+  // 口径：只有基线全部合格才算评估完成；存在不合格/待判定时置「待整改」，避免状态与准入条件不符
+  item.assessStatus = isBaselinePassed(item) ? '评估完成' : '待整改'
   item.logs.push({
     time: fmtNow(),
     level: stats.pass === stats.total ? 'ok' : 'warn',
@@ -1801,7 +1820,7 @@ function advanceToStep(targetStepIndex) {
     eligible = list.filter(i => i.reviewStatus === '评审通过')
   }
 
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   eligible.forEach(item => {
     item.currentStep = targetStepIndex + 1
     item.selected = false

@@ -13,6 +13,12 @@ import {
 
 export const softwareList = ref([])
 
+/** 统一时间格式：YYYY-MM-DD HH:mm:ss（避免 toLocaleString 在不同环境输出中文/斜杠格式，影响筛选与排序） */
+export function fmtNow(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 /** 已作废软件记录（作废后从软件治理列表移除，记录保留供「我的治理清单」展示） */
 export const voidedList = ref([])
 
@@ -106,7 +112,7 @@ export function baselineBlockReason(item) {
 }
 
 /** 写入单项判定 */
-export function setBaselineResult(item, id, { result, note = '', by = '', edited } = {}) {
+export function setBaselineResult(item, id, { result, note, by = '', edited } = {}) {
   if (!item) return
   const checks = baselineChecksOf(item)
   const prev = checks[id] || {}
@@ -115,7 +121,7 @@ export function setBaselineResult(item, id, { result, note = '', by = '', edited
     result,
     note: note !== undefined ? note : prev.note || '',
     by: by || prev.by || '',
-    at: new Date().toLocaleString('zh-CN'),
+    at: fmtNow(),
     // 自动项被人工改判时保留标记，供审批方识别「结论来自人工覆盖」
     edited: edited !== undefined ? !!edited : !!prev.edited,
   }
@@ -127,7 +133,7 @@ export function applyScanAutoResults(item) {
   const checks = baselineChecksOf(item)
   const vulnCount = item.vulnCount || 0
   const malwareCount = item.malwareCount || 0
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const judge = {
     'bl-01': { pass: vulnCount === 0, note: `扫描检出漏洞 ${vulnCount} 个` },
     'bl-06': { pass: vulnCount === 0, note: `依赖项漏洞 ${vulnCount} 个` },
@@ -160,8 +166,8 @@ export function recordScan(item, type, { startedAt, finishedAt } = {}) {
     engine: engine?.id || '',
     engineName: engine?.name || '',
     engineVersion: engine?.version || '',
-    startedAt: startedAt || new Date().toLocaleString('zh-CN'),
-    finishedAt: finishedAt || new Date().toLocaleString('zh-CN'),
+    startedAt: startedAt || fmtNow(),
+    finishedAt: finishedAt || fmtNow(),
   }
 }
 
@@ -178,7 +184,7 @@ function makeIndicatorScores(seed = 8) {
 }
 
 function seedItem(opts) {
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const item = {
     id: genId(),
     name: opts.name,
@@ -356,7 +362,7 @@ export function getPendingApprovals() {
 
 /** 平台管理员审核入库：待审批 → 已入库 */
 export function approveWarehouse(item) {
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   item.warehouseStatus = '已入库'
   item.warehouseTime = now
   if (!item.logs) item.logs = []
@@ -366,7 +372,7 @@ export function approveWarehouse(item) {
 
 /** 平台管理员拒绝：待审批 → 已拒绝（记录拒绝原因） */
 export function rejectWarehouse(item, reason = '') {
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   item.warehouseStatus = '已拒绝'
   item.rejectReason = reason || '未填写'
   item.warehouseTime = now
@@ -387,7 +393,7 @@ const STEP_LABELS = { 1: '源码备份', 2: '软件评分', 3: '治理成果评�
  */
 export function resumeGovernance(item, { by = '' } = {}) {
   if (!item) return null
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const step = item.currentStep || 1
   const repaired = []
   if (step === 1 && !item.backupStatus) {
@@ -423,7 +429,7 @@ export function resumeGovernance(item, { by = '' } = {}) {
  * 原作废记录本身保持终态、不可恢复。
  */
 export function voidSoftware(item, reason = '', voidType = 'reopenable') {
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const record = {
     id: item.id,
     name: item.name,
@@ -456,7 +462,7 @@ export function voidSoftware(item, reason = '', voidType = 'reopenable') {
  */
 export function reopenGovernance(record, { reason = '', by = '' } = {}) {
   if (!record) return null
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const round = (record.round || 1) + 1
   const item = {
     id: genId(),
@@ -501,7 +507,7 @@ export function reopenGovernance(record, { reason = '', by = '' } = {}) {
  * 系统据此自动完成国标评分，无需治理负责人再执行备份 / 扫描 / 评分等手动治理环节。
  */
 export function importFromInbound(entries, inbound) {
-  const now = new Date().toLocaleString('zh-CN')
+  const now = fmtNow()
   const created = entries.map((e) => {
     // 治理结果：历史漏洞信息 / 恶意代码为 JSON 数组文本，解析出计数用于展示
     let vulnCount = 0
