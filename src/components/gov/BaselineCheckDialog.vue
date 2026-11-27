@@ -107,7 +107,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { INDICATORS } from '../../data/govIndicators.js'
-import { BASELINE_IDS, INDICATOR_CAPABILITY, engineOfConfig } from '../../data/scanEngines.js'
+import { BASELINE_IDS, INDICATOR_CAPABILITY, engineOfConfig, nodeForCapabilityType } from '../../data/scanEngines.js'
 import PassToggle from './PassToggle.vue'
 
 const props = defineProps({
@@ -133,7 +133,8 @@ const rows = computed(() => {
   return BASELINE_IDS.map((id) => {
     const ind = byId.get(id) || {}
     const cap = INDICATOR_CAPABILITY[id] || {}
-    const engine = cap.type ? engineOfConfig(props.item?.scanConfig, cap.type) : null
+    const nodeKey = nodeForCapabilityType(cap.type)
+    const engine = nodeKey ? engineOfConfig(props.item?.scanConfig, nodeKey) : null
     return {
       id,
       name: ind.name || id,
@@ -230,7 +231,8 @@ watch(
     BASELINE_IDS.forEach((id) => {
       const c = checks[id] || {}
       const cap = INDICATOR_CAPABILITY[id] || {}
-      const engine = cap.type ? engineOfConfig(props.item.scanConfig, cap.type) : null
+      const nodeKey = nodeForCapabilityType(cap.type)
+      const engine = nodeKey ? engineOfConfig(props.item.scanConfig, nodeKey) : null
       records[id] = {
         result: c.result || 'pending',
         source: cap.auto ? 'auto' : 'manual',

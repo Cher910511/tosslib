@@ -97,8 +97,8 @@
               type="button"
               class="gov-btn gov-btn--primary"
               :disabled="selectedCount === 0 || selectedScanLocked"
-              :title="selectedScanLocked ? '选中项存在扫描中的软件，需等待扫描完成后再修改扫描设置' : ''"
-              @click="openScanConfig()"
+              :title="selectedScanLocked ? '选中项存在扫描中的软件，需等待扫描完成后再开始扫描' : ''"
+              @click="startScanSelected"
             >
               开始扫描{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
@@ -107,7 +107,7 @@
               class="gov-btn"
               :disabled="selectedCount === 0 || selectedScanLocked"
               :title="selectedScanLocked ? '选中项存在扫描中的软件，需等待扫描完成后再修改扫描设置' : ''"
-              @click="openScanConfig(null, 'config')"
+              @click="openScanConfig()"
             >
               批量配置扫描{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
             </button>
@@ -370,6 +370,7 @@
       </div>
 
       <div class="gov-card">
+        <div class="gov-table-wrap">
         <table class="gov-table">
           <thead>
             <tr>
@@ -399,9 +400,10 @@
               <th v-if="activeStep === 3">验收时间</th>
               <th v-if="activeStep === 4">审核时间</th>
               <th v-if="activeStep === 1">备份状态</th>
-              <th v-if="activeStep === 2">SCA 检测</th>
-              <th v-if="activeStep === 2">版权检测</th>
-              <th v-if="activeStep === 2">恶意代码检测</th>
+              <th v-if="activeStep === 2">基础画像</th>
+              <th v-if="activeStep === 2">代码技术安全</th>
+              <th v-if="activeStep === 2">合法合规</th>
+              <th v-if="activeStep === 2">供应链韧性</th>
               <th v-if="activeStep === 3">审核状态</th>
               <th v-if="activeStep === 3">审核意见</th>
               <th v-if="activeStep === 4">审核状态</th>
@@ -474,15 +476,11 @@
                 <td v-if="activeStep === 1">
                   <span class="gov-badge" :class="badgeClass(item.backupStatus)">{{ item.backupStatus }}</span>
                 </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                </td>
-                <td v-if="activeStep === 2">
-                  <span class="gov-scan-sub" :class="scanBadge(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                </td>
+                <template v-if="activeStep === 2">
+                  <td v-for="c in scanCategoryColsOf(item)" :key="'st-' + c.key">
+                    <span class="gov-scan-sub" :class="scanBadgeByState(c.status)">{{ statusTextOfState(c.status) }}</span>
+                  </td>
+                </template>
               <td v-if="activeStep === 3">
                 <span class="gov-badge" :class="badgeClass(item.reviewStatus)">{{ item.reviewStatus }}</span>
               </td>
@@ -532,39 +530,60 @@
             <!-- 扫描进度展开行 -->
             <tr v-if="item._scanOpen && activeStep === 2" class="gov-scan-detail-row">
               <td :colspan="colSpan" style="padding: 12px 40px;">
-                <div class="gov-scan-parallel">
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">SCA 检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.scaProgress)">{{ item.scaProgress >= 100 ? '成功' : item.scaProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.scaProgress || 0, 100) + '%' }" />
-                      </div>
+                <!-- 扫描节点：整行进度条 + 12 个节点（小屏可横向拖动） -->
+                <div class="gov-scan-flow">
+                  <div class="gov-flow-inner">
+                  <div class="gov-flow-bar">
+                    <div
+                      class="gov-flow-fill"
+                      :class="'is-' + flowStateOf(item)"
+                      :style="{ width: flowPercentOf(item) + '%' }"
+                    />
+                  </div>
+                  <div class="gov-flow-nodes">
+                    <div
+                      v-for="n in scanFlowNodesOf(item)"
+                      :key="n.key"
+                      class="gov-flow-item"
+                      :class="'is-' + n.status"
+                      :title="n.label + '：' + n.data"
+                    >
+                      <span class="gov-flow-name" :title="n.label">{{ n.label }}</span>
+                      <span class="gov-flow-icon">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <template v-if="n.icon === 'doc'">
+                            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 3v5h5M9 13h6M9 17h4" />
+                          </template>
+                          <template v-else-if="n.icon === 'code'">
+                            <path d="M9 8l-4 4 4 4M15 8l4 4-4 4" />
+                          </template>
+                          <template v-else-if="n.icon === 'clock'">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 7v5l3 2" />
+                          </template>
+                          <template v-else-if="n.icon === 'rule'">
+                            <path d="M12 4v16M6 8h12" />
+                            <path d="M6 8l-3 6h6zM18 8l-3 6h6z" />
+                          </template>
+                          <template v-else-if="n.icon === 'shield'">
+                            <path d="M12 3l7 4v5c0 4-3 6.5-7 9-4-2.5-7-5-7-9V7z" />
+                            <path d="M12 9v4M12 16h.01" />
+                          </template>
+                          <template v-else-if="n.icon === 'deps'">
+                            <rect x="3" y="4" width="7" height="6" rx="1.5" />
+                            <rect x="14" y="14" width="7" height="6" rx="1.5" />
+                            <path d="M6.5 10v4a2 2 0 0 0 2 2H14" />
+                          </template>
+                          <template v-else>
+                            <circle cx="9" cy="9" r="3" />
+                            <path d="M3 20a6 6 0 0 1 12 0M16 6a3 3 0 0 1 0 6M18 20a6 6 0 0 0-3-5.2" />
+                          </template>
+                        </svg>
+                      </span>
+                      <span class="gov-flow-desc" :title="n.data">{{ n.data }}</span>
                     </div>
                   </div>
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">版权检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.copyrightProgress)">{{ item.copyrightProgress >= 100 ? '成功' : item.copyrightProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.copyrightProgress || 0, 100) + '%' }" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="gov-scan-item">
-                    <div class="gov-scan-item-hd">
-                      <span class="gov-scan-item-label">恶意代码检测</span>
-                      <span class="gov-scan-item-status" :class="scanPhase(item.malwareProgress)">{{ item.malwareProgress >= 100 ? '成功' : item.malwareProgress > 0 ? '扫描中' : '待扫描' }}</span>
-                    </div>
-                    <div class="gov-scan-item-bar">
-                      <div class="gov-scan-item-track">
-                        <div class="gov-scan-item-fill" :style="{ width: Math.min(item.malwareProgress || 0, 100) + '%' }" />
-                      </div>
-                    </div>
                   </div>
                 </div>
               </td>
@@ -575,6 +594,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
         <div v-if="stepList.length > 0" class="gov-pagination">
           <span class="gov-page-info">共 {{ stepList.length }} 条</span>
           <div class="gov-page-controls">
@@ -1002,33 +1022,35 @@ Commit：{{ detailItem.commitId || '--' }}
     <!-- ===== 扫描引擎选择弹窗（三类扫描各自选择引擎） ===== -->
     <Teleport to="body">
       <div v-if="scanConfigDialog" class="gov-overlay" @click.self="scanConfigDialog = null">
-        <div class="review-modal" style="width:520px;">
+        <div class="review-modal" style="width:640px;">
           <div class="review-modal-hd">
             <h3 class="review-modal-title">扫描配置</h3>
             <button type="button" class="review-modal-close" @click="scanConfigDialog = null">&times;</button>
           </div>
           <div class="review-modal-body">
-            <p class="review-modal-desc">
-              <template v-if="scanConfigDialog.mode === 'config'">
-                将为 <strong>{{ scanConfigDialog.items.length }}</strong> 条软件保存扫描配置（不立即发起扫描），三类扫描各自选择引擎：
-              </template>
-              <template v-else>
-                将对 <strong>{{ scanConfigDialog.items.length }}</strong> 条软件发起扫描，三类扫描各自选择引擎：
-              </template>
+            <p class="review-modal-desc" style="margin-bottom:12px;">
+              将为 <strong>{{ scanConfigDialog.items.length }}</strong> 条软件保存扫描配置：共 {{ scanCfgNodes.length }} 个扫描节点，逐项选择工具。
             </p>
-            <div v-for="t in SCAN_TYPES" :key="t.key" class="review-field">
-              <label class="review-field-label">{{ t.label }}</label>
-              <select v-model="scanConfigDialog.config[t.key]" class="gov-native-select">
-                <option v-for="e in enginesOf(t.key)" :key="e.id" :value="e.id">{{ e.name }}</option>
-              </select>
-              <p class="review-modal-desc" style="margin:4px 0 0;">{{ t.desc }}</p>
+
+            <div class="scan-cfg-grid">
+              <div v-for="node in scanCfgNodes" :key="node.key" class="scan-cfg-cell">
+                <div class="scan-cfg-cell-hd">
+                  <span class="scan-cfg-label">{{ node.label }}</span>
+                  <select
+                    v-model="cfgDraft[node.key]"
+                    class="gov-native-select scan-cfg-select"
+                    @change="syncCfgGroup(node.key)"
+                  >
+                    <option v-for="opt in node.options" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+                  </select>
+                </div>
+                <p class="scan-cfg-desc">{{ node.desc }}</p>
+              </div>
             </div>
           </div>
           <div class="review-modal-ft">
             <button type="button" class="gov-btn" @click="scanConfigDialog = null">取消</button>
-            <button type="button" class="gov-btn gov-btn--danger-fill" @click="confirmScanConfig">
-              {{ scanConfigDialog.mode === 'config' ? '保存配置' : '开始扫描' }}
-            </button>
+            <button type="button" class="gov-btn gov-btn--danger-fill" @click="confirmScanConfig">保存</button>
           </div>
         </div>
       </div>
@@ -1045,12 +1067,12 @@ Commit：{{ detailItem.commitId || '--' }}
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import BaselineCheckDialog from '../../components/gov/BaselineCheckDialog.vue'
 import { INDICATORS, calcNationalScore, autoScoreRecord } from '../../data/govIndicators.js'
 import { getInboundRequests, updateInboundStatus } from '../../data/inboundRequests.js'
-import { SCAN_TYPES, enginesOf, engineOfConfig } from '../../data/scanEngines.js'
+import { SCAN_NODES, groupOfNode, enginesOf, engineDisplayName, normalizeScanConfig } from '../../data/scanEngines.js'
 import {
   baselineStats,
   baselineBlockReason,
@@ -1306,7 +1328,7 @@ const selectedApprovedCount = computed(() =>
 
 // 表格列数（步骤3 技术评估、步骤5 入库均含「国标评分」列）
 const colSpan = computed(() => {
-  const counts = [9, 10, 11, 9, 11]
+  const counts = [9, 10, 12, 9, 11]
   return counts[activeStep.value] || 9
 })
 
@@ -1467,50 +1489,158 @@ function startBackup() {
 }
 
 // 步骤3：启动扫描（带进度条动画）
+/**
+ * 扫描节点：一条进度条上排四个节点（替换原来的三大引擎条与四块卡片）。
+ * 整体进度取三类引擎进度的均值；各节点状态按对应引擎完成情况判定。
+ */
+function flowPercentOf(item) {
+  const list = [item.scaProgress || 0, item.copyrightProgress || 0, item.malwareProgress || 0]
+  const avg = list.reduce((a, b) => a + b, 0) / list.length
+  return Math.max(0, Math.min(100, Math.round(avg)))
+}
+
+/** 进度条配色：检测全部通过→绿，未开始检测→灰，进行中→品牌红 */
+function flowStateOf(item) {
+  const p = flowPercentOf(item)
+  if (p >= 100) return 'ok'
+  if (p <= 0) return 'idle'
+  return 'run'
+}
+
+/** 节点图标归属：同一类产出共用一组图标，避免为 12 个节点各画一套 */
+const FLOW_ICONS = {
+  profile: 'doc',
+  copyright: 'doc',
+  sbom: 'doc',
+  codesize: 'code',
+  eol: 'clock',
+  rules: 'rule',
+  license: 'rule',
+  content: 'rule',
+  vuln: 'shield',
+  malware: 'shield',
+  sensitive: 'shield',
+  contributors: 'people',
+}
+
+/** 12 个扫描节点：上方节点名，下方该节点包含的数据项（工具只在扫描配置弹窗里选） */
+function scanFlowNodesOf(item) {
+  return SCAN_NODES.map((node) => {
+    const p = Math.min(item[`${node.progress}Progress`] || 0, 100)
+    return {
+      key: node.key,
+      label: node.label,
+      data: node.data,
+      icon: FLOW_ICONS[node.key] || 'doc',
+      status: p >= 100 ? 'ok' : p > 0 ? 'run' : 'idle',
+    }
+  })
+}
+
+/** 表格状态列：四大类汇总 12 个节点的完成情况（校验：全绿才绿，有进行中即蓝，全未开始为灰） */
+const CATEGORY_NODE_KEYS = {
+  profile: ['profile'],
+  tech: ['vuln', 'sbom', 'malware', 'sensitive'],
+  compliance: ['copyright', 'license', 'rules', 'content'],
+  resilience: ['codesize', 'eol', 'contributors'],
+}
+
+function scanCategoryColsOf(item) {
+  const byKey = new Map(scanFlowNodesOf(item).map((n) => [n.key, n.status]))
+  return Object.entries(CATEGORY_NODE_KEYS).map(([key, keys]) => {
+    const states = keys.map((k) => byKey.get(k) || 'idle')
+    let status = 'idle'
+    if (states.every((s) => s === 'ok')) status = 'ok'
+    else if (states.some((s) => s === 'run' || s === 'ok')) status = 'run'
+    return { key, status }
+  })
+}
+
 /* ===== 扫描引擎选择：批量统一 + 单条覆盖 ===== */
 const scanConfigDialog = ref(null)
 
-/** 扫描中不允许修改扫描设置：仅「待扫描」「扫描成功」可改 */
+/* ===== 扫描配置：选项预计算 + 普通草稿对象（模板里不调用动态函数、不用代理） ===== */
+/** 暂不在扫描配置弹窗里开放的节点（敏感信息、内容安全后续再上线） */
+const SCAN_CFG_HIDDEN_KEYS = ['sensitive', 'content']
+const scanCfgNodeList = SCAN_NODES.filter((node) => !SCAN_CFG_HIDDEN_KEYS.includes(node.key))
+
+/** 每个节点的可选项一次性算好，模板只做 v-for 渲染 */
+const scanCfgNodes = computed(() =>
+  scanCfgNodeList.map((node) => ({
+    key: node.key,
+    label: node.label,
+    desc: node.desc,
+    options: enginesOf(node.key).map((e) => ({ id: e.id, label: engineDisplayName(e.id) })),
+  })),
+)
+
+/** 弹窗里的配置草稿：节点键 → 工具 id */
+const cfgDraft = reactive({})
+
+/** 联动节点改动后，把同组其余节点一起改成同一个工具 */
+function syncCfgGroup(nodeKey) {
+  const group = groupOfNode(nodeKey)
+  if (!group) return
+  const value = cfgDraft[nodeKey]
+  group.nodes.forEach((key) => { cfgDraft[key] = value })
+}
+
+
+
+/**
+ * 扫描中不允许修改扫描设置。
+ * 注意：扫描过程只更新 sca/copyright/malwareProgress，不会写 scanProgress，
+ * 因此这里按「评估中状态 + 三项子进度是否处于进行中」判断。
+ */
 function isScanConfigLocked(item) {
-  return scanStage(item.scanProgress, 100) === '扫描中'
+  if (!item) return false
+  if (item.assessStatus === '评估中') return true
+  return [item.scaProgress, item.copyrightProgress, item.malwareProgress]
+    .some((p) => typeof p === 'number' && p > 0 && p < 100)
 }
 
 /** 选中项里存在扫描中的条目时，禁用批量扫描 / 批量设置扫描配置 */
 const selectedScanLocked = computed(() => stepList.value.some(i => i.selected && isScanConfigLocked(i)))
 
-/** 打开扫描配置：mode='scan' 配置后立即扫描；mode='config' 仅保存配置不启动扫描 */
-function openScanConfig(item, mode = 'scan') {
+/** 打开扫描配置弹窗：只负责保存配置，发起扫描由「开始扫描」按钮触发 */
+function openScanConfig(item) {
   const items = item ? [item] : stepList.value.filter(i => i.selected)
   if (!items.length) return
-  scanConfigDialog.value = {
-    items,
-    mode,
-    // 以第一条已有的引擎配置作为默认，单条覆盖时保留原选择
-    config: { ...defaultScanConfig(), ...(items[0].scanConfig || {}) },
-  }
+  // 以第一条已有的工具配置作为草稿初值（旧的三类字段会自动迁移到节点键）
+  const normalized = normalizeScanConfig(items[0].scanConfig)
+  Object.keys(cfgDraft).forEach((key) => { delete cfgDraft[key] })
+  Object.assign(cfgDraft, normalized)
+  scanConfigDialog.value = { items }
 }
 
-/** 确认引擎配置 → 写入条目；config 模式只保存，scan 模式继续执行扫描 */
+/** 确认引擎配置 → 仅写入条目并记日志，不发起扫描 */
 function confirmScanConfig() {
   const dlg = scanConfigDialog.value
   if (!dlg) return
+  const config = normalizeScanConfig({ ...cfgDraft })
   const now = fmtNow()
   dlg.items.forEach((i) => {
-    i.scanConfig = { ...dlg.config }
-    if (dlg.mode === 'config') {
-      i.logs = i.logs || []
-      i.logs.push({ time: now, level: 'info', msg: `批量配置扫描：${engineSummary(dlg.config)}` })
-    }
+    i.scanConfig = { ...config }
+    i.logs = i.logs || []
+    const prefix = dlg.items.length > 1 ? '批量配置扫描' : '配置扫描引擎'
+    i.logs.push({ time: now, level: 'info', msg: `${prefix}：${engineSummary(config)}` })
   })
   scanConfigDialog.value = null
-  if (dlg.mode !== 'config') runScan(dlg.items)
 }
 
-/** 引擎说明文案：SCA：DeepSBOM，版权：自研，恶意代码：自研 */
+/** 开始扫描：直接按各条目已保存的扫描配置发起，不再弹配置框 */
+function startScanSelected() {
+  const items = stepList.value.filter(i => i.selected)
+  if (!items.length) return
+  if (items.some(i => isScanConfigLocked(i))) return
+  runScan(items)
+}
+
+/** 工具说明文案：按节点拼接，例如「漏洞：华科 SCA，依赖：华科 SCA…」 */
 function engineSummary(config) {
-  return SCAN_TYPES.map((t) => {
-    const name = enginesOf(t.key).find((e) => e.id === (config?.[t.key] || defaultScanConfig()[t.key]))?.name || '—'
-    return `${t.short}：${name}`
+  return scanCfgNodeList.map((node) => {
+    const id = config?.[node.key] || defaultScanConfig()[node.key]
+    return `${node.short}：${engineDisplayName(id)}`
   }).join('，')
 }
 
@@ -1580,8 +1710,8 @@ function runScan(items) {
         clearScanTimers(item)
         setTimeout(() => {
           item.assessStatus = '评估完成'
-          // 记录本次扫描使用的引擎与时间（可追溯），再自动判定可自动化基线项
-          SCAN_TYPES.forEach((t) => recordScan(item, t.key))
+          // 记录本次扫描使用的工具与时间（可追溯），再自动判定可自动化基线项
+          SCAN_NODES.forEach((node) => recordScan(item, node.key))
           applyAutoScores(item)
           item.logs.push({ time: fmtNow(), level: 'ok', msg: '评估完成，生成治理报告' })
         }, 500)
@@ -1922,16 +2052,23 @@ function toggleScan(item) {
   item._scanOpen = !item._scanOpen
 }
 
-function scanPhase(progress) {
-  if (!progress || progress <= 0) return ''
-  if (progress >= 100) return 'phase--ok'
-  return 'phase--run'
-}
-
 function scanBadge(progress) {
   if (!progress || progress <= 0) return 'badge--warn'
   if (progress >= 100) return 'badge--ok'
   return 'badge--run'
+}
+
+/** 四类节点状态（ok / run / idle）→ 徽标样式与文案 */
+function scanBadgeByState(state) {
+  if (state === 'ok') return 'badge--ok'
+  if (state === 'run') return 'badge--run'
+  return 'badge--warn'
+}
+
+function statusTextOfState(state) {
+  if (state === 'ok') return '成功'
+  if (state === 'run') return '扫描中'
+  return '待扫描'
 }
 </script>
 
@@ -2301,6 +2438,16 @@ select.gov-filter-input {
 }
 
 /* ===== 表格 ===== */
+/* 窄屏或展开进度节点条时表格会比卡片宽，这里提供横向滚动，避免右侧操作列被裁掉 */
+.gov-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.gov-table-wrap::-webkit-scrollbar { height: 8px; }
+.gov-table-wrap::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+.gov-table-wrap::-webkit-scrollbar-track { background: #f3f4f6; }
 .gov-table {
   width: 100%;
   border-collapse: collapse;
@@ -2370,7 +2517,17 @@ select.gov-filter-input {
 
 .col-chk { width: 36px; text-align: center; }
 .col-repo { max-width: 160px; }
-.col-op { text-align: right; white-space: nowrap; }
+/* 操作列固定在右侧：横向滚动时始终可见 */
+.col-op {
+  text-align: right;
+  white-space: nowrap;
+  position: sticky;
+  right: 0;
+  background: #fff;
+  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.12);
+}
+.gov-table th.col-op { background: #f9fafb; }
+.gov-table tbody tr:hover td.col-op { background: #fafafa; }
 
 .gov-code {
   display: inline-block;
@@ -2445,17 +2602,99 @@ select.gov-filter-input {
   border-bottom: 1px solid #e5e7eb;
   padding: 16px 40px !important;
 }
-.gov-scan-parallel { display: flex; flex-direction: row; gap: 20px; }
-.gov-scan-item { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.gov-scan-item-hd { display: flex; align-items: center; justify-content: space-between; }
-.gov-scan-item-label { font-size: 12px; font-weight: 500; color: #374151; }
-.gov-scan-item-status { font-size: 11px; font-weight: 500; padding: 0 6px; border-radius: 3px; line-height: 18px; }
-.gov-scan-item-status.phase--ok { background: #dcfce7; color: #16a34a; }
-.gov-scan-item-status.phase--run { background: #dbeafe; color: #2563eb; }
-.gov-scan-item-status.phase--fail { background: #fef2f2; color: #991b1b; }
-.gov-scan-item-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-.gov-scan-item-track { height: 100%; }
-.gov-scan-item-fill { height: 100%; background: #da203e; border-radius: 3px; transition: width 0.3s; }
+/* ===== 扫描节点：12 个节点横排，名称在上、数据项在下；空间不够时出现横向滑块 ===== */
+.gov-scan-flow {
+  position: relative;
+  padding: 2px 0 6px;
+  /* 用视口约束容器宽度，避免被表格单元格撑开，从而在窄屏出现自己的横向滑块 */
+  max-width: min(100%, calc(100vw - 360px));
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.gov-flow-inner {
+  position: relative;
+  min-width: 1120px;
+}
+.gov-flow-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 24px;
+  height: 8px;
+  background: #eef0f3;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.gov-flow-fill {
+  height: 100%;
+  background: #da203e;
+  border-radius: 4px;
+  transition: width 0.3s, background 0.3s;
+}
+/* 检测全部通过 → 绿；未开始检测 → 灰；进行中保持品牌红 */
+.gov-flow-fill.is-ok { background: #16a34a; }
+.gov-flow-fill.is-idle { background: #d1d5db; }
+.gov-flow-nodes {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+.gov-flow-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 3px;
+}
+.gov-flow-name {
+  max-width: 100%;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 14px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gov-flow-item.is-idle .gov-flow-name { color: #9ca3af; }
+.gov-flow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  color: #c3c8cf;
+  position: relative;
+  z-index: 1;
+}
+.gov-flow-icon svg {
+  display: block;
+  padding: 3px;
+  box-sizing: content-box;
+  background: #fafbfc;
+  border-radius: 50%;
+}
+.gov-flow-item.is-run .gov-flow-icon { color: #2563eb; }
+.gov-flow-item.is-ok .gov-flow-icon { color: #16a34a; }
+.gov-flow-desc {
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #9ca3af;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 窄屏：节点名与数据项收起，只留图标，12 个节点依然一屏看全（悬停仍可看到名称） */
+@media (max-width: 1400px) {
+  /* 窄屏不隐藏文字：保持节点完整可读，由下方 .gov-scan-flow 的横向滑块查看全部节点 */
+  .gov-flow-name,
+  .gov-flow-desc { font-size: 10px; }
+}
 
 /* ===== 徽标 ===== */
 
@@ -3146,6 +3385,45 @@ select.gov-filter-input {
   box-sizing: border-box;
 }
 .gov-native-select:focus { border-color: #da203e; }
+
+/* 扫描配置：12 个节点单列逐项列出，名称与说明完整展示不截断 */
+.scan-cfg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.scan-cfg-cell {
+  min-width: 0;
+}
+.scan-cfg-cell-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.scan-cfg-label {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+.scan-cfg-desc {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #9ca3af;
+}
+.scan-cfg-select {
+  flex: 0 0 200px;
+  width: 200px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
 
 /* 不通过填充按钮 */
 .gov-btn--danger-fill {

@@ -50,6 +50,16 @@
             <button type="button" class="perm-btn" @click="openOrgCreate">新建组织</button>
             <button type="button" class="perm-btn perm-btn--primary" @click="openCreateDialog">新建账号</button>
           </template>
+          <!-- 私有镜像源账号：搜索 + 新建账号 -->
+          <template v-else-if="activeTab === 'mirror'">
+            <input
+              v-model.trim="mirrorKeyword"
+              type="text"
+              class="perm-input"
+              placeholder="搜索账号名称 / 登录账号"
+            />
+            <button type="button" class="perm-btn perm-btn--primary" @click="openMirrorCreate">新建账号</button>
+          </template>
           <!-- 功能权限矩阵：更新日志 + 恢复默认 -->
           <template v-else-if="activeTab === 'matrix'">
             <button type="button" class="perm-btn" @click="toggleLogPanel">
@@ -184,6 +194,99 @@
                 small
               />
             </label>
+          </div>
+        </footer>
+      </div>
+
+      <!-- 私有镜像源账号：按组织分配，记录每个账号的镜像源下载（拉取）情况 -->
+      <div v-else-if="activeTab === 'mirror'">
+        <div class="perm-filter-bar">
+          <SearchSelect
+            v-model="mirrorOrgFilter"
+            class="perm-filter-ss"
+            :options="mirrorOrgOptions"
+            placeholder="全部组织"
+            clearable
+          />
+          <SearchSelect
+            v-model="mirrorStatusFilter"
+            class="perm-filter-ss"
+            :options="mirrorStatusOptions"
+            placeholder="全部状态"
+            clearable
+          />
+          <button
+            v-if="mirrorKeyword || mirrorOrgFilter || mirrorStatusFilter"
+            type="button"
+            class="perm-btn"
+            @click="clearMirrorFilters"
+          >清空筛选</button>
+        </div>
+
+        <div class="perm-table-wrap">
+          <table class="perm-table">
+            <thead>
+              <tr>
+                <th>账号名称</th>
+                <th>所属组织</th>
+                <th>登录账号</th>
+                <th class="perm-col-status">状态</th>
+                <th>下载次数</th>
+                <th>最近拉取</th>
+                <th class="perm-col-ops">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in paginatedMirrorAccounts" :key="row.id">
+                <td>{{ row.name }}</td>
+                <td><span class="perm-orgrole-text">{{ row.orgName }}</span></td>
+                <td><code class="perm-code">{{ row.loginName }}</code></td>
+                <td class="perm-col-status">
+                  <span class="perm-status" :class="row.enabled ? 'perm-status--normal' : 'perm-status--disabled'">
+                    {{ row.statusName }}
+                  </span>
+                </td>
+                <td>{{ row.downloadCount }}</td>
+                <td class="perm-muted">{{ row.lastDownloadAt || '—' }}</td>
+                <td class="perm-col-ops">
+                  <button type="button" class="perm-link" @click="openMirrorEdit(row)">编辑</button>
+                  <span class="perm-sep">|</span>
+                  <button
+                    v-if="row.enabled"
+                    type="button"
+                    class="perm-link perm-link--danger"
+                    @click="toggleMirrorEnabled(row, false)"
+                  >禁用</button>
+                  <button
+                    v-else
+                    type="button"
+                    class="perm-link"
+                    @click="toggleMirrorEnabled(row, true)"
+                  >启用</button>
+                  <span class="perm-sep">|</span>
+                  <button type="button" class="perm-link perm-link--danger" @click="askDeleteMirror(row)">删除</button>
+                </td>
+              </tr>
+              <tr v-if="filteredMirrorAccounts.length === 0">
+                <td colspan="7" class="perm-empty">没有匹配的镜像源账号</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer v-if="filteredMirrorAccounts.length" class="perm-footer">
+          <span class="perm-total">共计 {{ filteredMirrorAccounts.length }} 条</span>
+          <div class="perm-pager">
+            <button type="button" class="perm-page-btn" :disabled="mirrorPage <= 1" aria-label="上一页" @click="mirrorPage = Math.max(1, mirrorPage - 1)">‹</button>
+            <button
+              v-for="p in mirrorTotalPages"
+              :key="'mp-' + p"
+              type="button"
+              class="perm-page-btn"
+              :class="{ 'is-active': p === mirrorPage }"
+              @click="mirrorPage = p"
+            >{{ p }}</button>
+            <button type="button" class="perm-page-btn" :disabled="mirrorPage >= mirrorTotalPages" aria-label="下一页" @click="mirrorPage = Math.min(mirrorTotalPages, mirrorPage + 1)">›</button>
           </div>
         </footer>
       </div>
@@ -715,6 +818,89 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- ===== 私有镜像源账号：新建 / 编辑 ===== -->
+    <Teleport to="body">
+      <Transition name="perm-fade">
+        <div v-if="mirrorFormOpen" class="perm-modal-overlay" @click.self="closeMirrorForm">
+          <div class="perm-modal perm-modal--sm">
+            <header class="perm-modal-hd">
+              <div class="perm-modal-hd-info">
+                <h3 class="perm-modal-title">{{ mirrorForm.id ? '编辑镜像源账号' : '新建镜像源账号' }}</h3>
+                <p class="perm-modal-sub">账号按组织分配，组织成员使用该账号拉取私有镜像源依赖</p>
+              </div>
+              <button type="button" class="perm-dialog-close" @click="closeMirrorForm">&times;</button>
+            </header>
+
+            <div class="perm-modal-body">
+              <div class="perm-invite-grid">
+                <div class="perm-field">
+                  <label class="perm-label">账号名称 <span class="perm-req">*</span></label>
+                  <input v-model.trim="mirrorForm.name" type="text" class="perm-input perm-input--wide" placeholder="例如：研发一组-主账号" />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">所属组织 <span class="perm-req">*</span></label>
+                  <SearchSelect
+                    v-model="mirrorForm.orgId"
+                    class="perm-select"
+                    :options="mirrorOrgFormOptions"
+                    placeholder="请选择所属组织"
+                  />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">登录账号 <span class="perm-req">*</span></label>
+                  <input v-model.trim="mirrorForm.loginName" type="text" class="perm-input perm-input--wide" placeholder="镜像源登录用户名，平台内唯一" />
+                </div>
+                <div class="perm-field">
+                  <label class="perm-label">登录密码 <span class="perm-req">*</span></label>
+                  <input v-model.trim="mirrorForm.password" type="text" class="perm-input perm-input--wide" placeholder="镜像源登录密码" />
+                </div>
+                <div class="perm-field perm-field--full">
+                  <label class="perm-label">备注</label>
+                  <input v-model.trim="mirrorForm.remark" type="text" class="perm-input perm-input--wide" placeholder="选填，例如用途或有效期说明" />
+                </div>
+              </div>
+              <p v-if="mirrorFormError" class="perm-field-error">{{ mirrorFormError }}</p>
+            </div>
+
+            <footer class="perm-modal-ft">
+              <button type="button" class="perm-btn" @click="closeMirrorForm">取消</button>
+              <button type="button" class="perm-btn perm-btn--primary" @click="submitMirrorForm">
+                {{ mirrorForm.id ? '保存' : '创建账号' }}
+              </button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ===== 私有镜像源账号：删除确认 ===== -->
+    <Teleport to="body">
+      <Transition name="perm-fade">
+        <div v-if="mirrorDeleteRow" class="perm-modal-overlay" @click.self="mirrorDeleteRow = null">
+          <div class="perm-modal perm-modal--sm">
+            <header class="perm-modal-hd">
+              <div class="perm-modal-hd-info">
+                <h3 class="perm-modal-title">删除镜像源账号</h3>
+                <p class="perm-modal-sub">删除后该账号无法再用于拉取依赖，历史下载日志一并移除</p>
+              </div>
+              <button type="button" class="perm-dialog-close" @click="mirrorDeleteRow = null">&times;</button>
+            </header>
+            <div class="perm-modal-body">
+              <p class="perm-del-warn">确认删除账号 <b>{{ mirrorDeleteRow.name }}</b>（{{ mirrorDeleteRow.orgName }}）？</p>
+              <ul class="perm-del-list">
+                <li>该账号当前下载记录 {{ mirrorDeleteRow.downloadCount }} 条，将同步清除</li>
+                <li>已使用该账号的构建任务需改用其他账号，否则拉取会失败</li>
+              </ul>
+            </div>
+            <footer class="perm-modal-ft">
+              <button type="button" class="perm-btn" @click="mirrorDeleteRow = null">取消</button>
+              <button type="button" class="perm-btn perm-btn--danger" @click="doDeleteMirror">确认删除</button>
+            </footer>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -731,6 +917,14 @@ import {
   createAccount,
   setAccountDisabled,
 } from '../../data/accountData.js'
+import {
+  MIRROR_ACCOUNT_STATUS,
+  getMirrorAccountList,
+  createMirrorAccount,
+  updateMirrorAccount,
+  deleteMirrorAccount,
+  setMirrorAccountEnabled,
+} from '../../data/mirrorAccountData.js'
 import {
   PLATFORM_ROLES,
   ORG_ROLE_OPTIONS,
@@ -778,6 +972,7 @@ const currentUserLabel = computed(() => {
 
 const TABS = [
   { id: 'members', label: '成员列表' },
+  { id: 'mirror', label: '私有镜像源账号' },
   { id: 'matrix', label: '功能权限矩阵' },
 ]
 const activeTab = ref('members')
@@ -1300,6 +1495,138 @@ function onDocClick(e) {
     roleMsOpen.value = false
   }
 }
+/* ===== 私有镜像源账号：列表 / 表单 / 日志 ===== */
+const MIRROR_PAGE_SIZE = 10
+const mirrorKeyword = ref('')
+const mirrorOrgFilter = ref('')
+const mirrorStatusFilter = ref('')
+const mirrorPage = ref(1)
+const mirrorAccounts = ref(getMirrorAccountList())
+
+function refreshMirrorAccounts() {
+  mirrorAccounts.value = getMirrorAccountList()
+}
+
+/** 筛选里只列出「确实有账号」的组织 */
+const mirrorOrgOptions = computed(() => {
+  const used = new Set(mirrorAccounts.value.map((a) => a.orgId).filter(Boolean))
+  return getOrgs().filter((o) => used.has(o.id)).map((o) => ({ label: o.name, value: o.id }))
+})
+const mirrorOrgFormOptions = computed(() => getOrgs().map((o) => ({ label: o.name, value: o.id })))
+const mirrorStatusOptions = [
+  { label: MIRROR_ACCOUNT_STATUS.enabled, value: 'enabled' },
+  { label: MIRROR_ACCOUNT_STATUS.disabled, value: 'disabled' },
+]
+
+const filteredMirrorAccounts = computed(() => {
+  const kw = mirrorKeyword.value.toLowerCase()
+  return mirrorAccounts.value.filter((a) => {
+    if (kw && !`${a.name} ${a.loginName}`.toLowerCase().includes(kw)) return false
+    if (mirrorOrgFilter.value && a.orgId !== mirrorOrgFilter.value) return false
+    if (mirrorStatusFilter.value === 'enabled' && !a.enabled) return false
+    if (mirrorStatusFilter.value === 'disabled' && a.enabled) return false
+    return true
+  })
+})
+const mirrorTotalPages = computed(() => Math.max(1, Math.ceil(filteredMirrorAccounts.value.length / MIRROR_PAGE_SIZE)))
+const paginatedMirrorAccounts = computed(() => {
+  const start = (mirrorPage.value - 1) * MIRROR_PAGE_SIZE
+  return filteredMirrorAccounts.value.slice(start, start + MIRROR_PAGE_SIZE)
+})
+
+function clearMirrorFilters() {
+  mirrorKeyword.value = ''
+  mirrorOrgFilter.value = ''
+  mirrorStatusFilter.value = ''
+}
+watch([mirrorKeyword, mirrorOrgFilter, mirrorStatusFilter], () => { mirrorPage.value = 1 })
+watch(mirrorTotalPages, (n) => { if (mirrorPage.value > n) mirrorPage.value = n })
+
+/* 新建 / 编辑 */
+const mirrorFormOpen = ref(false)
+const mirrorFormError = ref('')
+const mirrorForm = reactive({ id: '', name: '', orgId: '', loginName: '', password: '', remark: '' })
+
+function resetMirrorForm() {
+  Object.assign(mirrorForm, { id: '', name: '', orgId: '', loginName: '', password: '', remark: '' })
+  mirrorFormError.value = ''
+}
+
+function openMirrorCreate() {
+  resetMirrorForm()
+  mirrorFormOpen.value = true
+}
+
+function openMirrorEdit(row) {
+  Object.assign(mirrorForm, {
+    id: row.id,
+    name: row.name,
+    orgId: row.orgId,
+    loginName: row.loginName,
+    password: row.password || '',
+    remark: row.remark || '',
+  })
+  mirrorFormError.value = ''
+  mirrorFormOpen.value = true
+}
+
+function closeMirrorForm() {
+  mirrorFormOpen.value = false
+}
+
+function submitMirrorForm() {
+  if (!mirrorForm.name) { mirrorFormError.value = '请填写账号名称'; return }
+  if (!mirrorForm.orgId) { mirrorFormError.value = '请选择所属组织'; return }
+  if (!mirrorForm.loginName) { mirrorFormError.value = '请填写登录账号'; return }
+  if (!mirrorForm.password) { mirrorFormError.value = '请填写登录密码'; return }
+  const dup = mirrorAccounts.value.find((a) => a.loginName === mirrorForm.loginName && a.id !== mirrorForm.id)
+  if (dup) { mirrorFormError.value = '该登录账号已被其他镜像源账号占用'; return }
+
+  const operator = getCurrentUsername() || '平台管理员'
+  if (mirrorForm.id) {
+    updateMirrorAccount(mirrorForm.id, {
+      name: mirrorForm.name,
+      orgId: mirrorForm.orgId,
+      loginName: mirrorForm.loginName,
+      password: mirrorForm.password,
+      remark: mirrorForm.remark,
+    }, operator)
+  } else {
+    createMirrorAccount({
+      name: mirrorForm.name,
+      orgId: mirrorForm.orgId,
+      loginName: mirrorForm.loginName,
+      password: mirrorForm.password,
+      remark: mirrorForm.remark,
+      operator,
+    })
+  }
+  mirrorFormOpen.value = false
+  refreshMirrorAccounts()
+}
+
+/* 启用 / 禁用 */
+function toggleMirrorEnabled(row, enabled) {
+  setMirrorAccountEnabled(row.id, enabled, getCurrentUsername() || '平台管理员')
+  refreshMirrorAccounts()
+}
+
+/* 删除 */
+const mirrorDeleteRow = ref(null)
+
+function askDeleteMirror(row) {
+  mirrorDeleteRow.value = row
+}
+
+function doDeleteMirror() {
+  if (!mirrorDeleteRow.value) return
+  deleteMirrorAccount(mirrorDeleteRow.value.id)
+  mirrorDeleteRow.value = null
+  refreshMirrorAccounts()
+}
+
+/* 下载日志：入口按钮已按需求移除，数据层仍在记录，保留取数接口供后续入口使用 */
+
 onMounted(() => document.addEventListener('click', onDocClick))
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -2271,6 +2598,26 @@ function doCreateAccount() {
 .perm-input--wide { width: 100%; min-width: 0; }
 
 /* 行内文字操作 */
+/* ===== 私有镜像源账号 ===== */
+.perm-code {
+  padding: 1px 6px;
+  border: 1px solid #eef0f3;
+  border-radius: 4px;
+  background: #f7f8fa;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #374151;
+}
+.perm-sep {
+  margin-right: 10px;
+  color: #e5e7eb;
+}
+.perm-table--compact th,
+.perm-table--compact td {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
 .perm-link {
   padding: 0;
   margin-right: 10px;

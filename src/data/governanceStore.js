@@ -9,6 +9,8 @@ import {
   INDICATOR_CAPABILITY,
   DEFAULT_SCAN_CONFIG,
   engineOfConfig,
+  normalizeScanConfig,
+  nodeForCapabilityType,
 } from './scanEngines.js'
 
 export const softwareList = ref([])
@@ -30,21 +32,21 @@ export function genId() {
 
 /* ==================== 扫描引擎与基线判定（五步版使用；四步版仍走国标评分） ==================== */
 
-/** 三类扫描的默认引擎配置 */
+/** 各扫描节点的默认工具配置（按节点键存储，兼容旧的三类字段） */
 export function defaultScanConfig() {
-  return { ...DEFAULT_SCAN_CONFIG }
+  return normalizeScanConfig(DEFAULT_SCAN_CONFIG)
 }
 
-/** 设置某类扫描的引擎 */
-export function setScanConfig(item, type, engineId) {
+/** 设置某个扫描节点使用的工具 */
+export function setScanConfig(item, nodeKey, engineId) {
   if (!item) return
-  if (!item.scanConfig) item.scanConfig = defaultScanConfig()
-  item.scanConfig[type] = engineId
+  item.scanConfig = normalizeScanConfig(item.scanConfig)
+  item.scanConfig[nodeKey] = engineId
 }
 
-/** 取某类扫描当前使用的引擎 */
-export function scanEngineOf(item, type) {
-  return engineOfConfig(item?.scanConfig, type)
+/** 取某个扫描节点当前使用的工具 */
+export function scanEngineOf(item, nodeKey) {
+  return engineOfConfig(item?.scanConfig, nodeKey)
 }
 
 /** 初始化 15 项基线判定 */
@@ -145,7 +147,8 @@ export function applyScanAutoResults(item) {
   Object.entries(judge).forEach(([id, v]) => {
     const cap = INDICATOR_CAPABILITY[id]
     if (!cap?.auto) return
-    const engine = engineOfConfig(item.scanConfig, cap.type)
+    const nodeKey = nodeForCapabilityType(cap.type)
+    const engine = nodeKey ? engineOfConfig(item.scanConfig, nodeKey) : null
     checks[id] = {
       result: v.pass ? 'pass' : 'fail',
       source: 'auto',
@@ -157,12 +160,12 @@ export function applyScanAutoResults(item) {
   })
 }
 
-/** 记录一次扫描的引擎与时间（可追溯） */
-export function recordScan(item, type, { startedAt, finishedAt } = {}) {
+/** 记录一次扫描的节点工具与时间（可追溯） */
+export function recordScan(item, nodeKey, { startedAt, finishedAt } = {}) {
   if (!item) return
-  const engine = engineOfConfig(item.scanConfig, type)
+  const engine = engineOfConfig(item.scanConfig, nodeKey)
   if (!item.scanResults) item.scanResults = {}
-  item.scanResults[type] = {
+  item.scanResults[nodeKey] = {
     engine: engine?.id || '',
     engineName: engine?.name || '',
     engineVersion: engine?.version || '',
